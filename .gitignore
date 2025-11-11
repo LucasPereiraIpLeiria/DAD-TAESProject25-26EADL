@@ -45,15 +45,22 @@ temp/
 # ======================================
 # Laravel (api/)
 # ======================================
-api/vendor/
-api/storage/
-api/bootstrap/cache/
-api/public/storage/
-api/.phpunit.result.cache
-api/.phpunit.cache
-api/composer.lock
-api/phpunit.xml
-api/database/
+/api/vendor/
+/api/node_modules/
+/api/.env
+/api/storage/*.key
+/api/storage/app/private/**
+/api/storage/app/public/**
+/api/storage/framework/cache/**
+/api/storage/framework/sessions/**
+/api/storage/framework/testing/**
+/api/storage/framework/views/**
+/api/storage/logs/**
+/api/bootstrap/cache/**
+/api/.phpunit.result.cache
+/api/.phpunit.cache
+/api/public/hot
+/api/public/storage
 
 # ======================================
 # Vue frontend (frontend/)

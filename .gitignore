@@ -5,7 +5,7 @@
 /node_modules/
 /dist/
 /build/
-/env
+/.env
 /.env.*
 !/.env.example
 
@@ -53,6 +53,7 @@ api/.phpunit.result.cache
 api/.phpunit.cache
 api/composer.lock
 api/phpunit.xml
+api/database/
 
 # ======================================
 # Vue frontend (frontend/)
@@ -60,15 +61,16 @@ api/phpunit.xml
 frontend/.env.local
 frontend/.env.*.local
 frontend/.vite/
+frontend/node_modules/
 
 # ======================================
 # WebSockets server (websockets/)
 # ======================================
-websockets/dist/
-websockets/build/
-websockets/logs/
-websockets/tmp/
-websockets/node_modules/
+websocket/dist/
+websocket/build/
+websocket/logs/
+websocket/tmp/
+websocket/node_modules/
 
 # ======================================
 # Testing / coverage

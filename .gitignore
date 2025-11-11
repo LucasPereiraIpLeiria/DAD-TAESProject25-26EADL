@@ -5,7 +5,7 @@
 /node_modules/
 /dist/
 /build/
-/.env
+/env
 /.env.*
 !/.env.example
 
@@ -68,6 +68,7 @@ websockets/dist/
 websockets/build/
 websockets/logs/
 websockets/tmp/
+websockets/node_modules/
 
 # ======================================
 # Testing / coverage

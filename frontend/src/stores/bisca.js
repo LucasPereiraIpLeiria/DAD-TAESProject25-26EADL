@@ -8,12 +8,16 @@ export const useBiscaStore = defineStore('bisca', () => {
   // ───────────────────────────────────────────────
   //
 
-  const mode = ref('practice') // 'competitive' | 'practice'
-  const status = ref('idle') // 'idle' | 'in_game' | 'between_games' | 'match_finished'
+  const mode = ref('practice')           // 'competitive' | 'practice'
+  const gameType = ref('standalone')     // 'standalone' | 'match'
+  const variant = ref('9')               // '3' | '9'  (tamanho da mão inicial)
 
-  const deck = ref([]) // baralho completo
-  const stock = ref([]) // cartas restantes
-  const trumpCard = ref(null) // carta de trunfo (stock[ stock.length-1 ])
+  const status = ref('idle')             // 'idle' | 'in_game' | 'between_games' | 'match_finished'
+
+  const deck = ref([])                   // baralho completo (apenas debug se quiseres)
+  const stock = ref([])                  // cartas restantes (monte)
+  const trumpCard = ref(null)            // carta de trunfo (última do stock)
+
   const playerHand = ref([])
   const botHand = ref([])
 
@@ -29,14 +33,14 @@ export const useBiscaStore = defineStore('bisca', () => {
   const botMarks = ref(0)
 
   const currentGameNumber = ref(1)
-  const currentTurn = ref('player') // 'player' | 'bot'
+  const currentTurn = ref('player')      // 'player' | 'bot'
 
-  const phase = ref('draw_phase') // 'draw_phase' | 'final_phase'
+  const phase = ref('draw_phase')        // 'draw_phase' | 'final_phase'
 
-  const summary = ref(null) // resumo final
+  const summary = ref(null)              // resumo final do “match” ou jogo standalone
 
   // quem começou a vaza atual
-  const trickLeader = ref('player') // 'player' | 'bot'
+  const trickLeader = ref('player')      // 'player' | 'bot'
 
   //
   // ───────────────────────────────────────────────
@@ -71,16 +75,16 @@ export const useBiscaStore = defineStore('bisca', () => {
     // Bisca 40-cartas: 4 naipes * 10 ranks
     const suits = ['♠', '♥', '♦', '♣']
     const ranks = [
-      { rank: 1, points: 11 }, // Ás
-      { rank: 7, points: 10 }, // Bisca / Manilha
-      { rank: 13, points: 4 }, // Rei
-      { rank: 11, points: 3 }, // Valete
-      { rank: 12, points: 2 }, // Dama
-      { rank: 3, points: 0 }, // 3
-      { rank: 2, points: 0 }, // 2
-      { rank: 4, points: 0 }, // 4
-      { rank: 5, points: 0 }, // 5
-      { rank: 6, points: 0 }, // 6
+      { rank: 1, points: 11 },  // Ás
+      { rank: 7, points: 10 },  // Bisca / Manilha
+      { rank: 13, points: 4 },  // Rei
+      { rank: 11, points: 3 },  // Valete
+      { rank: 12, points: 2 },  // Dama
+      { rank: 3, points: 0 },   // 3
+      { rank: 2, points: 0 },   // 2
+      { rank: 4, points: 0 },   // 4
+      { rank: 5, points: 0 },   // 5
+      { rank: 6, points: 0 },   // 6
     ]
 
     const d = []
@@ -125,18 +129,41 @@ export const useBiscaStore = defineStore('bisca', () => {
 
   //
   // ───────────────────────────────────────────────
+  // MATCH / GAME CONFIG
+  // ───────────────────────────────────────────────
+  //
+
+  function applyConfig(config) {
+    if (!config) return
+
+    if (config.mode === 'competitive' || config.mode === 'practice') {
+      mode.value = config.mode
+    }
+
+    if (config.gametype === 'standalone' || config.gametype === 'match') {
+      gameType.value = config.gametype
+    }
+
+    if (config.variant === '3' || config.variant === '9') {
+      variant.value = config.variant
+    }
+  }
+
+  //
+  // ───────────────────────────────────────────────
   // MATCH FLOW
   // ───────────────────────────────────────────────
   //
 
-  function startMatch({ mode: m }) {
+  function startMatch({ mode: m, gametype, variant: v } = {}) {
+    applyConfig({ mode: m, gametype, variant: v })
+
     resetMatch()
-    mode.value = m
     status.value = 'in_game'
     currentGameNumber.value = 1
     playerMarks.value = 0
     botMarks.value = 0
-    startGame()
+    startGame() // usa mode/gameType/variant atuais
   }
 
   function resetMatch() {
@@ -163,8 +190,11 @@ export const useBiscaStore = defineStore('bisca', () => {
   // ───────────────────────────────────────────────
   //
 
-  function startGame() {
-    // se estivermos entre jogos, este é o próximo game
+  function startGame(config) {
+    // Se vier configuração (standalone), atualiza mode/type/variant
+    applyConfig(config || {})
+
+    // se estivermos entre jogos (num match), este é o próximo game
     if (status.value === 'between_games') {
       currentGameNumber.value++
     }
@@ -182,9 +212,11 @@ export const useBiscaStore = defineStore('bisca', () => {
     deck.value = createDeck()
     shuffle(deck.value)
 
-    // Bisca de 3: 3 cartas para cada
-    playerHand.value = deck.value.splice(0, 3)
-    botHand.value = deck.value.splice(0, 3)
+    // tamanho da mão inicial depende da variante
+    const handSize = variant.value === '3' ? 3 : 9
+
+    playerHand.value = deck.value.splice(0, handSize)
+    botHand.value = deck.value.splice(0, handSize)
 
     // trunfo = última carta do stock
     trumpCard.value = deck.value[deck.value.length - 1]
@@ -237,7 +269,7 @@ export const useBiscaStore = defineStore('bisca', () => {
         resolveTrick()
       }, 1000)
     } else {
-      // bot ainda não jogou, dar 1s para animar
+      // bot ainda não jogou, dar 1s para “animação”
       setTimeout(() => {
         botPlay()
       }, 1000)
@@ -298,7 +330,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
 
     //
-    // CASO 2: bot está a responder (tu começaste ou respondeste à carta dele)
+    // CASO 2: bot está a responder
     //
     const opponentCard = tableCards.value.player || tableCards.value.bot
     const leadingSuit = tableCards.value.player
@@ -326,41 +358,33 @@ export const useBiscaStore = defineStore('bisca', () => {
       }
     } else {
       //
-      // Draw phase OU não tem o naipe → aplica a regra simples que disseste:
-      // "se tiver mais alto manda, senão corta, senão manda lixo"
+      // Draw phase OU não tem o naipe → regra simples:
+      // tentar ganhar, senão corta, senão carta mais baixa
       //
 
       if (sameSuitCards.length > 0) {
-        // tem o mesmo naipe que tu jogaste
         const winners = sameSuitCards.filter((c) =>
           cardBeats(c, opponentCard, leadingSuit, trumpSuit),
         )
 
         if (winners.length > 0) {
-          // tem carta mais alta do mesmo naipe → manda (a mais baixa que ainda ganhe)
           cardToPlay = chooseLowest(winners)
         } else if (trumpCards.length > 0) {
-          // não consegue ganhar pelo naipe, mas pode cortar
           cardToPlay = chooseLowest(trumpCards)
         } else {
-          // não tem como ganhar → manda lixo (carta mais baixa que tiver)
           const trash = [...sameSuitCards, ...otherCards, ...trumpCards]
           cardToPlay = chooseLowest(trash)
         }
       } else {
-        // não tem o naipe que foi liderado
         if (trumpCards.length > 0) {
-          // pode cortar → corta
           cardToPlay = chooseLowest(trumpCards)
         } else {
-          // não tem trunfo → manda lixo (qualquer carta baixa)
           const trash = [...otherCards]
           cardToPlay = chooseLowest(trash)
         }
       }
     }
 
-    // fallback só para não rebentar
     if (!cardToPlay) {
       cardToPlay = hand[0]
     }
@@ -368,7 +392,6 @@ export const useBiscaStore = defineStore('bisca', () => {
     botHand.value = botHand.value.filter((c) => c.id !== cardToPlay.id)
     tableCards.value.bot = cardToPlay
 
-    // agora temos as duas cartas na mesa → resolver vaza depois de 1s
     setTimeout(() => {
       resolveTrick()
     }, 1000)
@@ -396,7 +419,7 @@ export const useBiscaStore = defineStore('bisca', () => {
       if (c1.suit === trumpCard.value.suit && c2.suit !== trumpCard.value.suit) return true
       if (c2.suit === trumpCard.value.suit && c1.suit !== trumpCard.value.suit) return false
 
-      // mesmo naipe → maior "força" (usamos points como proxy de ranking)
+      // mesmo naipe → maior “força” (proxy pelos points)
       if (c1.suit === c2.suit) {
         return c1.points >= c2.points
       }
@@ -462,8 +485,6 @@ export const useBiscaStore = defineStore('bisca', () => {
     if (!isGameOver.value) {
       currentTurn.value = winner
       trickLeader.value = winner
-      // se o próximo a jogar for o bot e a mesa estiver vazia,
-      // ele deve começar a vaza automaticamente
       scheduleBotStartIfNeeded()
       return
     }
@@ -482,8 +503,7 @@ export const useBiscaStore = defineStore('bisca', () => {
       gameWinner = 'bot'
       gameWinnerPoints = botPoints.value
     } else {
-      // empate -> zero marks para ambos
-      gameWinner = null
+      gameWinner = null // empate → zero marks para ambos
     }
 
     if (gameWinner) {
@@ -509,13 +529,19 @@ export const useBiscaStore = defineStore('bisca', () => {
           botMarks.value += 1
         }
       }
-      // se <61 ambos → zero marks, não mexemos
     }
 
     // ───────────────────────────────────────────────
-    // FIM DE MATCH OU CONTINUAR
+    // STANDALONE vs MATCH
     // ───────────────────────────────────────────────
 
+    if (gameType.value === 'standalone') {
+      // standalone: um único jogo → termina logo o “match”
+      finishMatch()
+      return
+    }
+
+    // modo match normal
     if (isMatchFinished.value) {
       finishMatch()
     } else {
@@ -533,10 +559,12 @@ export const useBiscaStore = defineStore('bisca', () => {
       botPoints: botPoints.value,
       achievements: {
         capote: playerMarks.value === 4 && botMarks.value === 0,
-        // TODO: ajustar regra real de bandeira se quiserem
-        bandeira: playerPoints.value > botPoints.value + 30,
+        // este "bandeira" aqui é só um placeholder; a verdadeira condição é 120 pontos
+        bandeira: playerPoints.value === 120 || botPoints.value === 120,
       },
       mode: mode.value,
+      gameType: gameType.value,
+      variant: variant.value,
     }
   }
 
@@ -563,6 +591,8 @@ export const useBiscaStore = defineStore('bisca', () => {
   return {
     // state
     mode,
+    gameType,
+    variant,
     status,
     stock,
     trumpCard,

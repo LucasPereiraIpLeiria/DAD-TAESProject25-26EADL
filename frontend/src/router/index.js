@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '@/pages/home/HomePage.vue'
-import SingleplayerGamePage from '@/pages/game/SingleplayerGamePage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -11,14 +10,16 @@ const router = createRouter({
       component: HomePage,
     },
     {
-      path: '/game',
-      children: [
-        {
-          path: 'singleplayer',
-          name: 'singleplayer',
-          component: SingleplayerGamePage,
-        },
-      ],
+      // página de setup singleplayer (escolhas todas + Start Game)
+      path: '/singleplayer',
+      name: 'singleplayer.mode.select',
+      component: () => import('@/pages/SinglePlayerModeSelect.vue'),
+    },
+    {
+      // página do jogo em si
+      path: '/singleplayer/:mode/:gametype/:variant',
+      name: 'singleplayer.game',
+      component: () => import('@/pages/SinglePlayerGame.vue'),
     },
   ],
 })

@@ -88,7 +88,7 @@ class UsersSeeder extends Seeder
             }
             $usersAdded[$key]['nickname'] = ($user['gender'] == 'M' ? 'Mickey' : 'Minnie') . ($key + 1) ;
             $usersAdded[$key]['blocked'] = false;
-            $usersAdded[$key]['photo_avatar_filename'] = null;
+            $usersAdded[$key]['1photo_avatar_filename'] = null;
             $usersAdded[$key]['coins_balance'] = 0;
             $usersAdded[$key]['deleted_at'] = null;
             if ($usersAdded[$key]['softdelete']) {

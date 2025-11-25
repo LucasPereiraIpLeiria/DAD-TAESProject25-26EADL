@@ -28,6 +28,7 @@ export const useAuthStore = defineStore('auth', () => {
       await apiStore.postLogin(credentials)
       const response = await apiStore.getAuthUser()
 
+
       currentUser.value = response.data
       localStorage.setItem('logged_user', JSON.stringify(response.data))
 
@@ -38,6 +39,20 @@ export const useAuthStore = defineStore('auth', () => {
       throw error
     }
   }
+
+  const register = async (user) => {
+    // Convert user object to FormData to support file upload
+    const payload = new FormData()
+    for (const key in user) {
+      if (user[key] !== null && user[key] !== undefined) {
+        payload.append(key, user[key])
+      }
+    }
+
+    const response = await apiStore.postRegister(payload)
+    return response
+  }
+
 
   const logout = async () => {
     try {
@@ -78,6 +93,7 @@ export const useAuthStore = defineStore('auth', () => {
     currentUser,
     isLoggedIn,
     login,
+    register,
     logout,
   }
 })

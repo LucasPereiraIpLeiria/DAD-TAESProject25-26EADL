@@ -67,11 +67,24 @@ export const useAPIStore = defineStore('api', () => {
     return await axios.get(`${API_BASE_URL}/users/me`)
   }
 
+  //get user games
+
+  const getUserGames = async() =>{
+        if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+    const response = await axios.get(`${API_BASE_URL}/users/matches`);
+    //console.log(response);
+    return response;
+  }
+
+
   return {
     token,
     setToken,
     postLogin,
     postLogout,
     getAuthUser,
+    getUserGames,
   }
 })

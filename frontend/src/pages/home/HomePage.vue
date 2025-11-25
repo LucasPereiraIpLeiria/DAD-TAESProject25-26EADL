@@ -1,51 +1,54 @@
 <template>
-  <div class="flex flex-row justify-center items-stretch gap-5 mt-10">
+  <div class="flex flex-row justify-center items-start gap-5 mt-10">
+
+    <!-- Card 1: Os Meus Matches -->
+    <Card class="w-full max-w-md">
+
+    </Card>
+
+    <!-- Card 2: Placeholder -->
     <Card class="w-full max-w-md">
       <CardHeader>
-        <CardTitle class="text-3xl font-bold text-center">
-          Single Player
-        </CardTitle>
-        <CardDescription class="text-center">
-          Test your memory by finding matching pairs!
-        </CardDescription>
+        <CardTitle>Outro Card</CardTitle>
       </CardHeader>
-      <CardContent class="space-y-6">
-        <div class="space-y-2">
-          <label class="text-sm font-medium">Choose Difficulty</label>
-          <div class="grid grid-cols-3 gap-2">
-          </div>
-        </div>
-        <div class="space-y-2">
-          <label class="text-sm font-medium">High Scores (local)</label>
-          <!-- TODO: Add High Scores functionality -->
-        </div>
-
-        <div class="flex justify-center">
-          <Button @click="startSinglePlayerGame" size="lg" variant="secondary" class="hover:bg-purple-500 hover:text-slate-200">
-            Start Game
-          </Button>
-        </div>
+      <CardContent>
+        Conteúdo adicional aqui.
       </CardContent>
     </Card>
-    <Card class="w-full max-w-md">
-      <CardHeader>
-        <CardTitle class="text-3xl font-bold text-center">
-          MultiPlayer
-        </CardTitle>
-        <CardDescription class="text-center">
-          Comming Soon!!
-        </CardDescription>
-      </CardHeader>
-      <CardContent class="space-y-6">
 
-      </CardContent>
-    </Card>
   </div>
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+import { useAPIStore } from '@/stores/api.js'
+import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card'
+import { useAuthStore } from '@/stores/auth'
 
-import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card/index.js'
-import Card from '@/components/game/Card.vue'
-import { Button } from '@/components/ui/button/index.js'
+// API Store
+const apiStore = useAPIStore()
+const authStore = useAuthStore()
+
+// Reactive variables
+const gamesData = ref([])
+const authUser = ref({})
+const loading = ref(true)
+
+// Fetch data on mounted
+onMounted(async () => {
+  loading.value = true
+  // Get authenticated user
+  authUser.value = await authStore.currentUser
+  // Fetch user matches
+  const response = await apiStore.getUserGames() // should return { data: [...] }
+  gamesData.value = response.data.map(g => ({ ...g })) 
+
+  //gamesData.value = response.data
+  //console.log(gamesData.value[0].winner_user_id)
+  loading.value = false
+})
 </script>
+
+<style scoped>
+/* Optional: adjust table styling if needed */
+</style>

@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import RegisterPage from '@/pages/login/RegisterPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -11,6 +12,11 @@ const router = createRouter({
     {
       path: '/login',
       component: ()=> import('@/pages/login/LoginPage.vue')
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: RegisterPage,
     },
     {// página de setup singleplayer (escolhas todas + Start Game)
       path: '/singleplayer',

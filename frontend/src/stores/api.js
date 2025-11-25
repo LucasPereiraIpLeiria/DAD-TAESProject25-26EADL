@@ -33,13 +33,32 @@ export const useAPIStore = defineStore('api', () => {
     const response = await axios.post(`${API_BASE_URL}/login`, credentials)
 
     // Adjust this based on your actual API response structure
-    const responseToken = response.data.token || response.data.access_token
+    const responseToken = response.data.token
 
     if (!responseToken) {
       throw new Error('No token received from login API')
     }
 
     setToken(responseToken)
+    return response
+  }
+
+  const postRegister = async (user) => {
+    // user could be a plain object or FormData
+    let payload = user
+
+    // If it's a plain object, convert to FormData
+    if (!(user instanceof FormData)) {
+      payload = new FormData()
+      for (const key in user) {
+        if (user[key] !== null && user[key] !== undefined) {
+          payload.append(key, user[key])
+        }
+      }
+    }
+
+    // Axios will automatically set correct multipart/form-data headers
+    const response = await axios.post(`${API_BASE_URL}/register`, payload)
     return response
   }
 
@@ -71,6 +90,7 @@ export const useAPIStore = defineStore('api', () => {
     token,
     setToken,
     postLogin,
+    postRegister,
     postLogout,
     getAuthUser,
   }

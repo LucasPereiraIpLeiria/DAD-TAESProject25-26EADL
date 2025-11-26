@@ -64,6 +64,7 @@ class AuthController extends Controller
             'password' => bcrypt($validated['password']),
             'nickname' => $validated['nickname'],
             'photo_avatar_filename' => $photoFilename,
+            'coins_balance' => 10,
         ]);
 
         return response()->json([

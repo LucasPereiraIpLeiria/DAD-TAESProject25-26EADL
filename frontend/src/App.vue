@@ -2,9 +2,6 @@
   <nav class="max-w-full p-5 flex flex-row justify-between align-middle">
     <div class="align-middle text-xl">
       <RouterLink :to="{name:'home'}">♠ PlayBisca</RouterLink><!-- TODO: Replace with router link to Home page -->
-      <span class="text-xs" v-if="authStore.currentUser">&nbsp;&nbsp;&nbsp;
-        ({{ authStore.currentUser?.name }})
-      </span>
     </div>
 
     <NavigationMenu>
@@ -44,17 +41,35 @@
           </NavigationMenuContent>
         </NavigationMenuItem>
       </NavigationMenuList>
+
+
+
+      <NavigationMenuList v-if="authStore.isLoggedIn" class="justify-around gap-20">
+        <NavigationMenuItem>
+            <NavigationMenuTrigger>{{ authStore.currentUser?.nickname }}</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <li>
+                <NavigationMenuLink as-child>
+                  <RouterLink :to="{}">
+                    Profile
+                  </RouterLink>
+                </NavigationMenuLink>
+                <NavigationMenuLink>
+                  <a @click.prevent="logout">Logout</a>
+                </NavigationMenuLink>
+              </li>
+            </NavigationMenuContent>
+          </NavigationMenuItem> 
+      </NavigationMenuList>
+
       <NavigationMenuItem v-if="!authStore.isLoggedIn">
         <NavigationMenuLink>
           <RouterLink to="/login">Login</RouterLink>
         </NavigationMenuLink>
       </NavigationMenuItem>
-      <NavigationMenuItem v-else>
-        <NavigationMenuLink>
-          <a @click.prevent="logout">Logout</a>
-        </NavigationMenuLink>
-      </NavigationMenuItem>
     </NavigationMenu>
+
+
   </nav>
 
   <div>

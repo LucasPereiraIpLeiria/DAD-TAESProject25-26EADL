@@ -25,6 +25,7 @@ class User extends Authenticatable
         'password',
         'nickname',
         'photo_avatar_filename', // Optional field
+        'coins_balance',
     ];
 
     /**

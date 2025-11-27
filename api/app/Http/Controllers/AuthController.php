@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function login(Request $request)
+    public function login(Request $request): \Illuminate\Http\JsonResponse
     {
         $request->validate([
             'email' => 'required|email',
@@ -30,7 +30,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request): \Illuminate\Http\JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
         return response()->json([
@@ -53,7 +53,8 @@ class AuthController extends Controller
         // Handle file upload if a photo is provided
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
-            $photoFilename = $photo->store('photos_avatars', 'public');
+            $photoFilename = basename($photo->store('photos_avatars', 'public'));
+
             // stores in storage/app/public/avatars and creates a unique filename
             // 'public' disk should be linked to public/storage via php artisan storage:link
         }
@@ -64,6 +65,7 @@ class AuthController extends Controller
             'password' => bcrypt($validated['password']),
             'nickname' => $validated['nickname'],
             'photo_avatar_filename' => $photoFilename,
+            'coins_balance' => 10,
         ]);
 
         return response()->json([

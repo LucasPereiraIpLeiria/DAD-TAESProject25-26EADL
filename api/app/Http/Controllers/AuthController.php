@@ -53,7 +53,8 @@ class AuthController extends Controller
         // Handle file upload if a photo is provided
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
-            $photoFilename = $photo->store('photos_avatars', 'public');
+            $photoFilename = basename($photo->store('photos_avatars', 'public'));
+
             // stores in storage/app/public/avatars and creates a unique filename
             // 'public' disk should be linked to public/storage via php artisan storage:link
         }

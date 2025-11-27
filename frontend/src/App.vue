@@ -2,9 +2,6 @@
   <nav class="max-w-full p-5 flex flex-row justify-between align-middle">
     <div class="align-middle text-xl">
       <RouterLink :to="{name:'home'}">♠ PlayBisca</RouterLink><!-- TODO: Replace with router link to Home page -->
-      <span class="text-xs" v-if="authStore.currentUser">&nbsp;&nbsp;&nbsp;
-        ({{ authStore.currentUser?.name }})
-      </span>
     </div>
 
     <NavigationMenu>
@@ -22,39 +19,43 @@
           </svg>
         </RouterLink>
       </div>
-
-      <NavigationMenuList class="justify-around gap-20">
+      
+      <NavigationMenuList v-if="authStore.isLoggedIn" class="justify-around gap-20">
         <NavigationMenuItem>
-          <NavigationMenuTrigger>Games</NavigationMenuTrigger>
-          <NavigationMenuContent>
-            <li>
-              <NavigationMenuLink as-child>
-                <!-- AQUI ligamos ao teu fluxo de singleplayer -->
-                <RouterLink :to="{ name: 'singleplayer.mode.select' }">
-                  SinglePlayer Game
-                </RouterLink>
-              </NavigationMenuLink>
-              <NavigationMenuLink>
-                <!-- Placeholder para multiplayer -->
-                <RouterLink :to="$route.path">
-                  Multiplayer (coming soon)
-                </RouterLink>
-              </NavigationMenuLink>
-            </li>
-          </NavigationMenuContent>
-        </NavigationMenuItem>
+            <NavigationMenuTrigger v-if="authStore.currentUser?.photo_avatar_filename" class="flex items-center gap-2">
+              {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}
+              <Avatar class="h-8 w-8">
+                <AvatarImage :src="'http://127.0.0.1:8000/storage/photos_avatars/' + authStore.currentUser?.photo_avatar_filename" />
+              </Avatar>
+            </NavigationMenuTrigger>
+            <NavigationMenuTrigger v-if="!authStore.currentUser?.photo_avatar_filename" class="flex items-center">
+              {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}  
+            </NavigationMenuTrigger>
+            <NavigationMenuContent class="w-full md:w-48">
+              <li class="flex flex-col w-full text-right">
+                <NavigationMenuLink as-child>
+                  <RouterLink :to="{}" class="block w-full px-3 py-2">
+                    Profile
+                  </RouterLink>
+                </NavigationMenuLink>
+                <NavigationMenuLink>
+                  <a @click.prevent="logout" class="block w-full px-3 py-2">
+                    Logout
+                  </a>
+                </NavigationMenuLink>
+              </li>
+            </NavigationMenuContent>
+          </NavigationMenuItem> 
       </NavigationMenuList>
+
       <NavigationMenuItem v-if="!authStore.isLoggedIn">
         <NavigationMenuLink>
           <RouterLink to="/login">Login</RouterLink>
         </NavigationMenuLink>
       </NavigationMenuItem>
-      <NavigationMenuItem v-else>
-        <NavigationMenuLink>
-          <a @click.prevent="logout">Logout</a>
-        </NavigationMenuLink>
-      </NavigationMenuItem>
     </NavigationMenu>
+
+
   </nav>
 
   <div>
@@ -79,6 +80,7 @@ import { onMounted, inject, ref, watch } from 'vue'
 import axios from 'axios'
 import {useAuthStore} from '@/stores/auth.js'
 import { toast } from 'vue-sonner'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 const authStore = useAuthStore()
 
@@ -124,6 +126,7 @@ const logout = async () => {
   })
   // Coin balance will be reset by the watcher
 }
+
 
 onMounted(() => {
   // Initial fetch - will be handled by watcher with immediate: true

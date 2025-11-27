@@ -19,13 +19,17 @@ import {
 
 // Game modes for the dropdown
 const gameModes = [
-  { value: 'SC3', label: 'Singleplayer Competitive - Bisca of 3' },
-  { value: 'SC9', label: 'Singleplayer Competitive - Bisca of 9' },
-  { value: 'M3', label: 'Multiplayer - Bisca de 3' },
-  { value: 'M9', label: 'Multiplayer - Bisca de 9' },
+  { value: 'SCS3', label: 'Singleplayer Competitive Standalone - Bisca of 3' },
+  { value: 'SCM3', label: 'Singleplayer Competitive Match - Bisca of 3' },
+  { value: 'SCS9', label: 'Singleplayer Competitive Standalone - Bisca of 9' },
+  { value: 'SCM9', label: 'Singleplayer Competitive Match - Bisca of 9' },
+  { value: 'MS3', label: 'Multiplayer Standalone - Bisca de 3' },
+  { value: 'MM3', label: 'Multiplayer Match - Bisca de 3' },
+  { value: 'MS9', label: 'Multiplayer Standalone - Bisca de 9' },
+  { value: 'MM9', label: 'Multiplayer Match - Bisca de 9' },
 ]
 
-const selectedGameMode = ref('SC3')
+const selectedGameMode = ref('SCS3')
 
 // Placeholder leaderboard data (will be replaced with API call)
 const leaderboardData = ref([])

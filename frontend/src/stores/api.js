@@ -78,6 +78,14 @@ export const useAPIStore = defineStore('api', () => {
     }
   }
 
+  const postDeductEntryFee = async () => {
+    if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+
+    return axios.post(`${API_BASE_URL}/economy/deduct-entry-fee`)
+  }
+
   // Users
   const getAuthUser = async () => {
     if (!token.value) {
@@ -93,5 +101,6 @@ export const useAPIStore = defineStore('api', () => {
     postRegister,
     postLogout,
     getAuthUser,
+    postDeductEntryFee,
   }
 })

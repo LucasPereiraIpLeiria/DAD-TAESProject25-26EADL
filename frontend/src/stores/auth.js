@@ -87,6 +87,35 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const refreshUser = async () => {
+  // Se não houver token no apiStore, não vale a pena tentar pedir o user
+  if (!apiStore.token) {
+    // 👉 aqui eu já não fazia logout "hard", só assumia que não há sessão
+    console.warn('refreshUser: no token found, skipping refresh')
+    return
+  }
+
+  try {
+    const response = await apiStore.getAuthUser()
+    currentUser.value = response.data
+    localStorage.setItem('logged_user', JSON.stringify(response.data))
+  } catch (error) {
+    console.error('Failed to refresh user:', error)
+
+    // Só desloga "a sério" se o backend disser que o token é inválido/expirou
+    if (error.response?.status === 401) {
+      currentUser.value = undefined
+      localStorage.removeItem('logged_user')
+      localStorage.removeItem('auth_token')
+      apiStore.setToken(undefined)
+    }
+
+    // Se for 500, 404, CORS, timeout, etc:
+    // NÃO limpamos currentUser → continuas logado no front
+  }
+}
+
+
   initializeAuth()
 
   return {
@@ -95,5 +124,6 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     register,
     logout,
+    refreshUser,
   }
 })

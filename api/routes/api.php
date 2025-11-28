@@ -12,6 +12,10 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
     Route::post('logout', [AuthController::class, 'logout']);
+    Route::post('/economy/deduct-entry-fee', [
+        App\Http\Controllers\EconomyController::class,
+        'deductEntryFee'
+    ]);
 });
 
 

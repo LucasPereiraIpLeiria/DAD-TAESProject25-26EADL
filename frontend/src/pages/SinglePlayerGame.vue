@@ -2,6 +2,7 @@
 import { onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useBiscaStore } from '@/stores/bisca'
+import { useAuthStore } from '@/stores/auth'
 
 import PageContainer from '@/components/ui/PageContainer.vue'
 import UiCard from '@/components/ui/UiCard.vue'
@@ -35,16 +36,17 @@ function startByRoute() {
     bisca.startMatch({
       mode: mode.value,
       gametype: gametype.value,
-      variant: variant.value
+      variant: variant.value,
     })
   } else {
     bisca.startGame({
       mode: mode.value,
       gametype: gametype.value,
-      variant: variant.value
+      variant: variant.value,
     })
   }
 }
+
 
 onMounted(() => {
   startByRoute()
@@ -83,38 +85,17 @@ function restartMatch() {
 <template>
   <PageContainer max-width="lg">
     <UiCard padding="md">
-    <BiscaGameHeader
-      :mode="mode"
-      :gametype="gametype"
-      :variant="variant"
-    />
+      <BiscaGameHeader :mode="mode" :gametype="gametype" :variant="variant" />
 
-    <BiscaGameInfo
-      :bisca="bisca"
-      :gametype="gametype"
-      :is-player-turn="isPlayerTurn"
-    />
+      <BiscaGameInfo :bisca="bisca" :gametype="gametype" :is-player-turn="isPlayerTurn" />
 
-    <BiscaGameBoard
-      v-if="bisca.status === 'in_game'"
-      :bisca="bisca"
-      :is-player-turn="isPlayerTurn"
-    />
+      <BiscaGameBoard v-if="bisca.status === 'in_game'" :bisca="bisca" :is-player-turn="isPlayerTurn" />
 
-    <BiscaPlayerHand
-      v-if="bisca.status === 'in_game'"
-      :bisca="bisca"
-      :is-player-turn="isPlayerTurn"
-      @play-card="play"
-    />
+      <BiscaPlayerHand v-if="bisca.status === 'in_game'" :bisca="bisca" :is-player-turn="isPlayerTurn"
+        @play-card="play" />
 
-    <BiscaEndPanel
-      v-if="bisca.status === 'between_games' || bisca.status === 'match_finished'"
-      :bisca="bisca"
-      :gametype="gametype"
-      @next-game="nextGame"
-      @restart-match="restartMatch"
-    />
+      <BiscaEndPanel v-if="bisca.status === 'between_games' || bisca.status === 'match_finished'" :bisca="bisca"
+        :gametype="gametype" @next-game="nextGame" @restart-match="restartMatch" />
     </UiCard>
   </PageContainer>
 </template>

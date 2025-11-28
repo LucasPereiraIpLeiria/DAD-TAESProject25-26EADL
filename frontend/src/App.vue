@@ -116,6 +116,17 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   }
 }, { immediate: true })
 
+// Novo: reagir a mudanças no currentUser (por ex. depois de refreshUser)
+watch(
+  () => authStore.currentUser?.coins_balance,
+  (newBalance) => {
+    if (authStore.isLoggedIn) {
+      // se tivermos user logado, reflete o novo saldo
+      coinBalance.value = newBalance ?? 0
+    }
+  }
+)
+
 const logout = async () => {
   await toast.promise(authStore.logout(), {
     loading: 'Calling API',

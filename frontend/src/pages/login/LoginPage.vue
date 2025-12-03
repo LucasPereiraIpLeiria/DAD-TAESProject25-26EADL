@@ -65,13 +65,14 @@ const formData = ref({
 
 
 const handleSubmit = async () => {
+  const toastId = toast.loading('Logging in...')
   try {
     await authStore.login(formData.value)
-
-    toast.success('Login Successful!')
+    toast.success('Login Successful!', { id: toastId })
     router.push('/')
   } catch (error) {
     const errorMessage = extractErrorMessage(error)
+    toast.dismiss(toastId)
     toast.error(errorMessage)
     console.error('Login failed:', error)
   }

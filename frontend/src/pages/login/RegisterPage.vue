@@ -101,11 +101,10 @@ import { ref } from 'vue'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card/index.js'
-
-// Auth store and router
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import { extractErrorMessage } from '@/utils/errorHandler.js'
 
 // Vue3 Dropzone composable
 import { useDropzone } from 'vue3-dropzone'
@@ -157,12 +156,23 @@ const removeFile = () => {
 
 // Handle form submit
 const handleSubmit = async () => {
-  toast.promise(authStore.register(formData.value), {
-    loading: 'Creating account...',
-    success: () => 'Account created successfully!',
-    error: (err) => `[API] Error - ${err?.response?.data?.message || err.message}`,
-  })
-  router.push('/login') // maybe redirect to login after signup
+  // Show loading toast
+  const toastId = toast.loading('Creating account...')
+  try {
+    // Call register
+    await authStore.register(formData.value)
+
+    // Update loading toast to success
+    toast.success('Account created successfully!', { id: toastId })
+
+    // Redirect to login
+    await router.push('/')
+  } catch (error) {
+    const errorMessage = extractErrorMessage(error)
+    toast.dismiss(toastId)
+    toast.error(errorMessage)
+    console.error(error)
+  }
 }
 </script>
 

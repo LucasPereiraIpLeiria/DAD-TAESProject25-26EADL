@@ -41,7 +41,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const register = async (user) => {
-    // Convert user object to FormData to support file upload
     const payload = new FormData()
     for (const key in user) {
       if (user[key] !== null && user[key] !== undefined) {
@@ -49,15 +48,15 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
 
-    const response = await apiStore.postRegister(payload)
-    return response
+    await apiStore.postRegister(payload)
+    return await login({ email: user.email, password: user.password })
   }
 
 
   const logout = async () => {
     try {
       // Check if we have a valid token before attempting API logout
-      if (apiStore.token) {
+      if (apiStore.token.value) {
         await apiStore.postLogout()
       }
     } catch (error) {

@@ -4,6 +4,8 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 
+import 'vue-sonner/style.css'
+
 const API_BASE_URL = 'http://localhost:8000/api'
 
 const app = createApp(App)

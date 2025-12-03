@@ -1,11 +1,31 @@
 export function extractErrorMessage(err) {
-  const errors = err?.response?.data?.errors
-  if (errors && Object.keys(errors).length > 0) {
-    const firstKey = Object.keys(errors)[0]
-    const message = errors[firstKey][0] || 'Validation error'
-    return message
+  // Handle Axios errors
+  if (err?.response?.data) {
+    const data = err.response.data
+
+    // Check for validation errors object
+    if (data.errors && typeof data.errors === 'object') {
+      const firstKey = Object.keys(data.errors)[0]
+      const errorValue = data.errors[firstKey]
+
+      if (Array.isArray(errorValue)) {
+        return errorValue[0] || 'Validation error'
+      }
+      if (typeof errorValue === 'string') {
+        return errorValue
+      }
+    }
+
+    // Check for direct message
+    if (data.message && typeof data.message === 'string') {
+      return data.message
+    }
   }
 
-  const fallback = err?.response?.data?.message || err?.message || 'Something went wrong'
-  return fallback
+  // Check error message
+  if (err?.message) {
+    return err.message
+  }
+
+  return 'Something went wrong'
 }

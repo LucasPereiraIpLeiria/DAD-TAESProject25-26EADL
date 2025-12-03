@@ -48,8 +48,15 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
 
-    await apiStore.postRegister(payload)
-    return await login({ email: user.email, password: user.password })
+    try {
+      await apiStore.postRegister(payload)
+      return await login({ email: user.email, password: user.password })
+    } catch (error) {
+      console.error('Register error full object:', error)
+      console.error('Register error response:', error?.response)
+      console.error('Register error data:', error?.response?.data)
+      throw error
+    }
   }
 
 

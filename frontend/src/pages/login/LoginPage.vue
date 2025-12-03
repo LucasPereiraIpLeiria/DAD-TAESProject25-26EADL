@@ -53,6 +53,7 @@ import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
 import { RouterLink, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import { extractErrorMessage } from '@/utils/errorHandler.js'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -64,16 +65,15 @@ const formData = ref({
 
 
 const handleSubmit = async () => {
+  try {
+    await authStore.login(formData.value)
 
-    toast.promise(authStore.login(formData.value), {
-        loading: 'Calling API',
-        success: (data) => {
-            return `Login Sucessfull - ${data?.name}`
-        },
-        error: (data) => `[API] Error saving game - ${data?.response?.data?.message}`,
-    })
-
-
+    toast.success('Login Successful!')
     router.push('/')
+  } catch (error) {
+    const errorMessage = extractErrorMessage(error)
+    toast.error(errorMessage)
+    console.error('Login failed:', error)
+  }
 }
 </script>

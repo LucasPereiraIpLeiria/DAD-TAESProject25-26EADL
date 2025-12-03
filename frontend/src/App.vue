@@ -19,7 +19,7 @@
           </svg>
         </RouterLink>
       </div>
-      
+
       <NavigationMenuList v-if="authStore.isLoggedIn" class="justify-around gap-20">
         <NavigationMenuItem>
             <NavigationMenuTrigger v-if="authStore.currentUser?.photo_avatar_filename" class="flex items-center gap-2">
@@ -29,7 +29,7 @@
               </Avatar>
             </NavigationMenuTrigger>
             <NavigationMenuTrigger v-if="!authStore.currentUser?.photo_avatar_filename" class="flex items-center">
-              {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}  
+              {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}
             </NavigationMenuTrigger>
             <NavigationMenuContent class="w-full md:w-48">
               <li class="flex flex-col w-full text-right">
@@ -45,7 +45,7 @@
                 </NavigationMenuLink>
               </li>
             </NavigationMenuContent>
-          </NavigationMenuItem> 
+          </NavigationMenuItem>
       </NavigationMenuList>
 
       <NavigationMenuItem v-if="!authStore.isLoggedIn">
@@ -63,6 +63,7 @@
       <RouterView />
     </main>
   </div>
+  <Toaster position="bottom-right"/>
 </template>
 
 
@@ -79,7 +80,7 @@ import { RouterLink, RouterView} from 'vue-router';
 import { onMounted, inject, ref, watch } from 'vue'
 import axios from 'axios'
 import {useAuthStore} from '@/stores/auth.js'
-import { toast } from 'vue-sonner'
+import { toast,Toaster } from 'vue-sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 const authStore = useAuthStore()

@@ -86,6 +86,11 @@ export const useAPIStore = defineStore('api', () => {
     return await axios.get(`${API_BASE_URL}/users/me`)
   }
 
+
+  const getLeaderboard = async (gameMode) => {
+    return await axios.get(`${API_BASE_URL}/leaderboard/${gameMode}`)
+  }
+
   return {
     token,
     setToken,
@@ -93,5 +98,6 @@ export const useAPIStore = defineStore('api', () => {
     postRegister,
     postLogout,
     getAuthUser,
+    getLeaderboard,
   }
 })

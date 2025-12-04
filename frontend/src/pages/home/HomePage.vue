@@ -36,6 +36,8 @@ const leaderboardData = ref([])
 
 const handleGameModeChange = (value) => {
   selectedGameMode.value = value
+  
+
   // TODO: Fetch leaderboard data for selected game mode
   console.log('Selected game mode:', value)
 }

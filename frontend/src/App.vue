@@ -22,7 +22,7 @@
       
       <NavigationMenuList v-if="authStore.isLoggedIn" class="justify-around gap-20">
         <NavigationMenuItem>
-            <NavigationMenuTrigger v-if="authStore.currentUser?.photo_avatar_filename" class="flex items-center gap-2">
+            <NavigationMenuTrigger v-if="authStore.currentUser?.photo_avatar_filename" class="flex items-center gap-2 cursor-pointer" >
               {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}
               <Avatar class="h-8 w-8">
                 <AvatarImage :src="'http://127.0.0.1:8000/storage/photos_avatars/' + authStore.currentUser?.photo_avatar_filename" />
@@ -31,15 +31,22 @@
             <NavigationMenuTrigger v-if="!authStore.currentUser?.photo_avatar_filename" class="flex items-center">
               {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}  
             </NavigationMenuTrigger>
-            <NavigationMenuContent class="w-full md:w-48">
-              <li class="flex flex-col w-full text-right">
+            <NavigationMenuContent class="w-full md:w-20">
+              <li class="flex flex-col w-full">
                 <NavigationMenuLink as-child>
-                  <RouterLink :to="{}" class="block w-full px-3 py-2">
+                  <RouterLink
+                    :to="{name: 'profile'}"
+                    class="block w-full px-3 py-2 text-center"
+                  >
                     Profile
                   </RouterLink>
                 </NavigationMenuLink>
-                <NavigationMenuLink>
-                  <a @click.prevent="logout" class="block w-full px-3 py-2">
+
+                <NavigationMenuLink as-child>
+                  <a
+                    @click.prevent="logout"
+                    class="block w-full px-3 py-2 cursor-pointer text-center"
+                  >
                     Logout
                   </a>
                 </NavigationMenuLink>
@@ -80,7 +87,8 @@ import { onMounted, inject, ref, watch } from 'vue'
 import axios from 'axios'
 import {useAuthStore} from '@/stores/auth.js'
 import { toast } from 'vue-sonner'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarImage } from '@/components/ui/avatar'
+import router from './router';
 
 const authStore = useAuthStore()
 
@@ -124,10 +132,11 @@ const logout = async () => {
     },
     error: (data) => `[API] Error saving game - ${data?.response?.data?.message}`,
   })
+  router.push({ name: 'home' })
   // Coin balance will be reset by the watcher
 }
 
-
+console.log(authStore.currentUser?.photo_avatar_filename)
 onMounted(() => {
   // Initial fetch - will be handled by watcher with immediate: true
 })

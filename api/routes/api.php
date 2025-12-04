@@ -13,6 +13,7 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
     Route::post('logout', [AuthController::class, 'logout']);
+    Route::post('/economy/award-match-reward', [EconomyController::class, 'awardMatchReward']);
     Route::post('/economy/deduct-entry-fee', [
         EconomyController::class,
         'deductEntryFee'

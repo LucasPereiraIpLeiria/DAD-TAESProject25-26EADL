@@ -103,11 +103,20 @@ export const useAPIStore = defineStore('api', () => {
     }
   }
 
-  const postDeductEntryFee = async () => {
+  const postDeductEntryFee = async (payload) => {
     if (!token.value) {
       throw new Error('No authentication token available')
     }
-    return axios.post(`${API_BASE_URL}/economy/deduct-entry-fee`)
+
+    return axios.post(`${API_BASE_URL}/economy/deduct-entry-fee`, payload)
+  }
+
+  const postAwardMatchReward = async (payload) => {
+    if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+
+    return axios.post(`${API_BASE_URL}/economy/award-match-reward`, payload)
   }
 
   const getAuthUser = async () => {
@@ -142,6 +151,7 @@ export const useAPIStore = defineStore('api', () => {
     postLogout,
     getAuthUser,
     postDeductEntryFee,
+    postAwardMatchReward,
     postCoinPurchase,
   }
 })

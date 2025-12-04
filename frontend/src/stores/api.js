@@ -78,6 +78,13 @@ export const useAPIStore = defineStore('api', () => {
     return response;
   }
 
+  const postStandalone = (game) => {
+    return axios.post(`${API_BASE_URL}/standalone`, game)
+  }
+
+  /*const postMatche = (game) => {
+    return axios.post(`${API_BASE_URL}/matches`, game)
+  }*/
 
   return {
     token,
@@ -86,5 +93,9 @@ export const useAPIStore = defineStore('api', () => {
     postLogout,
     getAuthUser,
     getUserGames,
+    postStandalone,
+    //postMatche
   }
 })
+
+

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\GameController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MatcheController;
@@ -16,8 +17,10 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user()->matches;
     });
 
-    
+    // Create a new match
+    Route::post('matches', [MatcheController::class, 'store']);
 
+    Route::post('standalone', [GameController::class, 'store']);
 });
 
 

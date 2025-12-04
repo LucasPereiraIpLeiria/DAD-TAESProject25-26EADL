@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col justify-center items-start gap-5 mt-10 w-full max-w-3xl">
+  <div class="flex flex-col justify-center items-center gap-5 mt-10 w-full max-w-3xl mx-auto">
 
     <!-- Filtros -->
     <div class="flex flex-wrap gap-3 mb-4 items-center">
@@ -11,11 +11,6 @@
 
       <input type="date" v-model="startDate" class="border rounded px-2 py-1" placeholder="De" />
       <input type="date" v-model="endDate" class="border rounded px-2 py-1" placeholder="Até" />
-
-      <select v-model="achievementFilter" class="border rounded px-2 py-1">
-        <option value="">Todos Achievements</option>
-        <option v-for="a in allAchievements" :key="a.id" :value="a.id">{{ a.name }}</option>
-      </select>
 
       <select v-model="sortBy" class="border rounded px-2 py-1">
         <option value="date">Data</option>
@@ -31,42 +26,40 @@
 
       <CardContent class="p-0">
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
+          <table class="w-auto mx-auto divide-y divide-gray-200 text-center">
             <thead class="bg-gray-100">
-              <tr>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">ID</th>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Data</th>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Resultado</th>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Pontos</th>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Achievements</th>
-              </tr>
+            <tr>
+              <th class="px-4 py-2 text-sm font-medium text-gray-700">ID</th>
+              <th class="px-4 py-2 text-sm font-medium text-gray-700">Data</th>
+              <th class="px-4 py-2 text-sm font-medium text-gray-700">Resultado</th>
+              <th class="px-4 py-2 text-sm font-medium text-gray-700">Pontos</th>
+            </tr>
             </thead>
 
             <tbody class="divide-y divide-gray-200">
-              <tr v-if="loading">
-                <td colspan="5" class="px-4 py-2 text-center text-gray-500">Carregando...</td>
-              </tr>
+            <tr v-if="loading">
+              <td colspan="5" class="px-4 py-2 text-gray-500">Carregando...</td>
+            </tr>
 
-              <tr v-else-if="filteredGames.length === 0">
-                <td colspan="5" class="px-4 py-2 text-center text-gray-500">Nenhum match encontrado</td>
-              </tr>
+            <tr v-else-if="filteredGames.length === 0">
+              <td colspan="5" class="px-4 py-2 text-gray-500">Nenhum match encontrado</td>
+            </tr>
 
-              <tr v-else v-for="game in filteredGames" :key="game.id">
-                <td class="px-4 py-2">{{ game.id }}</td>
-                <td class="px-4 py-2">{{ formatDate(game.ended_at) }}</td>
-                <td class="px-4 py-2">
-                  <span :class="Number(game.winner_user_id) === Number(authUser.id) ? 'bg-green-500' : 'bg-red-500'"
-                        class="text-white px-2 py-1 rounded-full text-xs">
+            <tr v-else v-for="game in filteredGames" :key="game.id">
+              <td class="px-4 py-2">{{ game.id }}</td>
+              <td class="px-4 py-2">{{ formatDate(game.ended_at) }}</td>
+              <td class="px-4 py-2">
+                  <span
+                    :class="Number(game.winner_user_id) === Number(authUser.id) ? 'bg-green-500' : 'bg-red-500'"
+                    class="text-white px-2 py-1 rounded-full text-xs"
+                  >
                     {{ Number(game.winner_user_id) === Number(authUser.id) ? 'Ganhou' : 'Perdeu' }}
                   </span>
-                </td>
-                <td class="px-4 py-2">{{ authUser.id === game.player1_user_id ? game.player1_points : game.player2_points }}</td>
-                <td class="px-4 py-2">
-                  <span v-for="a in game.achievements" :key="a.id" class="bg-blue-200 text-blue-800 px-1 py-0.5 rounded-full text-xs mr-1">
-                    {{ a.name }}
-                  </span>
-                </td>
-              </tr>
+              </td>
+              <td class="px-4 py-2">
+                {{ authUser.id === game.player1_user_id ? game.player1_points : game.player2_points }}
+              </td>
+            </tr>
             </tbody>
           </table>
         </div>
@@ -96,15 +89,13 @@ const filterBy = ref('all')
 const sortBy = ref('date')
 const startDate = ref(null)
 const endDate = ref(null)
-const achievementFilter = ref('')
-const allAchievements = ref([])
 
 // Função para formatar datas
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
   const d = new Date(dateStr)
   const options = { day: 'numeric', month: 'long', year: 'numeric' }
-  return d.toLocaleDateString('pt-PT', options) // Ex: "26 de outubro de 2024"
+  return d.toLocaleDateString('pt-PT', options)
 }
 
 // Computed para aplicar filtros
@@ -118,12 +109,11 @@ const filteredGames = computed(() => {
     filtered = filtered.filter(g => Number(g.winner_user_id) !== Number(authUser.value.id))
   }
 
-  // Filtrar por datas
+  // Datas
   if (startDate.value && endDate.value) {
     const start = new Date(startDate.value)
     const end = new Date(endDate.value)
 
-    // Se forem iguais, pegar todos jogos desse dia
     if (start.toDateString() === end.toDateString()) {
       filtered = filtered.filter(g => new Date(g.ended_at).toDateString() === start.toDateString())
     } else {
@@ -140,11 +130,6 @@ const filteredGames = computed(() => {
     filtered = filtered.filter(g => new Date(g.ended_at) <= end)
   }
 
-  // Filtrar por achievements
-  if (achievementFilter.value) {
-    filtered = filtered.filter(g => g.achievements.some(a => a.id === Number(achievementFilter.value)))
-  }
-
   // Ordenar
   if (sortBy.value === 'date') {
     filtered.sort((a, b) => new Date(b.ended_at) - new Date(a.ended_at))
@@ -159,21 +144,13 @@ const filteredGames = computed(() => {
   return filtered
 })
 
-// Fetch data on mounted
+// Fetch data
 onMounted(async () => {
   loading.value = true
   authUser.value = await authStore.currentUser
 
   const response = await apiStore.getUserGames()
-  gamesData.value = response.data.map(g => ({
-    ...g,
-    achievements: g.achievements || []
-  }))
-
-  // Extrair todos achievements únicos para filtro
-  const achievementSet = new Set()
-  gamesData.value.forEach(g => g.achievements.forEach(a => achievementSet.add(JSON.stringify(a))))
-  allAchievements.value = Array.from(achievementSet).map(s => JSON.parse(s))
+  gamesData.value = response.data.map(g => ({ ...g }))
 
   loading.value = false
 })

@@ -1,12 +1,20 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useAuthStore } from '@/stores/auth.js'
+import {useAPIStore} from '@/stores/api.js'
 
+const apiStore =useAPIStore()
+const authStore = useAuthStore()
 export const useBiscaStore = defineStore('bisca', () => {
   //
   // ───────────────────────────────────────────────
   // STATE
   // ───────────────────────────────────────────────
   //
+
+  const beganAt = ref(null)
+  const endedAt = ref(null)
+
 
   const mode = ref('practice')           // 'competitive' | 'practice'
   const gameType = ref('standalone')     // 'standalone' | 'match'
@@ -227,6 +235,9 @@ export const useBiscaStore = defineStore('bisca', () => {
 
     // jogador começa o primeiro game
     currentTurn.value = 'player'
+
+    beganAt.value = new Date().toISOString()
+
   }
 
   //
@@ -566,6 +577,10 @@ export const useBiscaStore = defineStore('bisca', () => {
       gameType: gameType.value,
       variant: variant.value,
     }
+    endedAt.value = new Date().toISOString()
+
+    saveGame(summary.value)
+
   }
 
   function displayRank(rank) {
@@ -585,6 +600,32 @@ export const useBiscaStore = defineStore('bisca', () => {
 
   //
   // EXPORTAR
+  function saveGame(summary) {
+    if (summary.gameType === 'standalone') {
+      const p1 = authStore.currentUser.id
+      const p2 = 521
+
+      const gameStandalone = {
+        player1_user_id: p1,
+        player2_user_id: p2,
+        type: variant.value,
+        status: 'Ended',
+        is_draw: summary.playerPoints === summary.botPoints,
+        winner_user_id: summary.playerPoints > summary.botPoints ? p1 : p2,
+        loser_user_id: summary.playerPoints < summary.botPoints ? p1 : p2,
+        match_id: null,
+        player1_points: summary.playerPoints,
+        player2_points: summary.botPoints,
+        began_at: beganAt.value,
+        ended_at: endedAt.value,
+      }
+
+      apiStore.postStandalone(gameStandalone)
+    }
+
+  }
+
+
   // ───────────────────────────────────────────────
   //
 
@@ -627,5 +668,6 @@ export const useBiscaStore = defineStore('bisca', () => {
     finishGameIfNeeded,
     finishMatch,
     displayRank,
+    saveGame,
   }
 })

@@ -49,7 +49,7 @@ class User extends Authenticatable
         ];
     }
 
-    
+
     public function matchesAsPlayer1()
     {
         return $this->hasMany(Matche::class, 'player1_user_id');

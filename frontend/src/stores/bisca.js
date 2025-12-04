@@ -551,7 +551,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
-  function finishMatch() {
+  async function finishMatch() {
     status.value = 'match_finished'
     summary.value = {
       result: playerMarks.value > botMarks.value ? 'win' : 'loss',
@@ -567,6 +567,53 @@ export const useBiscaStore = defineStore('bisca', () => {
       mode: mode.value,
       gameType: gameType.value,
       variant: variant.value,
+    }
+
+    // 👇 atribui coins se aplicável (modo competitivo, vitória, etc.)
+    await awardCoinsIfNeeded()
+  }
+
+  async function awardCoinsIfNeeded() {
+    const auth = useAuthStore()
+    const api = useAPIStore()
+
+    // Apenas users logados podem receber coins
+    if (!auth.isLoggedIn) return
+
+    // Apenas modo competitivo
+    if (mode.value !== 'competitive') return
+
+    if (!summary.value || summary.value.result !== 'win') return
+
+    const payload = {
+      result: summary.value.result, // 'win' | 'loss'
+      mode: summary.value.mode, // 'competitive' | 'practice'
+      gametype: summary.value.gameType ?? gameType.value, // match/standalone
+      variant: summary.value.variant, // '3' | '9'
+      player_marks: summary.value.playerMarks,
+      bot_marks: summary.value.botMarks,
+      player_points: summary.value.playerPoints,
+      bot_points: summary.value.botPoints,
+      capote: !!summary.value.achievements?.capote,
+      bandeira: !!summary.value.achievements?.bandeira,
+    }
+
+    try {
+      const response = await api.postAwardMatchReward(payload)
+
+      const awarded = response.data?.meta?.coins_awarded ?? response.data?.coins_awarded ?? null
+
+      // Atualizar user para refletir novo saldo
+      await auth.refreshUser()
+
+      if (awarded != null) {
+        summary.value = {
+          ...summary.value,
+          coinsAwarded: awarded,
+        }
+      }
+    } catch (error) {
+      console.error('Failed to award coins:', error)
     }
   }
 
@@ -585,7 +632,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
-  async function tryStartCompetitiveMatch() {
+  async function tryStartCompetitiveMatch({ gametype }= {}) {
     const auth = useAuthStore()
     const api = useAPIStore()
 
@@ -594,8 +641,12 @@ export const useBiscaStore = defineStore('bisca', () => {
       return { ok: false, reason: 'not_authenticated' }
     }
 
+    const effectiveGametype = gametype ?? gameType.value
+
     try {
-      await api.postDeductEntryFee()
+      await api.postDeductEntryFee({
+        gametype: effectiveGametype, // 'standalone' ou 'match'
+      })
 
       // Backend atualizou coins → trazemos o user atualizado
       await auth.refreshUser()
@@ -660,5 +711,6 @@ export const useBiscaStore = defineStore('bisca', () => {
     finishMatch,
     displayRank,
     tryStartCompetitiveMatch,
+    awardCoinsIfNeeded,
   }
 })

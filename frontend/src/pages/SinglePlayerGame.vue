@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useBiscaStore } from '@/stores/bisca'
 import { useAuthStore } from '@/stores/auth'
 
@@ -15,6 +16,7 @@ import BiscaEndPanel from '@/components/bisca/BiscaEndPanel.vue'
 
 const bisca = useBiscaStore()
 const route = useRoute()
+const router = useRouter()
 
 const mode = computed(() => {
   const m = route.params.mode
@@ -66,20 +68,24 @@ function play(card) {
 }
 
 function nextGame() {
-  bisca.startGame({
-    mode: mode.value,
-    gametype: gametype.value,
-    variant: variant.value
-  })
+  // Se for match, avançamos para o próximo game
+  if (gametype.value === 'match') {
+    bisca.startGame({
+      mode: mode.value,
+      gametype: gametype.value,
+      variant: variant.value,
+    })
+    return
+  }
+
+  // Se for standalone, voltamos à seleção
+  router.push({ name: 'singleplayer.mode.select' }) // <-- ajusta o name conforme o teu router
 }
 
-function restartMatch() {
-  bisca.startMatch({
-    mode: mode.value,
-    gametype: gametype.value,
-    variant: variant.value
-  })
+function exitToSelection() {
+  router.push({ name: 'singleplayer.mode.select' })
 }
+
 </script>
 
 <template>
@@ -95,7 +101,7 @@ function restartMatch() {
         @play-card="play" />
 
       <BiscaEndPanel v-if="bisca.status === 'between_games' || bisca.status === 'match_finished'" :bisca="bisca"
-        :gametype="gametype" @next-game="nextGame" @restart-match="restartMatch" />
+        :gametype="gametype" @next-game="nextGame" @exit="exitToSelection" />
     </UiCard>
   </PageContainer>
 </template>

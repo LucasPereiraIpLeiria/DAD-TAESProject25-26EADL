@@ -25,10 +25,7 @@ function handleExit() {
 
 <template>
   <!-- Fim de game (mas match ainda não acabou) -->
-  <section
-    v-if="bisca.status === 'between_games'"
-    class="end-panel"
-  >
+  <section v-if="bisca.status === 'between_games'" class="end-panel">
     <h2>Game terminado</h2>
     <p>Pontos deste game: {{ bisca.playerPoints }} - {{ bisca.botPoints }}</p>
     <p>Marks: {{ bisca.playerMarks }} - {{ bisca.botMarks }}</p>
@@ -39,10 +36,7 @@ function handleExit() {
   </section>
 
   <!-- Fim de match / standalone -->
-  <section
-    v-else-if="bisca.status === 'match_finished' && bisca.summary"
-    class="end-panel"
-  >
+  <section v-else-if="bisca.status === 'match_finished' && bisca.summary" class="end-panel">
     <h2>{{ gametype === 'standalone' ? 'Game terminado' : 'Match terminado' }}</h2>
 
     <p class="end-result">
@@ -55,9 +49,14 @@ function handleExit() {
       {{ bisca.summary.playerMarks }} - {{ bisca.summary.botMarks }}
     </p>
 
-    <p >
+    <p>
       <strong>{{ gametype === 'standalone' ? 'Pontos:' : 'Pontos (último game):' }}</strong>
       {{ bisca.summary.playerPoints }} - {{ bisca.summary.botPoints }}
+    </p>
+
+    <p v-if="bisca.summary.result === 'win' && bisca.summary.coinsAwarded != null" class="coins-awarded">
+      <strong>Coins ganhos:</strong>
+      +{{ bisca.summary.coinsAwarded }}
     </p>
 
     <PrimaryButton type="button" @click="handleExit">
@@ -67,6 +66,13 @@ function handleExit() {
 </template>
 
 <style scoped>
+.coins-awarded {
+  margin-top: 0.6rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.375rem;
+  font-size: 0.9rem;
+  display: inline-block;
+}
 .end-panel {
   margin-top: 1rem;
   padding-top: 0.75rem;

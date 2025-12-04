@@ -632,7 +632,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
-  async function tryStartCompetitiveMatch({ gametype }= {}) {
+  async function tryStartCompetitiveMatch({ gametype } = {}) {
     const auth = useAuthStore()
     const api = useAPIStore()
 
@@ -664,6 +664,21 @@ export const useBiscaStore = defineStore('bisca', () => {
 
       return { ok: false, reason: 'unknown_error' }
     }
+  }
+
+  function debugForceEndStandalone() {
+    if (gameType.value !== 'standalone') return
+    if (status.value === 'match_finished') return
+
+    status.value = 'in_game'
+
+    // Vitória automática
+    playerMarks.value = 4
+    botMarks.value = 0
+    playerPoints.value = 120
+    botPoints.value = 0
+
+    finishMatch()
   }
 
   //
@@ -712,5 +727,6 @@ export const useBiscaStore = defineStore('bisca', () => {
     displayRank,
     tryStartCompetitiveMatch,
     awardCoinsIfNeeded,
+    debugForceEndStandalone,
   }
 })

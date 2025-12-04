@@ -12,12 +12,10 @@
           <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
           <path d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12"/>
         </svg>
-        <!-- Botão de "novo jogo" que recarrega a rota atual -->
-        <RouterLink :to="$route.path">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus" viewBox="0 0 16 16">
-            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/>
-          </svg>
-        </RouterLink>
+        <AddFunds
+          :current-balance="coinBalance.value"
+          @submit="handleFundsSubmit"
+        />
       </div>
 
       <NavigationMenuList v-if="authStore.isLoggedIn" class="justify-around gap-20">
@@ -76,14 +74,17 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu'
+import AddFunds from '@/components/ui/AddFunds.vue';
 import { RouterLink, RouterView} from 'vue-router';
-import { onMounted, inject, ref, watch } from 'vue'
+import { onMounted, inject, ref, watch,markRaw } from 'vue'
 import axios from 'axios'
 import {useAuthStore} from '@/stores/auth.js'
 import { toast,Toaster } from 'vue-sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useAPIStore } from '@/stores/api.js'
 
 const authStore = useAuthStore()
+const apiStore = useAPIStore()
 
 const API_BASE_URL = inject('apiBaseURL')
 const coinBalance = ref(0)
@@ -143,6 +144,36 @@ const logout = async () => {
 onMounted(() => {
   // Initial fetch - will be handled by watcher with immediate: true
 })
+
+
+
+const handleFundsSubmit = async (data) => {
+  try {
+    const coins = Math.floor(data.euros * 10)
+    console.log(coins)
+
+    await apiStore.postCoinPurchase(data,coins)
+
+    await fetchCoinBalance()
+
+    // Show success message
+    toast(markRaw({
+      title: 'Success',
+      description: 'Funds added successfully!',
+      variant: 'default'
+    }))
+
+  } catch (error) {
+    console.log(error)
+    toast(markRaw({
+      title: 'Error',
+      description: 'Failed to add funds',
+      variant: 'destructive'
+    }))
+  }
+}
+
+
 </script>
 
 <style scoped>

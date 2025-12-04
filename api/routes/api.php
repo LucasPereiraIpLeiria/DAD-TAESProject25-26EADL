@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\EconomyController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -13,9 +14,10 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('/economy/deduct-entry-fee', [
-        App\Http\Controllers\EconomyController::class,
+        EconomyController::class,
         'deductEntryFee'
     ]);
+    Route::post('/coin-purchases', [EconomyController::class, 'createCoinPurchase']);
 });
 
 

@@ -1,7 +1,7 @@
 <template>
   <nav class="max-w-full p-5 flex flex-row justify-between align-middle">
     <div class="align-middle text-xl">
-      <RouterLink :to="{name:'home'}">♠ PlayBisca</RouterLink><!-- TODO: Replace with router link to Home page -->
+      <RouterLink :to="{name:'home'}">♠ PlayBisca</RouterLink>
     </div>
     <NavigationMenu>
       <div class="flex items-center text-xl space-x-1" v-if="authStore.isLoggedIn">
@@ -77,11 +77,11 @@ import {
 } from '@/components/ui/navigation-menu'
 import AddFunds from '@/components/ui/AddFunds.vue';
 import { RouterLink, RouterView} from 'vue-router';
-import { onMounted, inject, ref, watch,markRaw } from 'vue'
+import { inject, ref, watch } from 'vue'
 import axios from 'axios'
 import {useAuthStore} from '@/stores/auth.js'
 import { toast,Toaster } from 'vue-sonner'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { useAPIStore } from '@/stores/api.js'
 
 const authStore = useAuthStore()
@@ -131,7 +131,7 @@ watch(
 )
 
 const logout = async () => {
-  await toast.promise(authStore.logout(), {
+  toast.promise(authStore.logout(), {
     loading: 'Calling API',
     success: () => {
       return 'Logout Successful'
@@ -141,37 +141,19 @@ const logout = async () => {
   // Coin balance will be reset by the watcher
 }
 
-
-onMounted(() => {
-  // Initial fetch - will be handled by watcher with immediate: true
-})
-
-
-
 const handleFundsSubmit = async (data) => {
-  try {
     const coins = Math.floor(data.euros * 10)
     console.log(coins)
 
-    await apiStore.postCoinPurchase(data,coins)
+    toast.promise(apiStore.postCoinPurchase(data,coins), {
+      loading: 'Contacting payment processor',
+      success: () => {
+        return 'Funds added successfully!'
+      },
+      error: (data) => `[API] Error saving game - ${data?.response?.data?.message}`,
+    })
 
     await fetchCoinBalance()
-
-    // Show success message
-    toast(markRaw({
-      title: 'Success',
-      description: 'Funds added successfully!',
-      variant: 'default'
-    }))
-
-  } catch (error) {
-    console.log(error)
-    toast(markRaw({
-      title: 'Error',
-      description: 'Failed to add funds',
-      variant: 'destructive'
-    }))
-  }
 }
 
 

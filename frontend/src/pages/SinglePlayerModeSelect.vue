@@ -67,7 +67,7 @@ async function startGame() {
   // competitive → verificar login e coins ANTES
   const bisca = useBiscaStore()
 
-  const result = await bisca.tryStartCompetitiveMatch()
+  const result = await bisca.tryStartCompetitiveMatch({ gametype })
 
   if (!result.ok) {
     if (result.reason === 'not_authenticated') {

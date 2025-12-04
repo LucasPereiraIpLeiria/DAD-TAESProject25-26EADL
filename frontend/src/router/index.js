@@ -61,7 +61,7 @@ router.beforeEach((to, from, next) => {
   // Shield singleplayer route based on parameter
   if (to.name === 'singleplayer.game') {
     const mode = to.params.mode
-    if (mode === 'competitive') {
+    if (mode === 'competitive' && !authStore.isLoggedIn) {
       toast.error('This mode is not available')
       next({ name: 'login' })
       return

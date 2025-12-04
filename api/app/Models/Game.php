@@ -5,36 +5,32 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-class Matche extends Model
+class Game extends Model
 {
     public $timestamps = false;
     protected $fillable = [
-        'id',
         'player1_user_id',
         'player2_user_id',
         'winner_user_id',
         'loser_user_id',
         'type',
         'status',
-        'stake',
-        'ended_at',
-        'total_time',
         'began_at',
         'ended_at',
-        'player1_marks',
-        'player2_marks',
         'player1_points',
         'player2_points',
         'total_time',
-        //'custom'
+        'match_id',
+        'is_draw'
     ];
+
 
 
     public function player1(): HasOne
     {
         return $this->hasOne(User::class, 'id', 'player1_user_id');
     }
-        public function player2(): HasOne
+    public function player2(): HasOne
     {
         return $this->hasOne(User::class, 'id', 'player2_user_id');
     }

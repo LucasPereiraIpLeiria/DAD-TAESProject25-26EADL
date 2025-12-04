@@ -4,86 +4,126 @@ import { inject, ref } from 'vue'
 
 export const useAPIStore = defineStore('api', () => {
   const API_BASE_URL = inject('apiBaseURL')
+  const token = ref(null)
+  const isValidating = ref(false)
 
-  const getStoredToken = () => {
-    return localStorage.getItem('auth_token')
+  // Initialize token from localStorage
+  const initializeToken = () => {
+    const stored = localStorage.getItem('auth_token')
+    if (stored) {
+      token.value = stored
+      axios.defaults.headers.common['Authorization'] = `Bearer ${stored}`
+    }
   }
 
-  const token = ref(getStoredToken())
+  // Call this once when your app starts (in main.js or router setup)
+  initializeToken()
 
-  // Set axios default headers if token exists
-  if (token.value) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
+  // Validate token with backend - call this periodically or on app init
+  const validateToken = async () => {
+    if (!token.value || isValidating.value) return true
+
+    isValidating.value = true
+    try {
+      await axios.get(`${API_BASE_URL}/users/me`)
+      return true
+    } catch (error) {
+      // Token is invalid - clear it
+      clearToken()
+      return false
+    } finally {
+      isValidating.value = false
+    }
   }
 
-  // Add method to set token externally
   const setToken = (newToken) => {
     token.value = newToken
+
     if (newToken) {
       localStorage.setItem('auth_token', newToken)
       axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
     } else {
-      localStorage.removeItem('auth_token')
-      delete axios.defaults.headers.common['Authorization']
+      clearToken()
     }
   }
 
-  // AUTH
-  const postLogin = async (credentials) => {
-    const response = await axios.post(`${API_BASE_URL}/login`, credentials)
-
-    // Adjust this based on your actual API response structure
-    const responseToken = response.data.token
-
-    if (!responseToken) {
-      throw new Error('No token received from login API')
-    }
-
-    setToken(responseToken)
-    return response
+  const clearToken = () => {
+    token.value = null
+    localStorage.removeItem('auth_token')
+    delete axios.defaults.headers.common['Authorization']
   }
 
-  const postRegister = async (user) => {
-    // user could be a plain object or FormData
-    let payload = user
-
-    // If it's a plain object, convert to FormData
-    if (!(user instanceof FormData)) {
-      payload = new FormData()
-      for (const key in user) {
-        if (user[key] !== null && user[key] !== undefined) {
-          payload.append(key, user[key])
-        }
+  // Setup axios interceptor to handle 401/403 responses
+  axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      // If we get 401 (Unauthorized) or 403 (Forbidden), token is invalid
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        clearToken()
+        // Optional: redirect to login
+        // window.location.href = '/login'
       }
+      return Promise.reject(error)
     }
+  )
 
-    // Axios will automatically set correct multipart/form-data headers
-    const response = await axios.post(`${API_BASE_URL}/register`, payload)
-    return response
+  const postLogin = async (credentials) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/login`, credentials)
+      const responseToken = response.data.token
+
+      if (!responseToken) {
+        throw new Error('No token received from login API')
+      }
+
+      setToken(responseToken)
+      return response
+    } catch (error) {
+      throw error
+    }
+  }
+
+  const postRegister = async (payload) => {
+    try {
+      return await axios.post(`${API_BASE_URL}/register`, payload)
+    } catch (error) {
+      throw error
+    }
   }
 
   const postLogout = async () => {
-    // Only attempt logout if we have a token
     if (!token.value) {
-      console.warn('No token available for logout')
       return
     }
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/logout`)
-      return response
+      await axios.post(`${API_BASE_URL}/logout`)
     } finally {
-      // Always clear token even if request fails
-      setToken(undefined)
+      clearToken()
     }
   }
 
-  // Users
+  const postDeductEntryFee = async (payload) => {
+    if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+
+    return axios.post(`${API_BASE_URL}/economy/deduct-entry-fee`, payload)
+  }
+
+  const postAwardMatchReward = async (payload) => {
+    if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+
+    return axios.post(`${API_BASE_URL}/economy/award-match-reward`, payload)
+  }
+
   const getAuthUser = async () => {
     if (!token.value) {
       throw new Error('No authentication token available')
     }
-    return await axios.get(`${API_BASE_URL}/users/me`)
+    return axios.get(`${API_BASE_URL}/users/me`)
   }
 
 
@@ -91,13 +131,57 @@ export const useAPIStore = defineStore('api', () => {
     return await axios.get(`${API_BASE_URL}/leaderboard/${gameMode}`)
   }
 
+  const postCoinPurchase = async (data, coins) => {
+    if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+
+    return axios.post(`${API_BASE_URL}/coin-purchases`, {
+      euros: data.euros,
+      payment_type: data.payment_type,
+      payment_reference: data.payment_reference,
+      coins: coins,
+    })
+  }
+
+  //get user games
+
+  const getUserGames = async() =>{
+        if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+    const response = await axios.get(`${API_BASE_URL}/users/matches`);
+    //console.log(response);
+    return response;
+  }
+
+  const postStandalone = (game) => {
+    return axios.post(`${API_BASE_URL}/standalone`, game)
+  }
+
+  /*const postMatche = (game) => {
+    return axios.post(`${API_BASE_URL}/matches`, game)
+  }*/
+
   return {
     token,
+    isValidating,
+    initializeToken,
     setToken,
+    clearToken,
+    validateToken,
     postLogin,
     postRegister,
     postLogout,
     getAuthUser,
     getLeaderboard,
+    postDeductEntryFee,
+    postAwardMatchReward,
+    postCoinPurchase,
+    getUserGames,
+    postStandalone,
+    //postMatche
   }
 })
+
+

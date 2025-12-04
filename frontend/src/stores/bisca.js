@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { useAPIStore } from '@/stores/api'
 
+const apiStore =useAPIStore()
+const authStore = useAuthStore()
 export const useBiscaStore = defineStore('bisca', () => {
   //
   // ───────────────────────────────────────────────
@@ -8,15 +12,19 @@ export const useBiscaStore = defineStore('bisca', () => {
   // ───────────────────────────────────────────────
   //
 
+  const beganAt = ref(null)
+  const endedAt = ref(null)
+
+
   const mode = ref('practice')           // 'competitive' | 'practice'
   const gameType = ref('standalone')     // 'standalone' | 'match'
   const variant = ref('9')               // '3' | '9'  (tamanho da mão inicial)
 
-  const status = ref('idle')             // 'idle' | 'in_game' | 'between_games' | 'match_finished'
+  const status = ref('idle') // 'idle' | 'in_game' | 'between_games' | 'match_finished'
 
-  const deck = ref([])                   // baralho completo (apenas debug se quiseres)
-  const stock = ref([])                  // cartas restantes (monte)
-  const trumpCard = ref(null)            // carta de trunfo (última do stock)
+  const deck = ref([]) // baralho completo (apenas debug se quiseres)
+  const stock = ref([]) // cartas restantes (monte)
+  const trumpCard = ref(null) // carta de trunfo (última do stock)
 
   const playerHand = ref([])
   const botHand = ref([])
@@ -33,14 +41,14 @@ export const useBiscaStore = defineStore('bisca', () => {
   const botMarks = ref(0)
 
   const currentGameNumber = ref(1)
-  const currentTurn = ref('player')      // 'player' | 'bot'
+  const currentTurn = ref('player') // 'player' | 'bot'
 
-  const phase = ref('draw_phase')        // 'draw_phase' | 'final_phase'
+  const phase = ref('draw_phase') // 'draw_phase' | 'final_phase'
 
-  const summary = ref(null)              // resumo final do “match” ou jogo standalone
+  const summary = ref(null) // resumo final do “match” ou jogo standalone
 
   // quem começou a vaza atual
-  const trickLeader = ref('player')      // 'player' | 'bot'
+  const trickLeader = ref('player') // 'player' | 'bot'
 
   //
   // ───────────────────────────────────────────────
@@ -75,16 +83,16 @@ export const useBiscaStore = defineStore('bisca', () => {
     // Bisca 40-cartas: 4 naipes * 10 ranks
     const suits = ['♠', '♥', '♦', '♣']
     const ranks = [
-      { rank: 1, points: 11 },  // Ás
-      { rank: 7, points: 10 },  // Bisca / Manilha
-      { rank: 13, points: 4 },  // Rei
-      { rank: 11, points: 3 },  // Valete
-      { rank: 12, points: 2 },  // Dama
-      { rank: 3, points: 0 },   // 3
-      { rank: 2, points: 0 },   // 2
-      { rank: 4, points: 0 },   // 4
-      { rank: 5, points: 0 },   // 5
-      { rank: 6, points: 0 },   // 6
+      { rank: 1, points: 11 }, // Ás
+      { rank: 7, points: 10 }, // Bisca / Manilha
+      { rank: 13, points: 4 }, // Rei
+      { rank: 11, points: 3 }, // Valete
+      { rank: 12, points: 2 }, // Dama
+      { rank: 3, points: 0 }, // 3
+      { rank: 2, points: 0 }, // 2
+      { rank: 4, points: 0 }, // 4
+      { rank: 5, points: 0 }, // 5
+      { rank: 6, points: 0 }, // 6
     ]
 
     const d = []
@@ -227,6 +235,9 @@ export const useBiscaStore = defineStore('bisca', () => {
 
     // jogador começa o primeiro game
     currentTurn.value = 'player'
+
+    beganAt.value = new Date().toISOString()
+
   }
 
   //
@@ -549,7 +560,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
-  function finishMatch() {
+  async function finishMatch() {
     status.value = 'match_finished'
     summary.value = {
       result: playerMarks.value > botMarks.value ? 'win' : 'loss',
@@ -565,6 +576,57 @@ export const useBiscaStore = defineStore('bisca', () => {
       mode: mode.value,
       gameType: gameType.value,
       variant: variant.value,
+    }
+    endedAt.value = new Date().toISOString()
+
+    saveGame(summary.value)
+
+
+    // 👇 atribui coins se aplicável (modo competitivo, vitória, etc.)
+    await awardCoinsIfNeeded()
+  }
+
+  async function awardCoinsIfNeeded() {
+    const auth = useAuthStore()
+    const api = useAPIStore()
+
+    // Apenas users logados podem receber coins
+    if (!auth.isLoggedIn) return
+
+    // Apenas modo competitivo
+    if (mode.value !== 'competitive') return
+
+    if (!summary.value || summary.value.result !== 'win') return
+
+    const payload = {
+      result: summary.value.result, // 'win' | 'loss'
+      mode: summary.value.mode, // 'competitive' | 'practice'
+      gametype: summary.value.gameType ?? gameType.value, // match/standalone
+      variant: summary.value.variant, // '3' | '9'
+      player_marks: summary.value.playerMarks,
+      bot_marks: summary.value.botMarks,
+      player_points: summary.value.playerPoints,
+      bot_points: summary.value.botPoints,
+      capote: !!summary.value.achievements?.capote,
+      bandeira: !!summary.value.achievements?.bandeira,
+    }
+
+    try {
+      const response = await api.postAwardMatchReward(payload)
+
+      const awarded = response.data?.meta?.coins_awarded ?? response.data?.coins_awarded ?? null
+
+      // Atualizar user para refletir novo saldo
+      await auth.refreshUser()
+
+      if (awarded != null) {
+        summary.value = {
+          ...summary.value,
+          coinsAwarded: awarded,
+        }
+      }
+    } catch (error) {
+      console.error('Failed to award coins:', error)
     }
   }
 
@@ -583,8 +645,68 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
+  async function tryStartCompetitiveMatch({ gametype }= {}) {
+    const auth = useAuthStore()
+    const api = useAPIStore()
+
+    // precisa estar logado
+    if (!auth.isLoggedIn) {
+      return { ok: false, reason: 'not_authenticated' }
+    }
+
+    const effectiveGametype = gametype ?? gameType.value
+
+    try {
+      await api.postDeductEntryFee({
+        gametype: effectiveGametype, // 'standalone' ou 'match'
+      })
+
+      // Backend atualizou coins → trazemos o user atualizado
+      await auth.refreshUser()
+
+      return { ok: true }
+    } catch (error) {
+      const res = error.response?.data
+
+      // suporta ErrorResource que devolve { data: { reason: ... } }
+      const reason = res?.reason ?? res?.data?.reason
+
+      if (reason === 'insufficient_funds') {
+        return { ok: false, reason: 'insufficient_funds' }
+      }
+
+      return { ok: false, reason: 'unknown_error' }
+    }
+  }
+
   //
   // EXPORTAR
+  function saveGame(summary) {
+    if (summary.gameType === 'standalone') {
+      const p1 = authStore.currentUser.id
+      const p2 = 521
+
+      const gameStandalone = {
+        player1_user_id: p1,
+        player2_user_id: p2,
+        type: variant.value,
+        status: 'Ended',
+        is_draw: summary.playerPoints === summary.botPoints,
+        winner_user_id: summary.playerPoints > summary.botPoints ? p1 : p2,
+        loser_user_id: summary.playerPoints < summary.botPoints ? p1 : p2,
+        match_id: null,
+        player1_points: summary.playerPoints,
+        player2_points: summary.botPoints,
+        began_at: beganAt.value,
+        ended_at: endedAt.value,
+      }
+
+      apiStore.postStandalone(gameStandalone)
+    }
+
+  }
+
+
   // ───────────────────────────────────────────────
   //
 
@@ -627,5 +749,8 @@ export const useBiscaStore = defineStore('bisca', () => {
     finishGameIfNeeded,
     finishMatch,
     displayRank,
+    saveGame,
+    tryStartCompetitiveMatch,
+    awardCoinsIfNeeded,
   }
 })

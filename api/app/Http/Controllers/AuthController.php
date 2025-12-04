@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -44,7 +45,7 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
-            'nickname' => 'required|string|max:255',
+            'nickname' => ['required', 'string', 'max:255', Rule::unique('users', 'nickname')],
             'photo' => 'nullable|image|max:2048', // optional, max 2MB
         ]);
 

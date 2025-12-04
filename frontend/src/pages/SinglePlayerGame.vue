@@ -1,7 +1,9 @@
 <script setup>
 import { onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useBiscaStore } from '@/stores/bisca'
+import { useAuthStore } from '@/stores/auth'
 
 import PageContainer from '@/components/ui/PageContainer.vue'
 import UiCard from '@/components/ui/UiCard.vue'
@@ -14,6 +16,7 @@ import BiscaEndPanel from '@/components/bisca/BiscaEndPanel.vue'
 
 const bisca = useBiscaStore()
 const route = useRoute()
+const router = useRouter()
 
 const mode = computed(() => {
   const m = route.params.mode
@@ -35,16 +38,17 @@ function startByRoute() {
     bisca.startMatch({
       mode: mode.value,
       gametype: gametype.value,
-      variant: variant.value
+      variant: variant.value,
     })
   } else {
     bisca.startGame({
       mode: mode.value,
       gametype: gametype.value,
-      variant: variant.value
+      variant: variant.value,
     })
   }
 }
+
 
 onMounted(() => {
   startByRoute()
@@ -64,57 +68,40 @@ function play(card) {
 }
 
 function nextGame() {
-  bisca.startGame({
-    mode: mode.value,
-    gametype: gametype.value,
-    variant: variant.value
-  })
+  // Se for match, avançamos para o próximo game
+  if (gametype.value === 'match') {
+    bisca.startGame({
+      mode: mode.value,
+      gametype: gametype.value,
+      variant: variant.value,
+    })
+    return
+  }
+
+  // Se for standalone, voltamos à seleção
+  router.push({ name: 'singleplayer.mode.select' }) // <-- ajusta o name conforme o teu router
 }
 
-function restartMatch() {
-  bisca.startMatch({
-    mode: mode.value,
-    gametype: gametype.value,
-    variant: variant.value
-  })
+function exitToSelection() {
+  router.push({ name: 'singleplayer.mode.select' })
 }
+
 </script>
 
 <template>
   <PageContainer max-width="lg">
     <UiCard padding="md">
-    <BiscaGameHeader
-      :mode="mode"
-      :gametype="gametype"
-      :variant="variant"
-    />
+      <BiscaGameHeader :mode="mode" :gametype="gametype" :variant="variant" />
 
-    <BiscaGameInfo
-      :bisca="bisca"
-      :gametype="gametype"
-      :is-player-turn="isPlayerTurn"
-    />
+      <BiscaGameInfo :bisca="bisca" :gametype="gametype" :is-player-turn="isPlayerTurn" />
 
-    <BiscaGameBoard
-      v-if="bisca.status === 'in_game'"
-      :bisca="bisca"
-      :is-player-turn="isPlayerTurn"
-    />
+      <BiscaGameBoard v-if="bisca.status === 'in_game'" :bisca="bisca" :is-player-turn="isPlayerTurn" />
 
-    <BiscaPlayerHand
-      v-if="bisca.status === 'in_game'"
-      :bisca="bisca"
-      :is-player-turn="isPlayerTurn"
-      @play-card="play"
-    />
+      <BiscaPlayerHand v-if="bisca.status === 'in_game'" :bisca="bisca" :is-player-turn="isPlayerTurn"
+        @play-card="play" />
 
-    <BiscaEndPanel
-      v-if="bisca.status === 'between_games' || bisca.status === 'match_finished'"
-      :bisca="bisca"
-      :gametype="gametype"
-      @next-game="nextGame"
-      @restart-match="restartMatch"
-    />
+      <BiscaEndPanel v-if="bisca.status === 'between_games' || bisca.status === 'match_finished'" :bisca="bisca"
+        :gametype="gametype" @next-game="nextGame" @exit="exitToSelection" />
     </UiCard>
   </PageContainer>
 </template>

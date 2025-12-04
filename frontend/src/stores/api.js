@@ -139,6 +139,25 @@ export const useAPIStore = defineStore('api', () => {
     })
   }
 
+  //get user games
+
+  const getUserGames = async() =>{
+        if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+    const response = await axios.get(`${API_BASE_URL}/users/matches`);
+    //console.log(response);
+    return response;
+  }
+
+  const postStandalone = (game) => {
+    return axios.post(`${API_BASE_URL}/standalone`, game)
+  }
+
+  /*const postMatche = (game) => {
+    return axios.post(`${API_BASE_URL}/matches`, game)
+  }*/
+
   return {
     token,
     isValidating,
@@ -153,5 +172,10 @@ export const useAPIStore = defineStore('api', () => {
     postDeductEntryFee,
     postAwardMatchReward,
     postCoinPurchase,
+    getUserGames,
+    postStandalone,
+    //postMatche
   }
 })
+
+

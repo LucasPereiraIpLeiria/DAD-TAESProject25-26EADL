@@ -36,9 +36,9 @@
 
                 <div class="text-center text-sm">
                     <span class="text-gray-600">Don't have an account? </span>
-                    <a href="#" class="font-medium text-blue-600 hover:text-blue-500">
-                        Sign up
-                    </a>
+                    <RouterLink :to="{name: 'register'}">
+                      Sign up
+                    </RouterLink>
                 </div>
             </form>
         </div>
@@ -51,8 +51,9 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
 import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import { extractErrorMessage } from '@/utils/errorHandler.js'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -64,16 +65,16 @@ const formData = ref({
 
 
 const handleSubmit = async () => {
-
-    toast.promise(authStore.login(formData.value), {
-        loading: 'Calling API',
-        success: (data) => {
-            return `Login Sucessfull - ${data?.name}`
-        },
-        error: (data) => `[API] Error saving game - ${data?.response?.data?.message}`,
-    })
-
-
+  const toastId = toast.loading('Logging in...')
+  try {
+    await authStore.login(formData.value)
+    toast.success('Login Successful!', { id: toastId })
     router.push('/')
+  } catch (error) {
+    const errorMessage = extractErrorMessage(error)
+    toast.dismiss(toastId)
+    toast.error(errorMessage)
+    console.error('Login failed:', error)
+  }
 }
 </script>

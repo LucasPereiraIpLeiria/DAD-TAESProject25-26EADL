@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useAuthStore } from '@/stores/auth.js'
-import {useAPIStore} from '@/stores/api.js'
+import { useAuthStore } from '@/stores/auth'
+import { useAPIStore } from '@/stores/api'
 
 const apiStore =useAPIStore()
 const authStore = useAuthStore()
@@ -20,11 +20,11 @@ export const useBiscaStore = defineStore('bisca', () => {
   const gameType = ref('standalone')     // 'standalone' | 'match'
   const variant = ref('9')               // '3' | '9'  (tamanho da mão inicial)
 
-  const status = ref('idle')             // 'idle' | 'in_game' | 'between_games' | 'match_finished'
+  const status = ref('idle') // 'idle' | 'in_game' | 'between_games' | 'match_finished'
 
-  const deck = ref([])                   // baralho completo (apenas debug se quiseres)
-  const stock = ref([])                  // cartas restantes (monte)
-  const trumpCard = ref(null)            // carta de trunfo (última do stock)
+  const deck = ref([]) // baralho completo (apenas debug se quiseres)
+  const stock = ref([]) // cartas restantes (monte)
+  const trumpCard = ref(null) // carta de trunfo (última do stock)
 
   const playerHand = ref([])
   const botHand = ref([])
@@ -41,14 +41,14 @@ export const useBiscaStore = defineStore('bisca', () => {
   const botMarks = ref(0)
 
   const currentGameNumber = ref(1)
-  const currentTurn = ref('player')      // 'player' | 'bot'
+  const currentTurn = ref('player') // 'player' | 'bot'
 
-  const phase = ref('draw_phase')        // 'draw_phase' | 'final_phase'
+  const phase = ref('draw_phase') // 'draw_phase' | 'final_phase'
 
-  const summary = ref(null)              // resumo final do “match” ou jogo standalone
+  const summary = ref(null) // resumo final do “match” ou jogo standalone
 
   // quem começou a vaza atual
-  const trickLeader = ref('player')      // 'player' | 'bot'
+  const trickLeader = ref('player') // 'player' | 'bot'
 
   //
   // ───────────────────────────────────────────────
@@ -83,16 +83,16 @@ export const useBiscaStore = defineStore('bisca', () => {
     // Bisca 40-cartas: 4 naipes * 10 ranks
     const suits = ['♠', '♥', '♦', '♣']
     const ranks = [
-      { rank: 1, points: 11 },  // Ás
-      { rank: 7, points: 10 },  // Bisca / Manilha
-      { rank: 13, points: 4 },  // Rei
-      { rank: 11, points: 3 },  // Valete
-      { rank: 12, points: 2 },  // Dama
-      { rank: 3, points: 0 },   // 3
-      { rank: 2, points: 0 },   // 2
-      { rank: 4, points: 0 },   // 4
-      { rank: 5, points: 0 },   // 5
-      { rank: 6, points: 0 },   // 6
+      { rank: 1, points: 11 }, // Ás
+      { rank: 7, points: 10 }, // Bisca / Manilha
+      { rank: 13, points: 4 }, // Rei
+      { rank: 11, points: 3 }, // Valete
+      { rank: 12, points: 2 }, // Dama
+      { rank: 3, points: 0 }, // 3
+      { rank: 2, points: 0 }, // 2
+      { rank: 4, points: 0 }, // 4
+      { rank: 5, points: 0 }, // 5
+      { rank: 6, points: 0 }, // 6
     ]
 
     const d = []
@@ -560,7 +560,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
-  function finishMatch() {
+  async function finishMatch() {
     status.value = 'match_finished'
     summary.value = {
       result: playerMarks.value > botMarks.value ? 'win' : 'loss',
@@ -581,6 +581,53 @@ export const useBiscaStore = defineStore('bisca', () => {
 
     saveGame(summary.value)
 
+
+    // 👇 atribui coins se aplicável (modo competitivo, vitória, etc.)
+    await awardCoinsIfNeeded()
+  }
+
+  async function awardCoinsIfNeeded() {
+    const auth = useAuthStore()
+    const api = useAPIStore()
+
+    // Apenas users logados podem receber coins
+    if (!auth.isLoggedIn) return
+
+    // Apenas modo competitivo
+    if (mode.value !== 'competitive') return
+
+    if (!summary.value || summary.value.result !== 'win') return
+
+    const payload = {
+      result: summary.value.result, // 'win' | 'loss'
+      mode: summary.value.mode, // 'competitive' | 'practice'
+      gametype: summary.value.gameType ?? gameType.value, // match/standalone
+      variant: summary.value.variant, // '3' | '9'
+      player_marks: summary.value.playerMarks,
+      bot_marks: summary.value.botMarks,
+      player_points: summary.value.playerPoints,
+      bot_points: summary.value.botPoints,
+      capote: !!summary.value.achievements?.capote,
+      bandeira: !!summary.value.achievements?.bandeira,
+    }
+
+    try {
+      const response = await api.postAwardMatchReward(payload)
+
+      const awarded = response.data?.meta?.coins_awarded ?? response.data?.coins_awarded ?? null
+
+      // Atualizar user para refletir novo saldo
+      await auth.refreshUser()
+
+      if (awarded != null) {
+        summary.value = {
+          ...summary.value,
+          coinsAwarded: awarded,
+        }
+      }
+    } catch (error) {
+      console.error('Failed to award coins:', error)
+    }
   }
 
   function displayRank(rank) {
@@ -595,6 +642,40 @@ export const useBiscaStore = defineStore('bisca', () => {
         return 'J'
       default:
         return rank.toString()
+    }
+  }
+
+  async function tryStartCompetitiveMatch({ gametype }= {}) {
+    const auth = useAuthStore()
+    const api = useAPIStore()
+
+    // precisa estar logado
+    if (!auth.isLoggedIn) {
+      return { ok: false, reason: 'not_authenticated' }
+    }
+
+    const effectiveGametype = gametype ?? gameType.value
+
+    try {
+      await api.postDeductEntryFee({
+        gametype: effectiveGametype, // 'standalone' ou 'match'
+      })
+
+      // Backend atualizou coins → trazemos o user atualizado
+      await auth.refreshUser()
+
+      return { ok: true }
+    } catch (error) {
+      const res = error.response?.data
+
+      // suporta ErrorResource que devolve { data: { reason: ... } }
+      const reason = res?.reason ?? res?.data?.reason
+
+      if (reason === 'insufficient_funds') {
+        return { ok: false, reason: 'insufficient_funds' }
+      }
+
+      return { ok: false, reason: 'unknown_error' }
     }
   }
 
@@ -669,5 +750,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     finishMatch,
     displayRank,
     saveGame,
+    tryStartCompetitiveMatch,
+    awardCoinsIfNeeded,
   }
 })

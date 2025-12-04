@@ -12,14 +12,14 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['next-game', 'restart-match'])
+const emit = defineEmits(['next-game', 'exit'])
 
 function handleNextGame() {
   emit('next-game')
 }
 
-function handleRestartMatch() {
-  emit('restart-match')
+function handleExit() {
+  emit('exit')
 }
 </script>
 
@@ -43,25 +43,25 @@ function handleRestartMatch() {
     v-else-if="bisca.status === 'match_finished' && bisca.summary"
     class="end-panel"
   >
-    <h2>Match terminado</h2>
+    <h2>{{ gametype === 'standalone' ? 'Game terminado' : 'Match terminado' }}</h2>
 
     <p class="end-result">
       <strong>Resultado:</strong>
       {{ bisca.summary.result === 'win' ? 'Vitória' : 'Derrota' }}
     </p>
 
-    <p>
+    <p v-if="gametype === 'match'">
       <strong>Marks:</strong>
       {{ bisca.summary.playerMarks }} - {{ bisca.summary.botMarks }}
     </p>
 
-    <p>
-      <strong>Pontos (último game):</strong>
+    <p >
+      <strong>{{ gametype === 'standalone' ? 'Pontos:' : 'Pontos (último game):' }}</strong>
       {{ bisca.summary.playerPoints }} - {{ bisca.summary.botPoints }}
     </p>
 
-    <PrimaryButton type="button" @click="handleRestartMatch">
-      Novo match
+    <PrimaryButton type="button" @click="handleExit">
+      Voltar à seleção
     </PrimaryButton>
   </section>
 </template>

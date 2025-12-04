@@ -1,10 +1,7 @@
 <template>
   <nav class="max-w-full p-5 flex flex-row justify-between align-middle">
     <div class="align-middle text-xl">
-      <RouterLink :to="{ name: 'home' }">♠ PlayBisca</RouterLink><!-- TODO: Replace with router link to Home page -->
-      <span class="text-xs" v-if="authStore.currentUser">&nbsp;&nbsp;&nbsp;
-        ({{ authStore.currentUser?.name }})
-      </span>
+      <RouterLink :to="{name:'home'}">♠ PlayBisca</RouterLink><!-- TODO: Replace with router link to Home page -->
     </div>
     <NavigationMenu>
       <div class="flex items-center text-xl space-x-1" v-if="authStore.isLoggedIn">
@@ -16,54 +13,48 @@
           <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
           <path d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12" />
         </svg>
-        <!-- Botão de "novo jogo" que recarrega a rota atual -->
-        <RouterLink :to="$route.path">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus"
-            viewBox="0 0 16 16">
-            <path
-              d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
-          </svg>
-        </RouterLink>
+        <AddFunds
+          :current-balance="coinBalance.value"
+          @submit="handleFundsSubmit"
+        />
       </div>
 
-      <NavigationMenuList class="justify-around gap-20">
+      <NavigationMenuList v-if="authStore.isLoggedIn" class="justify-around gap-20">
         <NavigationMenuItem>
-          <NavigationMenuTrigger>Games</NavigationMenuTrigger>
-          <NavigationMenuContent>
-            <li>
-              <NavigationMenuLink as-child>
-                <!-- AQUI ligamos ao teu fluxo de singleplayer -->
-                <RouterLink :to="{ name: 'singleplayer.mode.select' }">
-                  SinglePlayer Game
-                </RouterLink>
-              </NavigationMenuLink>
-              <NavigationMenuLink>
-                <!-- Placeholder para multiplayer -->
-                <RouterLink :to="$route.path">
-                  Multiplayer (coming soon)
-                </RouterLink>
-
-              </NavigationMenuLink>
-              <NavigationMenuLink>
-                <RouterLink :to="{ name: 'history' }">
-                  History
-                </RouterLink>
-              </NavigationMenuLink>
-            </li>
-          </NavigationMenuContent>
-        </NavigationMenuItem>
+            <NavigationMenuTrigger v-if="authStore.currentUser?.photo_avatar_filename" class="flex items-center gap-2">
+              {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}
+              <Avatar class="h-8 w-8">
+                <AvatarImage :src="'http://127.0.0.1:8000/storage/photos_avatars/' + authStore.currentUser?.photo_avatar_filename" />
+              </Avatar>
+            </NavigationMenuTrigger>
+            <NavigationMenuTrigger v-if="!authStore.currentUser?.photo_avatar_filename" class="flex items-center">
+              {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}
+            </NavigationMenuTrigger>
+            <NavigationMenuContent class="w-full md:w-48">
+              <li class="flex flex-col w-full text-right">
+                <NavigationMenuLink as-child>
+                  <RouterLink :to="{}" class="block w-full px-3 py-2">
+                    Profile
+                  </RouterLink>
+                </NavigationMenuLink>
+                <NavigationMenuLink>
+                  <a @click.prevent="logout" class="block w-full px-3 py-2">
+                    Logout
+                  </a>
+                </NavigationMenuLink>
+              </li>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
       </NavigationMenuList>
+
       <NavigationMenuItem v-if="!authStore.isLoggedIn">
         <NavigationMenuLink>
           <RouterLink to="/login">Login</RouterLink>
         </NavigationMenuLink>
       </NavigationMenuItem>
-      <NavigationMenuItem v-else>
-        <NavigationMenuLink>
-          <a @click.prevent="logout">Logout</a>
-        </NavigationMenuLink>
-      </NavigationMenuItem>
     </NavigationMenu>
+
+
   </nav>
 
   <div>
@@ -71,6 +62,7 @@
       <RouterView />
     </main>
   </div>
+  <Toaster position="bottom-right"/>
 </template>
 
 
@@ -83,13 +75,17 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu'
-import { RouterLink, RouterView } from 'vue-router';
-import { onMounted, inject, ref, watch } from 'vue'
+import AddFunds from '@/components/ui/AddFunds.vue';
+import { RouterLink, RouterView} from 'vue-router';
+import { onMounted, inject, ref, watch,markRaw } from 'vue'
 import axios from 'axios'
-import { useAuthStore } from '@/stores/auth.js'
-import { toast } from 'vue-sonner'
+import {useAuthStore} from '@/stores/auth.js'
+import { toast,Toaster } from 'vue-sonner'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useAPIStore } from '@/stores/api.js'
 
 const authStore = useAuthStore()
+const apiStore = useAPIStore()
 
 const API_BASE_URL = inject('apiBaseURL')
 const coinBalance = ref(0)
@@ -123,6 +119,17 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   }
 }, { immediate: true })
 
+// Novo: reagir a mudanças no currentUser (por ex. depois de refreshUser)
+watch(
+  () => authStore.currentUser?.coins_balance,
+  (newBalance) => {
+    if (authStore.isLoggedIn) {
+      // se tivermos user logado, reflete o novo saldo
+      coinBalance.value = newBalance ?? 0
+    }
+  }
+)
+
 const logout = async () => {
   await toast.promise(authStore.logout(), {
     loading: 'Calling API',
@@ -134,9 +141,40 @@ const logout = async () => {
   // Coin balance will be reset by the watcher
 }
 
+
 onMounted(() => {
   // Initial fetch - will be handled by watcher with immediate: true
 })
+
+
+
+const handleFundsSubmit = async (data) => {
+  try {
+    const coins = Math.floor(data.euros * 10)
+    console.log(coins)
+
+    await apiStore.postCoinPurchase(data,coins)
+
+    await fetchCoinBalance()
+
+    // Show success message
+    toast(markRaw({
+      title: 'Success',
+      description: 'Funds added successfully!',
+      variant: 'default'
+    }))
+
+  } catch (error) {
+    console.log(error)
+    toast(markRaw({
+      title: 'Error',
+      description: 'Failed to add funds',
+      variant: 'destructive'
+    }))
+  }
+}
+
+
 </script>
 
 <style scoped>

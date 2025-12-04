@@ -1,51 +1,50 @@
 <template>
   <nav class="max-w-full p-5 flex flex-row justify-between align-middle">
     <div class="align-middle text-xl">
-      <RouterLink :to="{name:'home'}">♠ PlayBisca</RouterLink><!-- TODO: Replace with router link to Home page -->
+      <RouterLink :to="{name:'home'}">♠ PlayBisca</RouterLink>
     </div>
-
     <NavigationMenu>
       <div class="flex items-center text-xl space-x-1" v-if="authStore.isLoggedIn">
-        <div>{{coinBalance}}</div>
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-coin" viewBox="0 0 16 16">
-          <path d="M5.5 9.511c.076.954.83 1.697 2.182 1.785V12h.6v-.709c1.4-.098 2.218-.846 2.218-1.932 0-.987-.626-1.496-1.745-1.76l-.473-.112V5.57c.6.068.982.396 1.074.85h1.052c-.076-.919-.864-1.638-2.126-1.716V4h-.6v.719c-1.195.117-2.01.836-2.01 1.853 0 .9.606 1.472 1.613 1.707l.397.098v2.034c-.615-.093-1.022-.43-1.114-.9zm2.177-2.166c-.59-.137-.91-.416-.91-.836 0-.47.345-.822.915-.925v1.76h-.005zm.692 1.193c.717.166 1.048.435 1.048.91 0 .542-.412.914-1.135.982V8.518z"/>
-          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
-          <path d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12"/>
+        <div>{{ coinBalance }}</div>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-coin"
+          viewBox="0 0 16 16">
+          <path
+            d="M5.5 9.511c.076.954.83 1.697 2.182 1.785V12h.6v-.709c1.4-.098 2.218-.846 2.218-1.932 0-.987-.626-1.496-1.745-1.76l-.473-.112V5.57c.6.068.982.396 1.074.85h1.052c-.076-.919-.864-1.638-2.126-1.716V4h-.6v.719c-1.195.117-2.01.836-2.01 1.853 0 .9.606 1.472 1.613 1.707l.397.098v2.034c-.615-.093-1.022-.43-1.114-.9zm2.177-2.166c-.59-.137-.91-.416-.91-.836 0-.47.345-.822.915-.925v1.76h-.005zm.692 1.193c.717.166 1.048.435 1.048.91 0 .542-.412.914-1.135.982V8.518z" />
+          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+          <path d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12" />
         </svg>
-        <!-- Botão de "novo jogo" que recarrega a rota atual -->
-        <RouterLink :to="$route.path">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus" viewBox="0 0 16 16">
-            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/>
-          </svg>
-        </RouterLink>
+        <AddFunds
+          :current-balance="coinBalance.value"
+          @submit="handleFundsSubmit"
+        />
       </div>
-      
+
       <NavigationMenuList v-if="authStore.isLoggedIn" class="justify-around gap-20">
         <NavigationMenuItem>
-            <NavigationMenuTrigger v-if="authStore.currentUser?.photo_avatar_filename" class="flex items-center gap-2">
-              {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}
-              <Avatar class="h-8 w-8">
-                <AvatarImage :src="'http://127.0.0.1:8000/storage/photos_avatars/' + authStore.currentUser?.photo_avatar_filename" />
-              </Avatar>
-            </NavigationMenuTrigger>
-            <NavigationMenuTrigger v-if="!authStore.currentUser?.photo_avatar_filename" class="flex items-center">
-              {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}  
-            </NavigationMenuTrigger>
-            <NavigationMenuContent class="w-full md:w-48">
-              <li class="flex flex-col w-full text-right">
-                <NavigationMenuLink as-child>
-                  <RouterLink :to="{}" class="block w-full px-3 py-2">
-                    Profile
-                  </RouterLink>
-                </NavigationMenuLink>
-                <NavigationMenuLink>
-                  <a @click.prevent="logout" class="block w-full px-3 py-2">
-                    Logout
-                  </a>
-                </NavigationMenuLink>
-              </li>
-            </NavigationMenuContent>
-          </NavigationMenuItem> 
+          <NavigationMenuTrigger v-if="authStore.currentUser?.photo_avatar_filename" class="flex items-center gap-2">
+            {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}
+            <Avatar class="h-8 w-8">
+              <AvatarImage :src="'http://127.0.0.1:8000/storage/photos_avatars/' + authStore.currentUser?.photo_avatar_filename" />
+            </Avatar>
+          </NavigationMenuTrigger>
+          <NavigationMenuTrigger v-if="!authStore.currentUser?.photo_avatar_filename" class="flex items-center">
+            {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}
+          </NavigationMenuTrigger>
+          <NavigationMenuContent class="w-full md:w-48">
+            <li class="flex flex-col w-full text-right">
+              <NavigationMenuLink as-child>
+                <RouterLink :to="{}" class="block w-full px-3 py-2">
+                  Profile
+                </RouterLink>
+              </NavigationMenuLink>
+              <NavigationMenuLink as-child>
+                <button @click="logout" class="block w-full px-3 py-2 text-right bg-transparent border-none cursor-pointer">
+                  Logout
+                </button>
+              </NavigationMenuLink>
+            </li>
+          </NavigationMenuContent>
+        </NavigationMenuItem>
       </NavigationMenuList>
 
       <NavigationMenuItem v-if="!authStore.isLoggedIn">
@@ -63,6 +62,7 @@
       <RouterView />
     </main>
   </div>
+  <Toaster position="bottom-right"/>
 </template>
 
 
@@ -75,14 +75,17 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu'
+import AddFunds from '@/components/ui/AddFunds.vue';
 import { RouterLink, RouterView} from 'vue-router';
-import { onMounted, inject, ref, watch } from 'vue'
+import { inject, ref, watch } from 'vue'
 import axios from 'axios'
 import {useAuthStore} from '@/stores/auth.js'
-import { toast } from 'vue-sonner'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { toast,Toaster } from 'vue-sonner'
+import { Avatar, AvatarImage } from '@/components/ui/avatar'
+import { useAPIStore } from '@/stores/api.js'
 
 const authStore = useAuthStore()
+const apiStore = useAPIStore()
 
 const API_BASE_URL = inject('apiBaseURL')
 const coinBalance = ref(0)
@@ -116,8 +119,19 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   }
 }, { immediate: true })
 
+// Novo: reagir a mudanças no currentUser (por ex. depois de refreshUser)
+watch(
+  () => authStore.currentUser?.coins_balance,
+  (newBalance) => {
+    if (authStore.isLoggedIn) {
+      // se tivermos user logado, reflete o novo saldo
+      coinBalance.value = newBalance ?? 0
+    }
+  }
+)
+
 const logout = async () => {
-  await toast.promise(authStore.logout(), {
+  toast.promise(authStore.logout(), {
     loading: 'Calling API',
     success: () => {
       return 'Logout Successful'
@@ -127,10 +141,22 @@ const logout = async () => {
   // Coin balance will be reset by the watcher
 }
 
+const handleFundsSubmit = async (data) => {
+    const coins = Math.floor(data.euros * 10)
+    console.log(coins)
 
-onMounted(() => {
-  // Initial fetch - will be handled by watcher with immediate: true
-})
+    toast.promise(apiStore.postCoinPurchase(data,coins), {
+      loading: 'Contacting payment processor',
+      success: () => {
+        return 'Funds added successfully!'
+      },
+      error: (data) => `[API] Error saving game - ${data?.response?.data?.message}`,
+    })
+
+    await fetchCoinBalance()
+}
+
+
 </script>
 
 <style scoped>

@@ -30,7 +30,7 @@ const modes = computed(() => {
 })
 
 const gameTypes = [
-  { value: 'standalone', label: 'Standalone', description: 'Um único jogo' },
+  { value: 'standalone', label: 'Game', description: 'Um único jogo' },
   { value: 'match', label: 'Match', description: 'Match até 4 marks' },
 ]
 

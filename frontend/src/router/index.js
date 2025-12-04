@@ -1,3 +1,4 @@
+import HistoryView from '@/pages/user/HistoryView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import RegisterPage from '@/pages/login/RegisterPage.vue'
 
@@ -29,6 +30,11 @@ const router = createRouter({
       name: 'singleplayer.game',
       component: () => import('@/pages/SinglePlayerGame.vue'),
     },
+    {
+      path: '/history' ,
+      name: 'history',
+      component: HistoryView
+    }
   ],
 })
 

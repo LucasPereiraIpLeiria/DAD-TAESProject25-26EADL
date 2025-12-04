@@ -9,6 +9,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -50,5 +52,25 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+
+    public function matchesAsPlayer1()
+    {
+        return $this->hasMany(Matche::class, 'player1_user_id');
+    }
+
+    public function matchesAsPlayer2()
+    {
+        return $this->hasMany(Matche::class, 'player2_user_id');
+    }
+
+    /**
+     * Combined matches (accessor)
+     */
+    public function getMatchesAttribute()
+    {
+        return $this->matchesAsPlayer1()->get()
+            ->merge($this->matchesAsPlayer2()->get());
     }
 }

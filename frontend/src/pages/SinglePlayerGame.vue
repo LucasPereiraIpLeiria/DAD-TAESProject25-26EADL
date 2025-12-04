@@ -100,11 +100,12 @@ function exitToSelection() {
       <BiscaPlayerHand v-if="bisca.status === 'in_game'" :bisca="bisca" :is-player-turn="isPlayerTurn"
         @play-card="play" />
 
-      <div v-if="gametype === 'standalone'">
-        <button id="debug-end-standalone" class="debug-btn" @click="bisca.debugForceEndStandalone()">
-          [DEBUG] Terminar standalone
+      <div>
+        <button id="debug-end-any" class="debug-btn" @click="bisca.debugForceEnd()">
+          [DEBUG] Terminar instantaneamente
         </button>
       </div>
+
 
 
       <BiscaEndPanel v-if="bisca.status === 'between_games' || bisca.status === 'match_finished'" :bisca="bisca"

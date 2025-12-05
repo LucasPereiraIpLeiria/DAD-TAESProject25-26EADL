@@ -42,11 +42,12 @@ function handleExit() {
       {{ bisca.summary.result === 'win' ? 'Vitória' : 'Derrota' }}
     </p>
 
+    <!-- Marks do match -->
     <p v-if="gametype === 'match'">
       <strong>Marks:</strong>
       {{ bisca.summary.playerMarks }} - {{ bisca.summary.botMarks }}
     </p>
-
+    <!-- Pontos totais do match -->
     <p v-if="gametype === 'match'">
       <strong>Pontos totais do match:</strong>
       {{ bisca.matchPlayer1Points }} - {{ bisca.matchPlayer2Points }}
@@ -58,6 +59,7 @@ function handleExit() {
       {{ bisca.summary.playerPoints }} - {{ bisca.summary.botPoints }}
     </p>
 
+    
     <p v-if="bisca.summary.result === 'win' && bisca.summary.coinsAwarded != null" class="coins-awarded">
       <strong>Coins ganhos:</strong>
       +{{ bisca.summary.coinsAwarded }}

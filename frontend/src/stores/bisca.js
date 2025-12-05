@@ -821,8 +821,50 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
+  function debugForceEndStandalone() {
+    if (gameType.value !== 'standalone') return
+    if (status.value === 'match_finished') return
 
+    // Garante timestamps válidos para o backend
+    if (!beganAt.value) {
+      // começamos "há 1 minuto" só para garantir que ended_at > began_at
+      beganAt.value = new Date(Date.now() - 60_000).toISOString()
+    }
+    endedAt.value = new Date().toISOString()
 
+    status.value = 'in_game'
+
+    // Vitória automática
+    playerMarks.value = 4
+    botMarks.value = 0
+    playerPoints.value = 120
+    botPoints.value = 0
+
+    finishMatch()
+  }
+
+  function debugForceEndMatch() {
+    if (gameType.value !== 'match') return
+    if (status.value === 'match_finished') return
+
+    status.value = 'in_game'
+
+    // Vitória automática neste game
+    playerHand.value = []
+    botHand.value = []
+    stock.value = []
+    tableCards.value = { player: null, bot: null }
+    playerPoints.value = 100
+    botPoints.value = 0
+    console.log('[DEBUG MATCH] antes do finishGameIfNeeded', {
+      playerPoints: playerPoints.value,
+      botPoints: botPoints.value,
+      gameType: gameType.value,
+      status: status.value,
+    })
+    // Isto força o fim do game atual e cria o game na BD
+    finishGameIfNeeded('player')
+  }
 
   //
   // EXPORTAR

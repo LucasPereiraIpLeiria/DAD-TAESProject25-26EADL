@@ -54,6 +54,9 @@ export const useBiscaStore = defineStore('bisca', () => {
   const matchPlayer1Points = ref(0)
   const matchPlayer2Points = ref(0)
 
+  // histórico de games dentro de um match (apenas para UI)
+  const matchGames = ref([]) // [{ gameNumber, playerPoints, botPoints, winner, achievements }]
+
   // quem começou a vaza atual
   const trickLeader = ref('player') // 'player' | 'bot'
 
@@ -232,6 +235,9 @@ export const useBiscaStore = defineStore('bisca', () => {
     currentTurn.value = 'player'
     phase.value = 'draw_phase'
     trickLeader.value = 'player'
+    matchGames.value = []
+    matchPlayer1Points.value = 0
+    matchPlayer2Points.value = 0
   }
 
   //
@@ -562,15 +568,36 @@ export const useBiscaStore = defineStore('bisca', () => {
       gameWinner = null // empate → zero marks para ambos
     }
 
+    if (gameType.value === 'match') {
+      const playerWonGame = gameWinner === 'player'
+
+      const gameAchievements = {
+        // bandeira: player ganha o game com 120 pontos
+        bandeira: playerWonGame && playerPoints.value === 120,
+        // capote: player ganha o game com [91, 119]
+        capote: playerWonGame && playerPoints.value >= 91 && playerPoints.value < 120,
+      }
+
+      matchGames.value.push({
+        gameNumber: currentGameNumber.value,
+        playerPoints: playerPoints.value,
+        botPoints: botPoints.value,
+        winner: gameWinner, // 'player' | 'bot' | null
+        achievements: gameAchievements,
+      })
+    }
+
     // ───────────────────────────────────────────────
     // SE FOR MATCH COMPETITIVO → GUARDAR GAME EM BD
     // ───────────────────────────────────────────────
 
-    if (gameType.value === 'match' && mode.value === 'competitive' && currentMatchId.value) {
-      // acumular pontos totais do match
+    // Acumular pontos totais do match (para UI), independentemente de ser competitivo
+    if (gameType.value === 'match') {
       matchPlayer1Points.value += playerPoints.value
       matchPlayer2Points.value += botPoints.value
+    }
 
+    if (gameType.value === 'match' && mode.value === 'competitive' && currentMatchId.value) {
       try {
         await saveMatchGame(gameWinner)
       } catch (error) {
@@ -634,8 +661,8 @@ export const useBiscaStore = defineStore('bisca', () => {
       playerPoints: playerPoints.value,
       botPoints: botPoints.value,
       achievements: {
-        capote: playerMarks.value === 4 && botMarks.value === 0,
-        bandeira: playerPoints.value === 120 || botPoints.value === 120,
+        capote: playerPoints.value >= 91 && playerPoints.value < 120,
+        bandeira: playerPoints.value === 120,
       },
       mode: mode.value,
       gameType: gameType.value,
@@ -830,11 +857,11 @@ export const useBiscaStore = defineStore('bisca', () => {
     playerPoints.value = 100
     botPoints.value = 0
     console.log('[DEBUG MATCH] antes do finishGameIfNeeded', {
-  playerPoints: playerPoints.value,
-  botPoints: botPoints.value,
-  gameType: gameType.value,
-  status: status.value,
-})
+      playerPoints: playerPoints.value,
+      botPoints: botPoints.value,
+      gameType: gameType.value,
+      status: status.value,
+    })
     // Isto força o fim do game atual e cria o game na BD
     finishGameIfNeeded('player')
   }
@@ -935,6 +962,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     currentMatchId,
     matchPlayer1Points,
     matchPlayer2Points,
+    matchGames,
 
     // computed
     isDrawPhase,

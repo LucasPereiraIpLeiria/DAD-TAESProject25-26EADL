@@ -4,12 +4,12 @@ import PrimaryButton from '@/components/ui/PrimaryButton.vue'
 const props = defineProps({
   bisca: {
     type: Object,
-    required: true
+    required: true,
   },
   gametype: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 })
 
 const emit = defineEmits(['next-game', 'exit'])
@@ -30,9 +30,7 @@ function handleExit() {
     <p>Pontos deste game: {{ bisca.playerPoints }} - {{ bisca.botPoints }}</p>
     <p>Marks: {{ bisca.playerMarks }} - {{ bisca.botMarks }}</p>
 
-    <PrimaryButton type="button" @click="handleNextGame">
-      Começar próximo game
-    </PrimaryButton>
+    <PrimaryButton type="button" @click="handleNextGame"> Começar próximo game </PrimaryButton>
   </section>
 
   <!-- Fim de match / standalone -->
@@ -49,8 +47,14 @@ function handleExit() {
       {{ bisca.summary.playerMarks }} - {{ bisca.summary.botMarks }}
     </p>
 
-    <p>
-      <strong>{{ gametype === 'standalone' ? 'Pontos:' : 'Pontos (último game):' }}</strong>
+    <p v-if="gametype === 'match'">
+      <strong>Pontos totais do match:</strong>
+      {{ bisca.matchPlayer1Points }} - {{ bisca.matchPlayer2Points }}
+    </p>
+
+    <!-- Standalone: só os pontos desse game -->
+    <p v-else>
+      <strong>Pontos:</strong>
       {{ bisca.summary.playerPoints }} - {{ bisca.summary.botPoints }}
     </p>
 
@@ -59,9 +63,38 @@ function handleExit() {
       +{{ bisca.summary.coinsAwarded }}
     </p>
 
-    <PrimaryButton type="button" @click="handleExit">
-      Voltar à seleção
-    </PrimaryButton>
+    <!-- Lista de games do match -->
+    <div v-if="gametype === 'match' && bisca.matchGames && bisca.matchGames.length" class="games-list">
+      <h3>Resultados por game</h3>
+      <ul>
+        <li v-for="g in bisca.matchGames" :key="g.gameNumber">
+          <span class="game-label">Game {{ g.gameNumber }}:</span>
+          <span class="game-score">
+            {{ g.playerPoints }} - {{ g.botPoints }}
+          </span>
+          <span class="game-result">
+            ·
+            {{
+              g.winner === 'player'
+                ? 'Vitória'
+                : g.winner === 'bot'
+                  ? 'Derrota'
+                  : 'Empate'
+            }}
+          </span>
+
+          <span v-if="g.achievements?.bandeira" class="badge">
+            Bandeira
+          </span>
+          <span v-else-if="g.achievements?.capote" class="badge">
+            Capote
+          </span>
+        </li>
+      </ul>
+    </div>
+
+
+    <PrimaryButton type="button" @click="handleExit"> Voltar à seleção </PrimaryButton>
   </section>
 </template>
 
@@ -73,6 +106,7 @@ function handleExit() {
   font-size: 0.9rem;
   display: inline-block;
 }
+
 .end-panel {
   margin-top: 1rem;
   padding-top: 0.75rem;
@@ -93,4 +127,55 @@ function handleExit() {
 .end-result {
   margin-top: 0.4rem;
 }
+
+.match-achievements {
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.games-list {
+  margin-top: 0.75rem;
+  text-align: left;
+}
+
+.games-list h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.games-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.games-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  padding: 0.15rem 0;
+}
+
+.game-label {
+  font-weight: 600;
+}
+
+.game-score {
+  font-variant-numeric: tabular-nums;
+}
+
+.game-result {
+  opacity: 0.8;
+}
+
+.badge {
+  padding: 0.1rem 0.35rem;
+  border-radius: 9999px;
+  border: 1px solid #e5e7eb;
+  font-size: 0.75rem;
+}
+
+
 </style>

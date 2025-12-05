@@ -8,10 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Matche extends Model
 {
     public $timestamps = false;
-
-    //Not all were required to be fillable
-
-        protected $fillable = [
+    protected $fillable = [
         'player1_user_id',
         'player2_user_id',
         'winner_user_id',

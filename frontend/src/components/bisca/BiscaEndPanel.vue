@@ -42,31 +42,28 @@ function handleExit() {
       {{ bisca.summary.result === 'win' ? 'Vitória' : 'Derrota' }}
     </p>
 
-    <!-- Marks do match -->
     <p v-if="gametype === 'match'">
       <strong>Marks:</strong>
       {{ bisca.summary.playerMarks }} - {{ bisca.summary.botMarks }}
     </p>
-    <!-- Pontos totais do match -->
+
     <p v-if="gametype === 'match'">
       <strong>Pontos totais do match:</strong>
       {{ bisca.matchPlayer1Points }} - {{ bisca.matchPlayer2Points }}
     </p>
 
-
+    <!-- Standalone: só os pontos desse game -->
     <p v-else>
       <strong>Pontos:</strong>
       {{ bisca.summary.playerPoints }} - {{ bisca.summary.botPoints }}
     </p>
 
-    <!-- coins ganhos caso o user ganhe -->
     <p v-if="bisca.summary.result === 'win' && bisca.summary.coinsAwarded != null" class="coins-awarded">
       <strong>Coins ganhos:</strong>
       +{{ bisca.summary.coinsAwarded }}
     </p>
-    <!-- Lista de games do match -->
-    <!-- achievements só sao mostrados se forem alcançados pelo utilizador-->
 
+    <!-- Lista de games do match -->
     <div v-if="gametype === 'match' && bisca.matchGames && bisca.matchGames.length" class="games-list">
       <h3>Resultados por game</h3>
       <ul>
@@ -86,9 +83,6 @@ function handleExit() {
             }}
           </span>
 
-
-
-          <!-- num match é impossivel haver dois achievements -->
           <span v-if="g.achievements?.bandeira" class="badge">
             Bandeira
           </span>
@@ -182,4 +176,6 @@ function handleExit() {
   border: 1px solid #e5e7eb;
   font-size: 0.75rem;
 }
+
+
 </style>

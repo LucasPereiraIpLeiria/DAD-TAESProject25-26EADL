@@ -87,8 +87,6 @@ import { RouterLink, RouterView} from 'vue-router';
 import { inject, ref, watch } from 'vue'
 import axios from 'axios'
 import {useAuthStore} from '@/stores/auth.js'
-import { toast } from 'vue-sonner'
-import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import router from './router';
 import { toast,Toaster } from 'vue-sonner'
 import { Avatar, AvatarImage } from '@/components/ui/avatar'

@@ -53,19 +53,20 @@ function handleExit() {
       {{ bisca.matchPlayer1Points }} - {{ bisca.matchPlayer2Points }}
     </p>
 
-    <!-- Standalone: só os pontos desse game -->
+    
     <p v-else>
       <strong>Pontos:</strong>
       {{ bisca.summary.playerPoints }} - {{ bisca.summary.botPoints }}
     </p>
 
-    
+    <!-- coins ganhos caso o user ganhe -->
     <p v-if="bisca.summary.result === 'win' && bisca.summary.coinsAwarded != null" class="coins-awarded">
       <strong>Coins ganhos:</strong>
       +{{ bisca.summary.coinsAwarded }}
     </p>
 
     <!-- Lista de games do match -->
+     <!-- achievements só sao mostrados se forem alcançados pelo utilizador-->
     <div v-if="gametype === 'match' && bisca.matchGames && bisca.matchGames.length" class="games-list">
       <h3>Resultados por game</h3>
       <ul>

@@ -21,8 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Create a new match
-    Route::post('matches', [MatcheController::class, 'store']);
-    Route::patch('matches/{matche}', [MatcheController::class, 'update']);
+  
     Route::post('standalone', [GameController::class, 'store']);
     Route::post('games', [GameController::class, 'store']);
 

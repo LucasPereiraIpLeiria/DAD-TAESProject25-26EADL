@@ -154,26 +154,7 @@ export const useAPIStore = defineStore('api', () => {
     return axios.post(`${API_BASE_URL}/standalone`, game)
   }
 
-  const postMatch = async (match) => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
-    return axios.post(`${API_BASE_URL}/matches`, match)
-  }
 
-  const updateMatch = async (matchId, payload) => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
-    return axios.patch(`${API_BASE_URL}/matches/${matchId}`, payload)
-  }
-
-  const postGame = async (game) => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
-    return axios.post(`${API_BASE_URL}/games`, game)
-  }
 
   /*const postMatche = (game) => {
     return axios.post(`${API_BASE_URL}/matches`, game)

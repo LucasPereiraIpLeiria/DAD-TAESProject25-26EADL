@@ -1,16 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useBiscaStore } from '@/stores/bisca'
 
-// Criamos mocks "singleton" fora do vi.mock
-const authStoreMock = {
+// Cria mocks hoisted
+const authStoreMock = vi.hoisted(() => ({
   isLoggedIn: true,
   refreshUser: vi.fn(),
-}
+}))
 
-const apiStoreMock = {
+const apiStoreMock = vi.hoisted(() => ({
   postDeductEntryFee: vi.fn(),
-}
+}))
 
 // Mock das stores para devolverem SEMPRE estes objetos
 vi.mock('@/stores/auth', () => {
@@ -25,6 +24,9 @@ vi.mock('@/stores/api', () => {
   }
 })
 
+// IMPORTA a store DEPOIS dos mocks
+import { useBiscaStore } from '@/stores/bisca'
+
 describe('tryStartCompetitiveMatch', () => {
   let bisca
 
@@ -35,6 +37,7 @@ describe('tryStartCompetitiveMatch', () => {
     // reset aos mocks antes de cada teste
     authStoreMock.isLoggedIn = true
     authStoreMock.refreshUser = vi.fn()
+
     apiStoreMock.postDeductEntryFee = vi.fn()
   })
 
@@ -62,9 +65,7 @@ describe('tryStartCompetitiveMatch', () => {
   it('retorna insufficient_funds quando o backend devolve esse erro', async () => {
     apiStoreMock.postDeductEntryFee.mockRejectedValueOnce({
       response: {
-        data: {
-          reason: 'insufficient_funds',
-        },
+        data: { reason: 'insufficient_funds' },
       },
     })
 
@@ -78,9 +79,7 @@ describe('tryStartCompetitiveMatch', () => {
   it('retorna unknown_error quando o backend falha de outra forma', async () => {
     apiStoreMock.postDeductEntryFee.mockRejectedValueOnce({
       response: {
-        data: {
-          reason: 'some_other_error',
-        },
+        data: { reason: 'some_other_error' },
       },
     })
 

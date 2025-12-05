@@ -359,7 +359,10 @@ export const useBiscaStore = defineStore('bisca', () => {
     return false
   }
 
+  //
   // BOT AI
+  // ───────────────────────────────────────────────
+  //
 
   function botPlay() {
     if (status.value !== 'in_game') return
@@ -548,9 +551,9 @@ export const useBiscaStore = defineStore('bisca', () => {
     // Marcar fim do game
     endedAt.value = new Date().toISOString()
 
-    //--
+    // ───────────────────────────────────────────────
     // DETERMINAR VENCEDOR DO GAME E PONTOS
-    //--
+    // ───────────────────────────────────────────────
 
     let gameWinner = null
     let gameWinnerPoints = 0
@@ -565,7 +568,6 @@ export const useBiscaStore = defineStore('bisca', () => {
       gameWinner = null // empate → zero marks para ambos
     }
 
-
     if (gameType.value === 'match') {
       const playerWonGame = gameWinner === 'player'
 
@@ -576,7 +578,6 @@ export const useBiscaStore = defineStore('bisca', () => {
         capote: playerWonGame && playerPoints.value >= 91 && playerPoints.value < 120,
       }
 
-      // informacao para mostrar no final do match
       matchGames.value.push({
         gameNumber: currentGameNumber.value,
         playerPoints: playerPoints.value,
@@ -585,10 +586,10 @@ export const useBiscaStore = defineStore('bisca', () => {
         achievements: gameAchievements,
       })
     }
+
     // ───────────────────────────────────────────────
     // SE FOR MATCH COMPETITIVO → GUARDAR GAME EM BD
     // ───────────────────────────────────────────────
-
 
     // Acumular pontos totais do match (para UI), independentemente de ser competitivo
     if (gameType.value === 'match') {
@@ -704,7 +705,6 @@ export const useBiscaStore = defineStore('bisca', () => {
           player2_points: matchPlayer2Points.value,
           // total_time calculado no backend
         }
-
 
         await apiStore.updateMatch(currentMatchId.value, payload)
       } catch (error) {
@@ -868,9 +868,70 @@ export const useBiscaStore = defineStore('bisca', () => {
 
   //
   // EXPORTAR
+  async function saveStandaloneGame(summary) {
+    if (mode.value !== 'competitive') return
+    if (summary.gameType !== 'standalone') return
 
+    const p1 = authStore.currentUser.id
+    const p2 = 521
 
+    const isDraw = summary.playerPoints === summary.botPoints
 
+    const winnerUserId = isDraw ? null : summary.playerPoints > summary.botPoints ? p1 : p2
+
+    const loserUserId = isDraw ? null : summary.playerPoints < summary.botPoints ? p1 : p2
+
+    const gameStandalone = {
+      player1_user_id: p1,
+      player2_user_id: p2,
+      type: variant.value,
+      status: 'Ended',
+      is_draw: isDraw,
+      winner_user_id: winnerUserId,
+      loser_user_id: loserUserId,
+      match_id: null,
+      player1_points: summary.playerPoints,
+      player2_points: summary.botPoints,
+      began_at: beganAt.value,
+      ended_at: endedAt.value,
+    }
+
+    await apiStore.postStandalone(gameStandalone)
+  }
+
+  async function saveMatchGame(gameWinner) {
+    // só em competitivo + match + com matchId válido
+    if (mode.value !== 'competitive') return
+    if (gameType.value !== 'match') return
+    if (!currentMatchId.value) return
+
+    const p1 = authStore.currentUser?.id
+    const p2 = 521
+
+    const isDraw = playerPoints.value === botPoints.value
+
+    const winnerUserId = isDraw ? null : gameWinner === 'player' ? p1 : p2
+
+    const loserUserId = isDraw ? null : gameWinner === 'player' ? p2 : p1
+
+    const payload = {
+      type: variant.value, // '3' ou '9'
+      player1_user_id: p1,
+      player2_user_id: p2,
+      is_draw: isDraw,
+      winner_user_id: winnerUserId,
+      loser_user_id: loserUserId,
+      match_id: currentMatchId.value,
+      status: 'Ended',
+      began_at: beganAt.value,
+      ended_at: endedAt.value,
+      player1_points: playerPoints.value,
+      player2_points: botPoints.value,
+      // total_time calculado no backend
+    }
+
+    await apiStore.postGame(payload)
+  }
 
   // ───────────────────────────────────────────────
   //

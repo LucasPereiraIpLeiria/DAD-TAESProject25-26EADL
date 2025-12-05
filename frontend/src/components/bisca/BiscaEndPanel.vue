@@ -53,7 +53,7 @@ function handleExit() {
       {{ bisca.matchPlayer1Points }} - {{ bisca.matchPlayer2Points }}
     </p>
 
-    
+
     <p v-else>
       <strong>Pontos:</strong>
       {{ bisca.summary.playerPoints }} - {{ bisca.summary.botPoints }}
@@ -64,9 +64,9 @@ function handleExit() {
       <strong>Coins ganhos:</strong>
       +{{ bisca.summary.coinsAwarded }}
     </p>
-
     <!-- Lista de games do match -->
-     <!-- achievements só sao mostrados se forem alcançados pelo utilizador-->
+    <!-- achievements só sao mostrados se forem alcançados pelo utilizador-->
+
     <div v-if="gametype === 'match' && bisca.matchGames && bisca.matchGames.length" class="games-list">
       <h3>Resultados por game</h3>
       <ul>
@@ -86,6 +86,9 @@ function handleExit() {
             }}
           </span>
 
+
+
+          <!-- num match é impossivel haver dois achievements -->
           <span v-if="g.achievements?.bandeira" class="badge">
             Bandeira
           </span>
@@ -179,6 +182,4 @@ function handleExit() {
   border: 1px solid #e5e7eb;
   font-size: 0.75rem;
 }
-
-
 </style>

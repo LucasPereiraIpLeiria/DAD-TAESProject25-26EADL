@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAPIStore } from '@/stores/api'
 
-const apiStore =useAPIStore()
+const apiStore = useAPIStore()
 const authStore = useAuthStore()
 export const useBiscaStore = defineStore('bisca', () => {
   //
@@ -12,13 +12,9 @@ export const useBiscaStore = defineStore('bisca', () => {
   // ───────────────────────────────────────────────
   //
 
-  const beganAt = ref(null)
-  const endedAt = ref(null)
-
-
-  const mode = ref('practice')           // 'competitive' | 'practice'
-  const gameType = ref('standalone')     // 'standalone' | 'match'
-  const variant = ref('9')               // '3' | '9'  (tamanho da mão inicial)
+  const mode = ref('practice') // 'competitive' | 'practice'
+  const gameType = ref('standalone') // 'standalone' | 'match'
+  const variant = ref('9') // '3' | '9'  (tamanho da mão inicial)
 
   const status = ref('idle') // 'idle' | 'in_game' | 'between_games' | 'match_finished'
 
@@ -46,6 +42,20 @@ export const useBiscaStore = defineStore('bisca', () => {
   const phase = ref('draw_phase') // 'draw_phase' | 'final_phase'
 
   const summary = ref(null) // resumo final do “match” ou jogo standalone
+
+  // timestamps de jogo/match
+  const beganAt = ref(null)
+  const endedAt = ref(null)
+  const matchBeganAt = ref(null)
+  const matchEndedAt = ref(null)
+
+  // identificação e acumulados de match competitivo
+  const currentMatchId = ref(null)
+  const matchPlayer1Points = ref(0)
+  const matchPlayer2Points = ref(0)
+
+  // histórico de games dentro de um match (apenas para UI)
+  const matchGames = ref([]) // [{ gameNumber, playerPoints, botPoints, winner, achievements }]
 
   // quem começou a vaza atual
   const trickLeader = ref('player') // 'player' | 'bot'
@@ -163,15 +173,50 @@ export const useBiscaStore = defineStore('bisca', () => {
   // ───────────────────────────────────────────────
   //
 
-  function startMatch({ mode: m, gametype, variant: v } = {}) {
+  async function startMatch({ mode: m, gametype, variant: v } = {}) {
     applyConfig({ mode: m, gametype, variant: v })
 
     resetMatch()
-    status.value = 'in_game'
+
     currentGameNumber.value = 1
     playerMarks.value = 0
     botMarks.value = 0
-    startGame() // usa mode/gameType/variant atuais
+    matchPlayer1Points.value = 0
+    matchPlayer2Points.value = 0
+    currentMatchId.value = null
+    matchBeganAt.value = null
+    matchEndedAt.value = null
+
+    status.value = 'in_game'
+
+    // Se não for competitivo, não guardamos nada em BD
+    if (mode.value === 'competitive') {
+      const p1 = authStore.currentUser?.id
+      const p2 = 521
+
+      const nowIso = new Date().toISOString()
+
+      const matchPayload = {
+        type: variant.value, // '3' ou '9'
+        player1_user_id: p1,
+        player2_user_id: p2,
+        status: 'Playing',
+        stake: 1, // por agora
+        began_at: nowIso,
+        // winner/loser/marcas/pontos ficam por preencher no fim
+      }
+
+      try {
+        const response = await apiStore.postMatch(matchPayload)
+        currentMatchId.value = response.data.id
+        matchBeganAt.value = response.data.began_at ?? nowIso
+      } catch (error) {
+        console.error('Failed to create match in API:', error)
+        // em caso extremo, continuamos o jogo em memória, só não fica registado
+      }
+    }
+
+    await startGame() // usa mode/gameType/variant atuais
   }
 
   function resetMatch() {
@@ -190,6 +235,9 @@ export const useBiscaStore = defineStore('bisca', () => {
     currentTurn.value = 'player'
     phase.value = 'draw_phase'
     trickLeader.value = 'player'
+    matchGames.value = []
+    matchPlayer1Points.value = 0
+    matchPlayer2Points.value = 0
   }
 
   //
@@ -237,7 +285,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     currentTurn.value = 'player'
 
     beganAt.value = new Date().toISOString()
-
+    endedAt.value = null
   }
 
   //
@@ -311,10 +359,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     return false
   }
 
-  //
   // BOT AI
-  // ───────────────────────────────────────────────
-  //
 
   function botPlay() {
     if (status.value !== 'in_game') return
@@ -492,7 +537,7 @@ export const useBiscaStore = defineStore('bisca', () => {
   // ───────────────────────────────────────────────
   //
 
-  function finishGameIfNeeded(winner) {
+  async function finishGameIfNeeded(winner) {
     if (!isGameOver.value) {
       currentTurn.value = winner
       trickLeader.value = winner
@@ -500,9 +545,12 @@ export const useBiscaStore = defineStore('bisca', () => {
       return
     }
 
-    // ───────────────────────────────────────────────
-    // ATRIBUIR MARKS SEGUNDO O ENUNCIADO
-    // ───────────────────────────────────────────────
+    // Marcar fim do game
+    endedAt.value = new Date().toISOString()
+
+    //--
+    // DETERMINAR VENCEDOR DO GAME E PONTOS
+    //--
 
     let gameWinner = null
     let gameWinnerPoints = 0
@@ -516,6 +564,49 @@ export const useBiscaStore = defineStore('bisca', () => {
     } else {
       gameWinner = null // empate → zero marks para ambos
     }
+
+
+    if (gameType.value === 'match') {
+      const playerWonGame = gameWinner === 'player'
+
+      const gameAchievements = {
+        // bandeira: player ganha o game com 120 pontos
+        bandeira: playerWonGame && playerPoints.value === 120,
+        // capote: player ganha o game com [91, 119]
+        capote: playerWonGame && playerPoints.value >= 91 && playerPoints.value < 120,
+      }
+
+      // informacao para mostrar no final do match
+      matchGames.value.push({
+        gameNumber: currentGameNumber.value,
+        playerPoints: playerPoints.value,
+        botPoints: botPoints.value,
+        winner: gameWinner, // 'player' | 'bot' | null
+        achievements: gameAchievements,
+      })
+    }
+    // ───────────────────────────────────────────────
+    // SE FOR MATCH COMPETITIVO → GUARDAR GAME EM BD
+    // ───────────────────────────────────────────────
+
+
+    // Acumular pontos totais do match (para UI), independentemente de ser competitivo
+    if (gameType.value === 'match') {
+      matchPlayer1Points.value += playerPoints.value
+      matchPlayer2Points.value += botPoints.value
+    }
+
+    if (gameType.value === 'match' && mode.value === 'competitive' && currentMatchId.value) {
+      try {
+        await saveMatchGame(gameWinner)
+      } catch (error) {
+        console.error('Failed to save match game:', error)
+      }
+    }
+
+    // ───────────────────────────────────────────────
+    // ATRIBUIR MARKS SEGUNDO O ENUNCIADO
+    // ───────────────────────────────────────────────
 
     if (gameWinner) {
       if (gameWinnerPoints === 120) {
@@ -547,14 +638,13 @@ export const useBiscaStore = defineStore('bisca', () => {
     // ───────────────────────────────────────────────
 
     if (gameType.value === 'standalone') {
-      // standalone: um único jogo → termina logo o “match”
-      finishMatch()
+      await finishMatch()
       return
     }
 
     // modo match normal
     if (isMatchFinished.value) {
-      finishMatch()
+      await finishMatch()
     } else {
       status.value = 'between_games'
     }
@@ -562,6 +652,7 @@ export const useBiscaStore = defineStore('bisca', () => {
 
   async function finishMatch() {
     status.value = 'match_finished'
+
     summary.value = {
       result: playerMarks.value > botMarks.value ? 'win' : 'loss',
       playerMarks: playerMarks.value,
@@ -569,20 +660,59 @@ export const useBiscaStore = defineStore('bisca', () => {
       playerPoints: playerPoints.value,
       botPoints: botPoints.value,
       achievements: {
-        capote: playerMarks.value === 4 && botMarks.value === 0,
-        // este "bandeira" aqui é só um placeholder; a verdadeira condição é 120 pontos
-        bandeira: playerPoints.value === 120 || botPoints.value === 120,
+        capote: playerPoints.value >= 91 && playerPoints.value < 120,
+        bandeira: playerPoints.value === 120,
       },
       mode: mode.value,
       gameType: gameType.value,
       variant: variant.value,
     }
-    endedAt.value = new Date().toISOString()
 
-    saveGame(summary.value)
+    // fim do match (para total_time no backend)
+    matchEndedAt.value = new Date().toISOString()
+
+    // standalone competitivo → guardar jogo
+    if (summary.value.gameType === 'standalone' && mode.value === 'competitive') {
+      try {
+        await saveStandaloneGame(summary.value)
+      } catch (error) {
+        console.error('Failed to save standalone game:', error.response?.data ?? error)
+      }
+    }
+
+    // match competitivo → atualizar linha MATCH
+    if (
+      summary.value.gameType === 'match' &&
+      mode.value === 'competitive' &&
+      currentMatchId.value
+    ) {
+      try {
+        const p1 = authStore.currentUser?.id
+        const p2 = 521
+
+        const winnerUserId = summary.value.result === 'win' ? p1 : p2
+        const loserUserId = summary.value.result === 'win' ? p2 : p1
+
+        const payload = {
+          status: 'Ended',
+          ended_at: matchEndedAt.value,
+          winner_user_id: winnerUserId,
+          loser_user_id: loserUserId,
+          player1_marks: playerMarks.value,
+          player2_marks: botMarks.value,
+          player1_points: matchPlayer1Points.value,
+          player2_points: matchPlayer2Points.value,
+          // total_time calculado no backend
+        }
 
 
-    // 👇 atribui coins se aplicável (modo competitivo, vitória, etc.)
+        await apiStore.updateMatch(currentMatchId.value, payload)
+      } catch (error) {
+        console.error('Failed to update match in API:', error)
+      }
+    }
+
+    // atribui coins se aplicável (modo competitivo, vitória, etc.)
     await awardCoinsIfNeeded()
   }
 
@@ -645,7 +775,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
-  async function tryStartCompetitiveMatch({ gametype }= {}) {
+  async function tryStartCompetitiveMatch({ gametype } = {}) {
     const auth = useAuthStore()
     const api = useAPIStore()
 
@@ -679,33 +809,129 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
-  //
-  // EXPORTAR
-  function saveGame(summary) {
-    if (summary.gameType === 'standalone') {
-      const p1 = authStore.currentUser.id
-      const p2 = 521
-
-      const gameStandalone = {
-        player1_user_id: p1,
-        player2_user_id: p2,
-        type: variant.value,
-        status: 'Ended',
-        is_draw: summary.playerPoints === summary.botPoints,
-        winner_user_id: summary.playerPoints > summary.botPoints ? p1 : p2,
-        loser_user_id: summary.playerPoints < summary.botPoints ? p1 : p2,
-        match_id: null,
-        player1_points: summary.playerPoints,
-        player2_points: summary.botPoints,
-        began_at: beganAt.value,
-        ended_at: endedAt.value,
-      }
-
-      apiStore.postStandalone(gameStandalone)
+  function debugForceEnd() {
+    // Standalone
+    if (gameType.value === 'standalone') {
+      return debugForceEndStandalone()
     }
 
+    // Match
+    if (gameType.value === 'match') {
+      return debugForceEndMatch()
+    }
   }
 
+  function debugForceEndStandalone() {
+    if (gameType.value !== 'standalone') return
+    if (status.value === 'match_finished') return
+
+    // Garante timestamps válidos para o backend
+    if (!beganAt.value) {
+      // começamos "há 1 minuto" só para garantir que ended_at > began_at
+      beganAt.value = new Date(Date.now() - 60_000).toISOString()
+    }
+    endedAt.value = new Date().toISOString()
+
+    status.value = 'in_game'
+
+    // Vitória automática
+    playerMarks.value = 4
+    botMarks.value = 0
+    playerPoints.value = 120
+    botPoints.value = 0
+
+    finishMatch()
+  }
+
+  function debugForceEndMatch() {
+    if (gameType.value !== 'match') return
+    if (status.value === 'match_finished') return
+
+    status.value = 'in_game'
+
+    // Vitória automática neste game
+    playerHand.value = []
+    botHand.value = []
+    stock.value = []
+    tableCards.value = { player: null, bot: null }
+    playerPoints.value = 100
+    botPoints.value = 0
+    console.log('[DEBUG MATCH] antes do finishGameIfNeeded', {
+      playerPoints: playerPoints.value,
+      botPoints: botPoints.value,
+      gameType: gameType.value,
+      status: status.value,
+    })
+    // Isto força o fim do game atual e cria o game na BD
+    finishGameIfNeeded('player')
+  }
+
+  //
+  // EXPORTAR
+  async function saveStandaloneGame(summary) {
+    if (mode.value !== 'competitive') return
+    if (summary.gameType !== 'standalone') return
+
+    const p1 = authStore.currentUser.id
+    const p2 = 521
+
+    const isDraw = summary.playerPoints === summary.botPoints
+
+    const winnerUserId = isDraw ? null : summary.playerPoints > summary.botPoints ? p1 : p2
+
+    const loserUserId = isDraw ? null : summary.playerPoints < summary.botPoints ? p1 : p2
+
+    const gameStandalone = {
+      player1_user_id: p1,
+      player2_user_id: p2,
+      type: variant.value,
+      status: 'Ended',
+      is_draw: isDraw,
+      winner_user_id: winnerUserId,
+      loser_user_id: loserUserId,
+      match_id: null,
+      player1_points: summary.playerPoints,
+      player2_points: summary.botPoints,
+      began_at: beganAt.value,
+      ended_at: endedAt.value,
+    }
+
+    await apiStore.postStandalone(gameStandalone)
+  }
+
+  async function saveMatchGame(gameWinner) {
+    // só em competitivo + match + com matchId válido
+    if (mode.value !== 'competitive') return
+    if (gameType.value !== 'match') return
+    if (!currentMatchId.value) return
+
+    const p1 = authStore.currentUser?.id
+    const p2 = 521
+
+    const isDraw = playerPoints.value === botPoints.value
+
+    const winnerUserId = isDraw ? null : gameWinner === 'player' ? p1 : p2
+
+    const loserUserId = isDraw ? null : gameWinner === 'player' ? p2 : p1
+
+    const payload = {
+      type: variant.value, // '3' ou '9'
+      player1_user_id: p1,
+      player2_user_id: p2,
+      is_draw: isDraw,
+      winner_user_id: winnerUserId,
+      loser_user_id: loserUserId,
+      match_id: currentMatchId.value,
+      status: 'Ended',
+      began_at: beganAt.value,
+      ended_at: endedAt.value,
+      player1_points: playerPoints.value,
+      player2_points: botPoints.value,
+      // total_time calculado no backend
+    }
+
+    await apiStore.postGame(payload)
+  }
 
   // ───────────────────────────────────────────────
   //
@@ -731,6 +957,12 @@ export const useBiscaStore = defineStore('bisca', () => {
     currentTurn,
     phase,
     summary,
+    beganAt,
+    endedAt,
+    currentMatchId,
+    matchPlayer1Points,
+    matchPlayer2Points,
+    matchGames,
 
     // computed
     isDrawPhase,
@@ -749,8 +981,12 @@ export const useBiscaStore = defineStore('bisca', () => {
     finishGameIfNeeded,
     finishMatch,
     displayRank,
-    saveGame,
     tryStartCompetitiveMatch,
     awardCoinsIfNeeded,
+    saveStandaloneGame,
+    saveMatchGame,
+    debugForceEndStandalone,
+    debugForceEndMatch,
+    debugForceEnd,
   }
 })

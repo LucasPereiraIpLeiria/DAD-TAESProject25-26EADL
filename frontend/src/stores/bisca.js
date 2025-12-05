@@ -359,7 +359,10 @@ export const useBiscaStore = defineStore('bisca', () => {
     return false
   }
 
+  //
   // BOT AI
+  // ───────────────────────────────────────────────
+  //
 
   function botPlay() {
     if (status.value !== 'in_game') return
@@ -548,9 +551,9 @@ export const useBiscaStore = defineStore('bisca', () => {
     // Marcar fim do game
     endedAt.value = new Date().toISOString()
 
-    //--
+    // ───────────────────────────────────────────────
     // DETERMINAR VENCEDOR DO GAME E PONTOS
-    //--
+    // ───────────────────────────────────────────────
 
     let gameWinner = null
     let gameWinnerPoints = 0
@@ -565,7 +568,6 @@ export const useBiscaStore = defineStore('bisca', () => {
       gameWinner = null // empate → zero marks para ambos
     }
 
-
     if (gameType.value === 'match') {
       const playerWonGame = gameWinner === 'player'
 
@@ -576,7 +578,6 @@ export const useBiscaStore = defineStore('bisca', () => {
         capote: playerWonGame && playerPoints.value >= 91 && playerPoints.value < 120,
       }
 
-      // informacao para mostrar no final do match
       matchGames.value.push({
         gameNumber: currentGameNumber.value,
         playerPoints: playerPoints.value,
@@ -585,10 +586,10 @@ export const useBiscaStore = defineStore('bisca', () => {
         achievements: gameAchievements,
       })
     }
+
     // ───────────────────────────────────────────────
     // SE FOR MATCH COMPETITIVO → GUARDAR GAME EM BD
     // ───────────────────────────────────────────────
-
 
     // Acumular pontos totais do match (para UI), independentemente de ser competitivo
     if (gameType.value === 'match') {
@@ -704,7 +705,6 @@ export const useBiscaStore = defineStore('bisca', () => {
           player2_points: matchPlayer2Points.value,
           // total_time calculado no backend
         }
-
 
         await apiStore.updateMatch(currentMatchId.value, payload)
       } catch (error) {

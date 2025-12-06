@@ -64,7 +64,7 @@ export const useAPIStore = defineStore('api', () => {
         // window.location.href = '/login'
       }
       return Promise.reject(error)
-    }
+    },
   )
 
   const postLogin = async (credentials) => {
@@ -147,17 +147,38 @@ export const useAPIStore = defineStore('api', () => {
 
   //get user games
 
-  const getUserGames = async() =>{
-        if (!token.value) {
+  const getUserGames = async () => {
+    if (!token.value) {
       throw new Error('No authentication token available')
     }
-    const response = await axios.get(`${API_BASE_URL}/users/matches`);
+    const response = await axios.get(`${API_BASE_URL}/users/matches`)
     //console.log(response);
-    return response;
+    return response
   }
 
   const postStandalone = (game) => {
     return axios.post(`${API_BASE_URL}/standalone`, game)
+  }
+
+  const postMatch = async (match) => {
+    if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+    return axios.post(`${API_BASE_URL}/matches`, match)
+  }
+
+  const updateMatch = async (matchId, payload) => {
+    if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+    return axios.patch(`${API_BASE_URL}/matches/${matchId}`, payload)
+  }
+
+  const postGame = async (game) => {
+    if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+    return axios.post(`${API_BASE_URL}/games`, game)
   }
 
   /*const postMatche = (game) => {
@@ -188,5 +209,3 @@ export const useAPIStore = defineStore('api', () => {
     //postMatche
   }
 })
-
-

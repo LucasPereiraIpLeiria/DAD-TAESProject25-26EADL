@@ -24,7 +24,7 @@
             <NavigationMenuTrigger v-if="authStore.currentUser?.photo_avatar_filename" class="flex items-center gap-2 cursor-pointer" >
               {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}
               <Avatar class="h-8 w-8">
-                <AvatarImage :src="'http://127.0.0.1:8000/storage/photos_avatars/' + authStore.currentUser?.photo_avatar_filename" />
+                <AvatarImage :src="apiStore.photoAvatarStorageURL + authStore.currentUser?.photo_avatar_filename" />
               </Avatar>
             </NavigationMenuTrigger>
             <NavigationMenuTrigger v-if="!authStore.currentUser?.photo_avatar_filename" class="flex items-center">
@@ -150,10 +150,6 @@ const logout = async () => {
   // Coin balance will be reset by the watcher
 }
 
-console.log(authStore.currentUser?.photo_avatar_filename)
-onMounted(() => {
-  // Initial fetch - will be handled by watcher with immediate: true
-})
 const handleFundsSubmit = async (data) => {
     const coins = Math.floor(data.euros * 10)
     console.log(coins)

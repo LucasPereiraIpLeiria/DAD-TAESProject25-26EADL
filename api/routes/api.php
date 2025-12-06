@@ -6,6 +6,9 @@ use App\Http\Controllers\EconomyController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MatcheController;
+use App\Models\Game;
+use App\Models\Matche;
+
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 
@@ -29,85 +32,56 @@ Route::middleware('auth:sanctum')->group(function () {
         'deductEntryFee'
     ]);
     Route::post('/coin-purchases', [EconomyController::class, 'createCoinPurchase']);
-
-    Route::get('/leaderboard/{gameMode}', function (Request $request, $gameMode) {
-        // Validate gameMode
-        $validGameModes = ['SCS3', 'SCM3', 'SCS9', 'SCM9', 'MS3', 'MM3', 'MS9', 'MM9'];
-        if (!in_array($gameMode, $validGameModes)) {
-            return response()->json(['error' => 'Invalid game mode'], 400);
-        }
-
-        switch ($gameMode) {
-            case 'SCS3':
-                //top 10 players for Singleplayer Competitive Standalone - Bisca of 3
-                $topPlayers = Game::where('type', '3')
-                    ->orderBy('total_time', 'asc')
-                    ->get();
-                break;
-            
-            case 'SCM3':
-                //top 10 players for Singleplayer Competitive Match - Bisca of 3
-                $topPlayers = Matche::where('type', '3')
-                    ->select('*')
-                    ->selectRaw('
-                        CASE 
-                            WHEN winner_user_id = player1_id THEN player1_marks
-                            ELSE player2_marks
-                        END AS winner_marks
-                    ')
-                    ->orderBy('total_time', 'asc')      // primary sort: lowest time
-                    ->orderBy('winner_marks', 'desc')   // tiebreaker: highest winner marks
-                    ->limit(10)
-                    ->get();
-                break;
-            
-            case 'SCS9':
-                //top 10 players for Singleplayer Competitive Standalone - Bisca of 9
-                //$topPlayers = [MatcheController::class]
-                break;
-
-            case 'SCM9':
-                //top 10 players for Singleplayer Competitive Match - Bisca of 9
-                $topPlayers = Matche::where('type', '9')
-                    ->orderBy('total_time', 'asc')
-                    ->get();
-                break;
-            
-            case 'MS3':
-                //top 10 players for Multiplayer Competitive Standalone - Bisca of 3
-                $topPlayers = Game::where('type', '3')
-                    ->orderBy('total_time', 'asc')
-                    ->get();
-                break;
-            
-            case 'MM3':
-                //top 10 players for Multiplayer Competitive Match - Bisca of 3
-                $topPlayers = Matche::where('type', '3')
-                    ->orderBy('total_time', 'asc')
-                    ->get();
-                break;
-            
-            case 'MS9':
-                //top 10 players for Multiplayer Competitive Standalone - Bisca of 9
-                $topPlayers = Game::where('type', '9')
-                    ->orderBy('total_time', 'asc')
-                    ->get();
-                break;
-            
-            case 'MM9':
-                //top 10 players for Multiplayer Competitive Match - Bisca of 9
-                $topPlayers = Matche::where('type', '9')
-                    ->orderBy('total_time', 'asc')
-                    ->get();
-                break;
-            default:
-                # code...
-                break;
-        }
-
-        return response()->json($topPlayers);
-    });
 });
+
+Route::post('/leaderboard', function (Request $request) {
+    $validated = $request->validate([
+        'type' => 'required|integer|in:3,9',
+        'mode' => 'required|string|in:S,M', // S = singleplayer, M = multiplayer
+        'is_match' => 'required|boolean',
+    ]);
+
+    $type = $validated['type'];
+    $mode = $validated['mode'];
+    $isMatch = $validated['is_match'];
+
+    // MULTIPLAYER MODE
+    if ($mode === 'M') {
+        if ($isMatch) {
+            // multiplayer matches
+            return response()->json(
+                Matche::multiplayerLeaderboard($type)->limit(10)->get()
+            );
+        } else {
+            // multiplayer standalone games
+            return response()->json(
+                Game::multiplayerLeaderboard($type)->limit(10)->get()
+            );
+        }
+    }
+
+    // SINGLEPLAYER MODE
+    if ($mode === 'S') {
+        if ($isMatch) {
+            // singleplayer matches (vs bot)
+            return response()->json(
+                Matche::singleplayerLeaderboard($type)->limit(10)->get()
+            );
+        } else {
+            // singleplayer standalone games (vs bot)
+            return response()->json(
+                Game::singleplayerLeaderboard($type)->limit(10)->get()
+            );
+        }
+    }
+    return response()->json(['error' => 'Invalid mode'], 422);
+});
+
+
+
+
+
+
 
 
 

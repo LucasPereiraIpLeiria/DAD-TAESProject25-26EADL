@@ -1,45 +1,71 @@
 <script setup>
 import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { useAPIStore } from '@/stores/api.js'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 
+const apiStore = useAPIStore()
 // Game modes for the dropdown
 const gameModes = [
-  { value: 'SCS3', label: 'Singleplayer Competitive Standalone - Bisca of 3' },
-  { value: 'SCM3', label: 'Singleplayer Competitive Match - Bisca of 3' },
-  { value: 'SCS9', label: 'Singleplayer Competitive Standalone - Bisca of 9' },
-  { value: 'SCM9', label: 'Singleplayer Competitive Match - Bisca of 9' },
-  { value: 'MS3', label: 'Multiplayer Standalone - Bisca de 3' },
-  { value: 'MM3', label: 'Multiplayer Match - Bisca de 3' },
-  { value: 'MS9', label: 'Multiplayer Standalone - Bisca de 9' },
-  { value: 'MM9', label: 'Multiplayer Match - Bisca de 9' },
-]
+  { label: 'Singleplayer Competitive Standalone - Bisca of 3', type: 3, mode: 'S', is_match: false },
+  { label: 'Singleplayer Competitive Match - Bisca of 3', type: 3, mode: 'S', is_match: true },
+  { label: 'Singleplayer Competitive Standalone - Bisca of 9', type: 9, mode: 'S', is_match: false },
+  { label: 'Singleplayer Competitive Match - Bisca of 9', type: 9, mode: 'S', is_match: true },
+  { label: 'Multiplayer Standalone - Bisca de 3', type: 3, mode: 'M', is_match: false },
+  { label: 'Multiplayer Match - Bisca de 3', type: 3, mode: 'M', is_match: true },
+  { label: 'Multiplayer Standalone - Bisca de 9', type: 9, mode: 'M', is_match: false },
+  { label: 'Multiplayer Match - Bisca de 9', type: 9, mode: 'M', is_match: true },
+];
 
-const selectedGameMode = ref('SCS3')
-
-// Placeholder leaderboard data (will be replaced with API call)
+const selectedGameMode = ref(gameModes[0])
 const leaderboardData = ref([])
+const isLoading = ref(false)
+const errorMessage = ref('')
 
-const handleGameModeChange = (value) => {
-  selectedGameMode.value = value
-  // TODO: Fetch leaderboard data for selected game mode
-  console.log('Selected game mode:', value)
+// Fetch leaderboard for the selected game mode
+const fetchLeaderboard = async (modeObject) => {
+  isLoading.value = true
+  errorMessage.value = ''
+  try {
+    const response = await apiStore.getLeaderboard({
+      type: modeObject.type,
+      mode: modeObject.mode,
+      is_match: modeObject.is_match,
+    })
+
+    console.log('API response:', response.data) // <-- add this line
+
+    // Map fields for template
+    leaderboardData.value = response.data.map(p => ({
+      username: p.username,
+      avatar: p.avatar_filename,
+      wins: p.total_wins,
+      capotes: p.total_capotes,
+      bandeiras: p.total_bandeiras,
+      points: p.total_points,
+    }))
+  } catch (err) {
+    console.error('Failed to load leaderboard:', err)
+    leaderboardData.value = []
+    errorMessage.value = 'Failed to fetch leaderboard. Please try again.'
+  } finally {
+    isLoading.value = false
+  }
 }
+
+// Triggered when dropdown changes
+const handleGameModeChange = async (modeObject) => {
+  selectedGameMode.value = modeObject
+  console.log('Selected game mode:', modeObject) // <-- add this line
+  await fetchLeaderboard(modeObject)
+}
+
+// Initial fetch on page load
+fetchLeaderboard(selectedGameMode.value)
 </script>
+
 
 <template>
   <div class="min-h-screen bg-gray-50 p-6">
@@ -105,7 +131,9 @@ const handleGameModeChange = (value) => {
               View top players for each game mode
             </CardDescription>
           </CardHeader>
+
           <CardContent class="space-y-4">
+
             <!-- Game Mode Dropdown -->
             <div class="space-y-2">
               <label class="text-sm font-medium">Select Game Mode</label>
@@ -116,8 +144,8 @@ const handleGameModeChange = (value) => {
                 <SelectContent>
                   <SelectItem 
                     v-for="mode in gameModes" 
-                    :key="mode.value" 
-                    :value="mode.value"
+                    :key="mode.label"
+                    :value="mode"
                   >
                     {{ mode.label }}
                   </SelectItem>
@@ -125,36 +153,87 @@ const handleGameModeChange = (value) => {
               </Select>
             </div>
 
-            <!-- Leaderboard Display (placeholder) -->
+            <!-- Leaderboard -->
             <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
               <div class="max-h-64 overflow-y-auto">
+
+                <!-- No Data -->
                 <div v-if="leaderboardData.length === 0" class="p-6 text-center text-sm text-muted-foreground">
                   No leaderboard data available yet.
                 </div>
-                <div v-else class="divide-y">
-                  <div v-for="(player, index) in leaderboardData" :key="index"
-                    class="flex items-center justify-between p-3 hover:bg-muted/50 transition-colors">
-                    <div class="flex items-center gap-3">
-                      <div class="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold"
-                        :class="{
-                          'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300': index === 0,
-                          'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300': index === 1,
-                          'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300': index === 2,
-                          'bg-muted text-muted-foreground': index > 2
-                        }">
+
+                <!-- With Data -->
+                <div v-else>
+
+                  <!-- Header -->
+                  <div class="grid grid-cols-4 text-xs font-semibold px-3 py-2 border-b bg-muted/30">
+                    <!-- Player -->
+                    <div class="col-span-1 flex items-center gap-3 pl-6">Player</div>
+
+                    <!-- Matches -->
+                    <template v-if="selectedGameMode.is_match">
+                      <div class="text-right col-span-1 pl-6">Wins</div>
+                      <div class="text-right col-span-1 pl-6">Capotes</div>
+                      <div class="text-right col-span-1 pl-6">Bandeiras</div>
+                    </template>
+
+                    <!-- Games -->
+                    <template v-else>
+                      <div class="text-right col-span-1 pl-6">Wins</div>
+                      <div class="text-right col-span-2 pl-6">Points</div>
+                    </template>
+                  </div>
+
+                  <!-- Rows -->
+                  <div 
+                    v-for="(player, index) in leaderboardData" 
+                    :key="index"
+                    class="grid grid-cols-4 items-center px-3 py-3 border-b hover:bg-muted/50 transition-colors"
+                    :class="{
+                      'bg-yellow-100 dark:bg-yellow-900': index === 0,
+                      'bg-gray-100 dark:bg-gray-800': index === 1,
+                      'bg-orange-100 dark:bg-orange-900': index === 2
+                    }"
+                  >
+                    <!-- Player Column -->
+                    <div class="flex items-center gap-2 col-span-1">
+                      <div class="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-muted-foreground dark:text-muted-foreground">
                         {{ index + 1 }}
                       </div>
-                      <div>
-                        <div class="font-medium text-sm">{{ player.username }}</div>
-                        <div class="text-xs text-muted-foreground">{{ player.score }} points</div>
+                      <Avatar class="h-8 w-8">
+                        <AvatarImage 
+                          :src="player.avatar ? apiStore.photoAvatarStorageURL + player.avatar : apiStore.anonymousAvatarStorageURL" 
+                        />
+                        <AvatarFallback></AvatarFallback>
+                      </Avatar>
+                      <div class="flex flex-col">
+                        <span class="font-medium text-sm">{{ player.username }}</span>
                       </div>
                     </div>
+
+                    <!-- Matches Layout -->
+                    <template v-if="selectedGameMode.is_match">
+                      <div class="text-sm font-medium text-right col-span-1">{{ player.wins }}</div>
+                      <div class="text-sm font-medium text-right col-span-1">{{ player.capotes }}</div>
+                      <div class="text-sm font-medium text-right col-span-1">{{ player.bandeiras }}</div>
+                    </template>
+
+                    <!-- Games Layout -->
+                    <template v-else>
+                      <div class="text-sm font-medium text-right col-span-1">{{ player.wins }}</div>
+                      <div class="text-sm font-medium text-right col-span-2">{{ player.points }}</div>
+                    </template>
                   </div>
+
+
+
+
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
+
 
         <!-- Right Card - Match History -->
         <Card>

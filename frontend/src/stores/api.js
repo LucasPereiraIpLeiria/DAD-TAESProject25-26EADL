@@ -126,6 +126,12 @@ export const useAPIStore = defineStore('api', () => {
     return axios.get(`${API_BASE_URL}/users/me`)
   }
 
+
+  const getLeaderboard = async (payload) => {
+    return await axios.post(`${API_BASE_URL}/leaderboard`, payload);
+  };
+
+
   const postCoinPurchase = async (data, coins) => {
     if (!token.value) {
       throw new Error('No authentication token available')
@@ -179,6 +185,8 @@ export const useAPIStore = defineStore('api', () => {
     return axios.post(`${API_BASE_URL}/matches`, game)
   }*/
 
+  const photoAvatarStorageURL = 'http://127.0.0.1:8000/storage/photos_avatars/'
+  const anonymousAvatarStorageURL = 'http://127.0.0.1:8000/storage/photos_avatars/anonymous.png'
   return {
     token,
     isValidating,
@@ -190,13 +198,14 @@ export const useAPIStore = defineStore('api', () => {
     postRegister,
     postLogout,
     getAuthUser,
+    getLeaderboard,
     postDeductEntryFee,
     postAwardMatchReward,
     postCoinPurchase,
     getUserGames,
     postStandalone,
-    postMatch,
-    updateMatch,
-    postGame,
+    photoAvatarStorageURL,
+    anonymousAvatarStorageURL,
+    //postMatche
   }
 })

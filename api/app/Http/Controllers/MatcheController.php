@@ -20,11 +20,13 @@ class MatcheController extends Controller
         $matche = Matche::create($request->validated());
         return response()->json($matche, 201);
     }
+
     public function show(Matche $matche)
     {
         return $matche;
     }
-    public function update(UpdateMatcheRequest $request, Matche $matche)
+    
+    public function update(StoreMatcheRequest $request, Matche $matche)
     {
         $data = $request->validated();
 

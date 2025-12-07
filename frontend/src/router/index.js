@@ -22,6 +22,11 @@ const router = createRouter({
       name: 'register',
       component: RegisterPage,
     },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('@/pages/profile/ProfilePage.vue')
+    },
     {// página de setup singleplayer (escolhas todas + Start Game)
       path: '/singleplayer',
       name: 'singleplayer.mode.select',

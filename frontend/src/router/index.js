@@ -1,8 +1,8 @@
 import HistoryView from '@/pages/user/HistoryView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import RegisterPage from '@/pages/login/RegisterPage.vue'
-import {useAuthStore} from '@/stores/auth.js'
-import {toast} from 'vue-sonner'
+import { useAuthStore } from '@/stores/auth.js'
+import { toast } from 'vue-sonner'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -10,19 +10,20 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: ()=> import('@/pages/home/HomePage.vue'),
+      component: () => import('@/pages/home/HomePage.vue'),
     },
     {
       path: '/login',
       name: 'login',
-      component: ()=> import('@/pages/login/LoginPage.vue')
+      component: () => import('@/pages/login/LoginPage.vue'),
     },
     {
       path: '/register',
       name: 'register',
       component: RegisterPage,
     },
-    {// página de setup singleplayer (escolhas todas + Start Game)
+    {
+      // página de setup singleplayer (escolhas todas + Start Game)
       path: '/singleplayer',
       name: 'singleplayer.mode.select',
       component: () => import('@/pages/SinglePlayerModeSelect.vue'),
@@ -35,15 +36,21 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/history' ,
+      path: '/history',
       name: 'history',
-      component: HistoryView
+      component: HistoryView,
     },
     {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
       component: () => import('@/pages/NotFoundPage.vue'),
-    }
+    },
+    {
+      path: '/customizations',
+      name: 'customizations',
+      component: () => import('@/pages/CustomizationsPage.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
@@ -69,6 +76,6 @@ router.beforeEach((to, from, next) => {
   }
 
   next()
-});
+})
 
 export default router

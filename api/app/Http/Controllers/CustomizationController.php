@@ -12,6 +12,7 @@ class CustomizationController extends Controller
         'default' => 0,
         'mage'    => 20,
         'robot'   => 30,
+        'dragon'  => 40,
     ];
 
     private array $availableDecks = [

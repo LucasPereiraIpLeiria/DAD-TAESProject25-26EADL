@@ -18,16 +18,13 @@
 
       <NavigationMenuList v-if="authStore.isLoggedIn" class="justify-around gap-20">
         <NavigationMenuItem>
-          <NavigationMenuTrigger v-if="authStore.currentUser?.photo_avatar_filename" class="flex items-center gap-2">
+          <NavigationMenuTrigger v-if="authStore.isLoggedIn" class="flex items-center gap-2">
             {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}
             <Avatar class="h-8 w-8">
-              <AvatarImage
-                :src="'http://127.0.0.1:8000/storage/photos_avatars/' + authStore.currentUser?.photo_avatar_filename" />
+              <AvatarImage :src="effectiveAvatarSrc" @error="onAvatarError" :key="effectiveAvatarSrc" />
             </Avatar>
           </NavigationMenuTrigger>
-          <NavigationMenuTrigger v-if="!authStore.currentUser?.photo_avatar_filename" class="flex items-center">
-            {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}
-          </NavigationMenuTrigger>
+
           <NavigationMenuContent class="w-full md:w-48">
             <li class="flex flex-col w-full text-right">
               <NavigationMenuLink as-child>
@@ -83,18 +80,24 @@ import {
 } from '@/components/ui/navigation-menu'
 import AddFunds from '@/components/ui/AddFunds.vue';
 import { RouterLink, RouterView } from 'vue-router';
-import { inject, ref, watch } from 'vue'
+import { inject, ref, watch, computed } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth.js'
 import { toast, Toaster } from 'vue-sonner'
 import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { useAPIStore } from '@/stores/api.js'
 
+import defaultPlaceholder from '@/assets/images/avatars/anonymous.png'
+//import avatarMage from '@/assets/images/avatars/mage.png'
+//import avatarRobot from '@/assets/images/avatars/robot.png'
+//import avatarDragon from '@/assets/images/avatars/dragon.png'
+
 const authStore = useAuthStore()
 const apiStore = useAPIStore()
 
 const API_BASE_URL = inject('apiBaseURL')
 const coinBalance = ref(0)
+
 
 const fetchCoinBalance = async () => {
   if (!authStore.isLoggedIn) {
@@ -142,7 +145,7 @@ const logout = async () => {
     success: () => {
       return 'Logout Successful'
     },
-    error: (data) => `[API] Error saving game - ${data?.response?.data?.message}`,
+    error: (data) => `[API] Error Logging out- ${data?.response?.data?.message}`,
   })
   // Coin balance will be reset by the watcher
 }
@@ -156,10 +159,56 @@ const handleFundsSubmit = async (data) => {
     success: () => {
       return 'Funds added successfully!'
     },
-    error: (data) => `[API] Error saving game - ${data?.response?.data?.message}`,
+    error: (data) => `[API] Error handling payment method - ${data?.response?.data?.message}`,
   })
 
   await fetchCoinBalance()
+}
+
+// --- AQUI: lógica do avatar mostrado no navbar ---
+const avatarSrc = computed(() => {
+  const user = authStore.currentUser
+  if (!user) return defaultPlaceholder
+
+  const selectedKey = user.custom?.avatars?.selected ?? 'default'
+
+  // Se o user escolheu "default", mostramos a foto que ele fez upload (se existir)
+  if (selectedKey === 'default') {
+    if (user.photo_avatar_filename) {
+      // idealmente isto vinha de uma env/API_BASE_URL_PHOTOS,
+      // mas para já mantemos como tens feito:
+      return `http://127.0.0.1:8000/storage/photos_avatars/${user.photo_avatar_filename}`
+    }
+
+    // Sem foto subida → placeholder
+    return defaultPlaceholder
+  }
+
+  // Se é um avatar comprado, mapeamos a key para a imagem local
+  switch (selectedKey) {
+    case 'mage':
+      return avatarMage
+    case 'robot':
+      return avatarRobot
+    case 'dragon':
+      return avatarDragon
+    default:
+      return defaultPlaceholder
+  }
+})
+
+
+// src efetivamente usado no <AvatarImage>
+const effectiveAvatarSrc = ref(defaultPlaceholder)
+
+// sempre que avatarSrc mudar, atualizamos o efetivo
+watch(avatarSrc, (newVal) => {
+  effectiveAvatarSrc.value = newVal || defaultPlaceholder
+}, { immediate: true })
+
+// handler para erro de carregamento da imagem
+const onAvatarError = () => {
+  effectiveAvatarSrc.value = defaultPlaceholder
 }
 
 

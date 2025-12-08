@@ -33,17 +33,12 @@ const router = createRouter({
       path: '/singleplayer/:mode/:gametype/:variant',
       name: 'singleplayer.game',
       component: () => import('@/pages/SinglePlayerGame.vue'),
-      meta: { requiresAuth: true },
     },
     {
       path: '/history',
       name: 'history',
       component: HistoryView,
-    },
-    {
-      path: '/:pathMatch(.*)*',
-      name: 'NotFound',
-      component: () => import('@/pages/NotFoundPage.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/customizations',
@@ -51,27 +46,36 @@ const router = createRouter({
       component: () => import('@/pages/CustomizationsPage.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
+      component: () => import('@/pages/NotFoundPage.vue'),
+    },
   ],
 })
 
-// Route Guards
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
 
-  // Check authentication
-  if (to.meta.requiresAuth && !authStore.isLoggedIn) {
-    toast.error('This navigation requires authentication')
-    next({ name: 'login' })
-    return
+  // Bloquear login/register se já estiver logado
+  if ((to.name === 'login' || to.name === 'register') && authStore.isLoggedIn) {
+    return next({ name: 'home' })
   }
 
-  // Shield singleplayer route based on parameter
+  // Rotas que exigem autenticação
+  if (to.meta.requiresAuth && !authStore.isLoggedIn) {
+    toast.error('This navigation requires authentication')
+    return next({ name: 'login', query: { redirect: to.fullPath } })
+  }
+
+  // Regras específicas para singleplayer.game
   if (to.name === 'singleplayer.game') {
     const mode = to.params.mode
+
+    // competitive só para utilizadores autenticados
     if (mode === 'competitive' && !authStore.isLoggedIn) {
-      toast.error('This mode is not available')
-      next({ name: 'login' })
-      return
+      toast.error('This navigation requires authentication')
+      return next({ name: 'login', query: { redirect: to.fullPath } })
     }
   }
 

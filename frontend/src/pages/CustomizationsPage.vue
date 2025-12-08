@@ -57,6 +57,7 @@ const avatars = [
   { key: 'default', label: 'Default Avatar', price: 0 },
   { key: 'mage',    label: 'Mage',           price: 20 },
   { key: 'robot',   label: 'Robot',          price: 30 },
+  { key: 'dragon',  label: 'Dragon',         price: 40 },
 ]
 
 const decks = [

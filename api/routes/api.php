@@ -6,6 +6,7 @@ use App\Http\Controllers\EconomyController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MatcheController;
+use App\Http\Controllers\CustomizationController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
@@ -29,4 +30,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/economy/award-match-reward', [EconomyController::class, 'awardMatchReward']);
     Route::post('/economy/deduct-entry-fee', [EconomyController::class, 'deductEntryFee']);
     Route::post('/coin-purchases', [EconomyController::class, 'createCoinPurchase']);
+
+    Route::get('/customizations', [CustomizationController::class, 'show']);
+    Route::post('/customizations/purchase', [CustomizationController::class, 'purchase']);
+    Route::patch('/customizations/select', [CustomizationController::class, 'select']);
 });

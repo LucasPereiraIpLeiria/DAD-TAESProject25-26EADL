@@ -179,6 +179,26 @@ export const useAPIStore = defineStore('api', () => {
     return axios.post(`${API_BASE_URL}/matches`, game)
   }*/
 
+
+  const postPurchaseCustomization = async (payload) => {
+  if (!token.value) {
+    throw new Error('No authentication token available')
+  }
+  // payload: { type: 'avatar' | 'deck', item: 'wood' | 'mage' | ... }
+  return axios.post(`${API_BASE_URL}/customizations/purchase`, payload)
+}
+
+const patchSelectCustomization = async (payload) => {
+  if (!token.value) {
+    throw new Error('No authentication token available')
+  }
+  // payload: { type: 'avatar' | 'deck', item: 'wood' | 'mage' | ... }
+  return axios.patch(`${API_BASE_URL}/customizations/select`, payload)
+}
+
+
+
+
   return {
     token,
     isValidating,
@@ -198,5 +218,7 @@ export const useAPIStore = defineStore('api', () => {
     postMatch,
     updateMatch,
     postGame,
+    postPurchaseCustomization,
+    patchSelectCustomization,
   }
 })

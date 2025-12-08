@@ -7,7 +7,6 @@ use App\Http\Resources\ErrorResource;
 
 class CustomizationController extends Controller
 {
-    // só para centralizar a “lista oficial” de itens / preços
     private array $availableAvatars = [
         'default' => 0,
         'mage'    => 20,
@@ -22,18 +21,16 @@ class CustomizationController extends Controller
         'dark_skull'=> 40,
     ];
 
-    // GET /customizations (opcional, se quiseres um endpoint dedicado)
     public function show(Request $request)
     {
         $user = $request->user();
 
         return response()->json([
-            'custom'        => $user->custom,          // já vem com defaults
+            'custom'        => $user->custom,
             'coins_balance' => $user->coins_balance,
         ]);
     }
 
-    // POST /customizations/purchase
     public function purchase(Request $request)
     {
         $user = $request->user();
@@ -46,15 +43,7 @@ class CustomizationController extends Controller
         $type = $data['type'];
         $item = $data['item'];
 
-        if ($type === 'avatar') {
-            $catalog = $this->availableAvatars;
-            $pathOwned = ['avatars', 'owned'];
-            $pathSelected = ['avatars', 'selected'];
-        } else {
-            $catalog = $this->availableDecks;
-            $pathOwned = ['decks', 'owned'];
-            $pathSelected = ['decks', 'selected'];
-        }
+        $catalog = $type === 'avatar' ? $this->availableAvatars : $this->availableDecks;
 
         if (!array_key_exists($item, $catalog)) {
             return (new ErrorResource([
@@ -63,33 +52,16 @@ class CustomizationController extends Controller
             ]))->response()->setStatusCode(400);
         }
 
-        $price = $catalog[$item];
+        $price  = $catalog[$item];
+        $custom = $user->custom; // accessor garante defaults
 
-        $custom = $user->custom; // já vem com defaults graças ao accessor
+        // Carregamos arrays locais (sem referências)
+        $owned    = $custom[$type . 's']['owned'];
+        $selected = $custom[$type . 's']['selected'];
 
-        // helperzinho para trabalhar no array nested
-        $getOwned = function (&$custom) use ($pathOwned) {
-            $ref =& $custom;
-            foreach ($pathOwned as $segment) {
-                $ref =& $ref[$segment];
-            }
-            return $ref;
-        };
-
-        $getSelected = function (&$custom) use ($pathSelected) {
-            $ref =& $custom;
-            foreach ($pathSelected as $segment) {
-                $ref =& $ref[$segment];
-            }
-            return $ref;
-        };
-
-        $owned   =& $getOwned($custom);
-        $selected =& $getSelected($custom);
-
-        // Se já está owned, não voltamos a cobrar – só selecionamos
+        // Se já é owned → só selecionar
         if (in_array($item, $owned, true)) {
-            $selected = $item;
+            $custom[$type . 's']['selected'] = $item;
             $user->custom = $custom;
             $user->save();
 
@@ -99,7 +71,7 @@ class CustomizationController extends Controller
             ]);
         }
 
-        // Se o item é pago, verificar saldo
+        // Verificar funds
         if ($price > 0) {
             if ($user->coins_balance < $price) {
                 return (new ErrorResource([
@@ -111,19 +83,19 @@ class CustomizationController extends Controller
             $user->coins_balance -= $price;
         }
 
+        // Comprar e selecionar
         $owned[] = $item;
-        $selected = $item;
+        $custom[$type . 's']['owned']    = $owned;
 
         $user->custom = $custom;
         $user->save();
 
         return response()->json([
             'message' => 'Item purchased and selected successfully.',
-            'user'    => $user->fresh(), // inclui coins_balance + custom
+            'user'    => $user->fresh(),
         ]);
     }
 
-    // PATCH /customizations/select
     public function select(Request $request)
     {
         $user = $request->user();
@@ -138,13 +110,7 @@ class CustomizationController extends Controller
 
         $custom = $user->custom;
 
-        if ($type === 'avatar') {
-            $owned    = $custom['avatars']['owned'] ?? ['default'];
-            $selected =& $custom['avatars']['selected'];
-        } else {
-            $owned    = $custom['decks']['owned'] ?? ['default'];
-            $selected =& $custom['decks']['selected'];
-        }
+        $owned = $custom[$type . 's']['owned'];
 
         if (!in_array($item, $owned, true)) {
             return (new ErrorResource([
@@ -153,7 +119,8 @@ class CustomizationController extends Controller
             ]))->response()->setStatusCode(400);
         }
 
-        $selected = $item;
+        $custom[$type . 's']['selected'] = $item;
+
         $user->custom = $custom;
         $user->save();
 

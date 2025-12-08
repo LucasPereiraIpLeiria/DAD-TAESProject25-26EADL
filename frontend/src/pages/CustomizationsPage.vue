@@ -1,16 +1,17 @@
 <template>
-  <div class="max-w-3xl mx-auto p-4 space-y-8">
+  <div class="max-w-5xl mx-auto p-4 space-y-8">
     <h1 class="text-2xl font-bold mb-4">Customizations</h1>
 
     <!-- ROW AVATARS -->
     <section>
       <h2 class="text-xl font-semibold mb-2">Avatars</h2>
-      <div class="flex gap-4">
+      <div class="flex flex-wrap gap-4">
         <CustomizationCard
           v-for="avatar in avatars"
           :key="avatar.key"
           :label="avatar.label"
           :price="avatar.price"
+          :image="avatar.image"
           :owned="ownedAvatars.includes(avatar.key)"
           :selected="selectedAvatar === avatar.key"
           :is-default="avatar.key === 'default'"
@@ -23,12 +24,13 @@
     <!-- ROW DECKS -->
     <section>
       <h2 class="text-xl font-semibold mb-2">Deck styles</h2>
-      <div class="flex gap-4">
+      <div class="flex flex-wrap gap-4">
         <CustomizationCard
           v-for="deck in decks"
           :key="deck.key"
           :label="deck.label"
           :price="deck.price"
+          :image="deck.image"
           :owned="ownedDecks.includes(deck.key)"
           :selected="selectedDeck === deck.key"
           :is-default="deck.key === 'default'"
@@ -45,26 +47,46 @@ import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAPIStore } from '@/stores/api'
 import { toast } from 'vue-sonner'
+import CustomizationCard from '@/components/customization/CustomizationCard.vue'
 
-// podes fazer um componente CustomizationCard separado, mas para já imagino que existe
-// ou depois criamos um. Se não houver, troca por um <div> simples.
+// 🔹 imports das imagens
+import avatarDefault from '@/assets/images/avatars/anonymous.png'
+import avatarMage from '@/assets/images/avatars/mage.png'
+import avatarRobot from '@/assets/images/avatars/robot.png'
+import avatarDragon from '@/assets/images/avatars/dragon.png'
+
+import deckDefault from '@/assets/images/decks/default.png'
+import deckWood from '@/assets/images/decks/wood.png'
+import deckArcane from '@/assets/images/decks/arcane.png'
+import deckDarkSkull from '@/assets/images/decks/dark_skull.png'
+
+const profilePicImage = computed(() => {
+  const user = authStore.currentUser
+  if (!user) return avatarAnonymous
+
+  if (user.photo_avatar_filename) {
+    return `http://127.0.0.1:8000/storage/photos_avatars/${user.photo_avatar_filename}`
+  }
+
+  return avatarAnonymous
+})
 
 const authStore = useAuthStore()
 const apiStore = useAPIStore()
 
 // Definir localmente a lista de itens (mesmas keys do backend)
-const avatars = [
-  { key: 'default', label: 'Default Avatar', price: 0 },
-  { key: 'mage',    label: 'Mage',           price: 20 },
-  { key: 'robot',   label: 'Robot',          price: 30 },
-  { key: 'dragon',  label: 'Dragon',         price: 40 },
-]
+const avatars = computed(() => [
+  { key: 'default', label: 'Profile Pic', price: 0,  image: profilePicImage.value },
+  { key: 'mage',    label: 'Mage',           price: 20, image: avatarMage },
+  { key: 'robot',   label: 'Robot',          price: 30, image: avatarRobot },
+  { key: 'dragon',  label: 'Dragon',         price: 40, image: avatarDragon },
+])
 
 const decks = [
-  { key: 'default',    label: 'Default Deck', price: 0 },
-  { key: 'wood',       label: 'Wooden Deck',  price: 10 },
-  { key: 'arcane',     label: 'Arcane Deck',  price: 25 },
-  { key: 'dark_skull', label: 'Dark Skull',   price: 40 },
+  { key: 'default',    label: 'Default Deck', price: 0,  image: deckDefault },
+  { key: 'wood',       label: 'Wooden Deck',  price: 10, image: deckWood },
+  { key: 'arcane',     label: 'Arcane Deck',  price: 25, image: deckArcane },
+  { key: 'dark_skull', label: 'Dark Skull',   price: 40, image: deckDarkSkull },
 ]
 
 const custom = computed(() => authStore.currentUser?.custom ?? {
@@ -72,15 +94,14 @@ const custom = computed(() => authStore.currentUser?.custom ?? {
   decks:   { owned: ['default'], selected: 'default' },
 })
 
-const ownedAvatars = computed(() => custom.value.avatars?.owned ?? ['default'])
+const ownedAvatars   = computed(() => custom.value.avatars?.owned ?? ['default'])
 const selectedAvatar = computed(() => custom.value.avatars?.selected ?? 'default')
 
-const ownedDecks = computed(() => custom.value.decks?.owned ?? ['default'])
-const selectedDeck = computed(() => custom.value.decks?.selected ?? 'default')
+const ownedDecks     = computed(() => custom.value.decks?.owned ?? ['default'])
+const selectedDeck   = computed(() => custom.value.decks?.selected ?? 'default')
 
 const handleBuy = async (type, item) => {
   if (item.price === 0) {
-    // default: só faz select
     return handleSelect(type, item)
   }
 

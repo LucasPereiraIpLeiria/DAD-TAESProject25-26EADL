@@ -88,9 +88,9 @@ import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { useAPIStore } from '@/stores/api.js'
 
 import defaultPlaceholder from '@/assets/images/avatars/anonymous.png'
-//import avatarMage from '@/assets/images/avatars/mage.png'
-//import avatarRobot from '@/assets/images/avatars/robot.png'
-//import avatarDragon from '@/assets/images/avatars/dragon.png'
+import avatarMage from '@/assets/images/avatars/mage.png'
+import avatarRobot from '@/assets/images/avatars/robot.png'
+import avatarDragon from '@/assets/images/avatars/dragon.png'
 
 const authStore = useAuthStore()
 const apiStore = useAPIStore()

@@ -15,7 +15,7 @@
           :owned="ownedAvatars.includes(avatar.key)"
           :selected="selectedAvatar === avatar.key"
           :is-default="avatar.key === 'default'"
-          @buy="() => handleBuy('avatar', avatar)"
+          @buy="() => openBuyConfirm('avatar', avatar)"
           @select="() => handleSelect('avatar', avatar)"
         />
       </div>
@@ -34,16 +34,60 @@
           :owned="ownedDecks.includes(deck.key)"
           :selected="selectedDeck === deck.key"
           :is-default="deck.key === 'default'"
-          @buy="() => handleBuy('deck', deck)"
+          @buy="() => openBuyConfirm('deck', deck)"
           @select="() => handleSelect('deck', deck)"
         />
       </div>
     </section>
+
+    <!-- MODAL DE CONFIRMAÇÃO DE COMPRA -->
+    <div
+      v-if="confirmState.open"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+    >
+      <div class="bg-slate-900 rounded-lg shadow-xl p-6 w-full max-w-md border border-slate-700">
+        <h3 class="text-lg font-semibold mb-2">Confirm purchase</h3>
+
+        <p class="mb-2">
+          Buy
+          <span class="font-semibold">
+            "{{ confirmState.item?.label }}"
+          </span>
+          for
+          <span class="font-semibold">
+            {{ confirmState.item?.price }} coins
+          </span>
+          ?
+        </p>
+
+        <p class="mb-4 text-sm text-slate-300">
+          Your current balance:
+          <span class="font-mono">
+            {{ authStore.currentUser?.coins_balance ?? 0 }}
+          </span>
+        </p>
+
+        <div class="flex justify-end gap-2">
+          <button
+            class="px-3 py-1 rounded border border-slate-500 text-slate-100 hover:bg-slate-800"
+            @click="closeBuyConfirm"
+          >
+            Cancel
+          </button>
+          <button
+            class="px-3 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700"
+            @click="confirmBuy"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAPIStore } from '@/stores/api'
 import { toast } from 'vue-sonner'
@@ -60,26 +104,27 @@ import deckWood from '@/assets/images/decks/wood.png'
 import deckArcane from '@/assets/images/decks/arcane.png'
 import deckDarkSkull from '@/assets/images/decks/dark_skull.png'
 
+const authStore = useAuthStore()
+const apiStore = useAPIStore()
+
+// 👇 imagem dinâmica do "Profile Pic"
 const profilePicImage = computed(() => {
   const user = authStore.currentUser
-  if (!user) return avatarAnonymous
+  if (!user) return avatarDefault
 
   if (user.photo_avatar_filename) {
     return `http://127.0.0.1:8000/storage/photos_avatars/${user.photo_avatar_filename}`
   }
 
-  return avatarAnonymous
+  return avatarDefault
 })
-
-const authStore = useAuthStore()
-const apiStore = useAPIStore()
 
 // Definir localmente a lista de itens (mesmas keys do backend)
 const avatars = computed(() => [
-  { key: 'default', label: 'Profile Pic', price: 0,  image: profilePicImage.value },
-  { key: 'mage',    label: 'Mage',           price: 20, image: avatarMage },
-  { key: 'robot',   label: 'Robot',          price: 30, image: avatarRobot },
-  { key: 'dragon',  label: 'Dragon',         price: 40, image: avatarDragon },
+  { key: 'default', label: 'Profile Pic', price: 0, image: profilePicImage.value },
+  { key: 'mage',    label: 'Mage',        price: 20, image: avatarMage },
+  { key: 'robot',   label: 'Robot',       price: 30, image: avatarRobot },
+  { key: 'dragon',  label: 'Dragon',      price: 40, image: avatarDragon },
 ])
 
 const decks = [
@@ -97,19 +142,58 @@ const custom = computed(() => authStore.currentUser?.custom ?? {
 const ownedAvatars   = computed(() => custom.value.avatars?.owned ?? ['default'])
 const selectedAvatar = computed(() => custom.value.avatars?.selected ?? 'default')
 
-const ownedDecks     = computed(() => custom.value.decks?.owned ?? ['default'])
-const selectedDeck   = computed(() => custom.value.decks?.selected ?? 'default')
+const ownedDecks   = computed(() => custom.value.decks?.owned ?? ['default'])
+const selectedDeck = computed(() => custom.value.decks?.selected ?? 'default')
 
-const handleBuy = async (type, item) => {
+// Estado do modal de confirmação
+const confirmState = ref({
+  open: false,
+  type: null,   // 'avatar' | 'deck'
+  item: null,   // referência ao objeto avatar/deck
+})
+
+const openBuyConfirm = (type, item) => {
+  // default não precisa de confirmação → só seleciona
+  if (item.price === 0) {
+    handleSelect(type, item)
+    return
+  }
+
+  confirmState.value = {
+    open: true,
+    type,
+    item,
+  }
+}
+
+const closeBuyConfirm = () => {
+  confirmState.value.open = false
+  confirmState.value.type = null
+  confirmState.value.item = null
+}
+
+const confirmBuy = async () => {
+  const { type, item } = confirmState.value
+  if (!type || !item) return
+
+  // fecha o modal antes para a UI ficar logo responsiva
+  closeBuyConfirm()
+
+  await handleBuy(type, item, { skipConfirm: true })
+}
+
+const handleBuy = async (type, item, options = {}) => {
+  const { skipConfirm = false } = options
+
   if (item.price === 0) {
     return handleSelect(type, item)
   }
 
-  const confirmMsg =
-    `Buy "${item.label}" for ${item.price} coins?\n` +
-    `Your current balance: ${authStore.currentUser?.coins_balance ?? 0}`
-
-  if (!window.confirm(confirmMsg)) return
+  // Se não for chamada a partir do modal, só abre o modal e sai
+  if (!skipConfirm) {
+    openBuyConfirm(type, item)
+    return
+  }
 
   try {
     const res = await apiStore.postPurchaseCustomization({

@@ -27,7 +27,8 @@ class User extends Authenticatable
         'password',
         'nickname',
         'photo_avatar_filename', // Optional field
-        'coins_balance',
+        'coins_balance',    
+        'custom',
     ];
 
     /**
@@ -51,8 +52,31 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'custom' => 'array',
         ];
     }
+
+
+    public function getCustomAttribute($value)
+    {
+        if ($value === null) {
+            // default JSON que "vive" apenas em memória até ser guardado
+            return [
+                'avatars' => [
+                    'owned'    => ['default'],
+                    'selected' => 'default',
+                ],
+                'decks' => [
+                    'owned'    => ['default'],
+                    'selected' => 'default',
+                ],
+            ];
+        }
+
+        // Como temos cast 'array', $value aqui já vem como array
+        return $value;
+    }
+
 
 
     public function matchesAsPlayer1()

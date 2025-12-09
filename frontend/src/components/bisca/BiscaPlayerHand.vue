@@ -69,13 +69,13 @@ function getCardImageUrl(card) {
       </span>
     </div>
 
-    <div class="hand-row">
+    <div class="hand-row player-hand-row">
       <button v-for="card in bisca.playerHand" :key="card.id" :id="`hand-card-${card.id}`" type="button"
         class="card-btn" :class="{ 'card-btn--disabled': !isPlayerTurn }" :disabled="!isPlayerTurn" v-motion
         :initial="{ y: 0, scale: 1 }" :hover="isPlayerTurn ? { y: -6, scale: 1.05 } : {}"
         :tap="isPlayerTurn ? { scale: 0.95 } : {}" @click="onPlay(card)">
         <img :src="getCardImageUrl(card)" :alt="`Carta ${card.suit} ${bisca.displayRank(card.rank)}`"
-          class="hand-card-image">
+          class="hand-card-image hand-card-image-bold">
       </button>
 
       <p v-if="bisca.playerHand.length === 0" class="hand-empty">
@@ -156,5 +156,9 @@ function getCardImageUrl(card) {
 .hand-hint--warning {
   color: #b91c1c; /* vermelho suave */
   font-weight: 600;
+}
+
+.hand-card-image-bold {
+  outline: 2px solid #111827;
 }
 </style>

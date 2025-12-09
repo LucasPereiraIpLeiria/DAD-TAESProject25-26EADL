@@ -83,22 +83,31 @@ function getCardImageUrl(card) {
 
 const botFloatingCard = ref(null) // { imgUrl, style }
 const showBotCard = ref(true)
+const playerDrawFloating = ref(null) // { imgUrl, style }
+const botDrawFloating = ref(null)
+const lastBotCardId = ref(null)
 /**
  * Sempre que o bot mete uma carta na mesa (tableCards.bot deixa de ser null),
  * animamos uma carta a sair da zona da mão do bot até ao slot do bot.
  */
 watch(
   () => props.bisca.tableCards.bot,
-  async (newCard, oldCard) => {
-    // Quando limpa a mesa -> garantimos que volta a poder mostrar
+  async (newCard) => {
+    // Quando limpa a mesa (ou no início)
     if (!newCard) {
       showBotCard.value = true
       botFloatingCard.value = null
+      lastBotCardId.value = null
       return
     }
 
-    // Só anima quando passou de null -> carta
-    if (oldCard) return
+    // Se for a mesma carta que já animámos, não fazer nada
+    if (newCard.id === lastBotCardId.value) {
+      return
+    }
+
+    // Marca esta como a última carta animada
+    lastBotCardId.value = newCard.id
 
     const handEl = document.querySelector('.opponent-hand')
     const targetEl = document.querySelector('#table-bot-slot')
@@ -111,7 +120,6 @@ watch(
     const targetRect = targetEl.getBoundingClientRect()
     const imgUrl = getCardImageUrl(newCard)
 
-    // 🔴 Esconde a carta real na mesa enquanto anima
     showBotCard.value = false
 
     botFloatingCard.value = {
@@ -137,14 +145,115 @@ watch(
     })
 
     setTimeout(() => {
-      // ✅ Só agora mostramos a carta “real” na mesa
       showBotCard.value = true
       botFloatingCard.value = null
-    }, 260) // mesmo tempo que a animação
+    }, 260)
   },
 )
 
 
+watch(
+  () => ({
+    stock: props.bisca.stock.length,
+    player: props.bisca.playerHand.length,
+    bot: props.bisca.botHand.length,
+  }),
+  async (newVals, oldVals) => {
+    if (!oldVals) return
+
+    const stockDiff = oldVals.stock - newVals.stock
+
+    // Só interessa quando o stock diminui
+    if (stockDiff <= 0) return
+
+    const deckEl = document.querySelector('.deck-stack')
+    if (!deckEl) return
+
+    const deckRect = deckEl.getBoundingClientRect()
+    const cardWidth = 80
+    const cardHeight = 120
+
+    const playerDiff = newVals.player - oldVals.player
+    const botDiff = newVals.bot - oldVals.bot
+
+    // ---------- DRAW PARA O PLAYER ----------
+    if (playerDiff > 0) {
+      const handEl = document.querySelector('.player-hand-row')
+      if (handEl) {
+        const handRect = handEl.getBoundingClientRect()
+
+        const targetTop = handRect.top + handRect.height / 2 - cardHeight / 2
+        const targetLeft = handRect.right - cardWidth - 8
+
+        playerDrawFloating.value = {
+          imgUrl: deckBackImageUrl.value,
+          style: {
+            position: 'fixed',
+            top: `${deckRect.top}px`,
+            left: `${deckRect.left}px`,
+            width: `${cardWidth}px`,
+            height: `${cardHeight}px`,
+            transition: 'top 0.25s ease-out, left 0.25s ease-out',
+            zIndex: 9997,
+            pointerEvents: 'none',
+          },
+        }
+
+        await nextTick()
+
+        requestAnimationFrame(() => {
+          if (!playerDrawFloating.value) return
+          playerDrawFloating.value.style.top = `${targetTop}px`
+          playerDrawFloating.value.style.left = `${targetLeft}px`
+        })
+
+        setTimeout(() => {
+          playerDrawFloating.value = null
+        }, 260)
+      }
+    }
+
+    // ---------- DRAW PARA O BOT ----------
+    if (botDiff > 0) {
+      const oppEl = document.querySelector('.opponent-hand')
+      if (oppEl) {
+        const oppRect = oppEl.getBoundingClientRect()
+
+        const targetTop = oppRect.top + oppRect.height / 2 - cardHeight / 2
+        const targetLeft = oppRect.right - cardWidth - 8
+
+        botDrawFloating.value = {
+          imgUrl: deckBackImageUrl.value,
+          style: {
+            position: 'fixed',
+            top: `${deckRect.top}px`,
+            left: `${deckRect.left}px`,
+            width: `${cardWidth}px`,
+            height: `${cardHeight}px`,
+            transition: `top 0.25s ease-out, left 0.25s ease-out`,
+            zIndex: 9997,
+            pointerEvents: 'none',
+          },
+        }
+
+        await nextTick()
+
+        requestAnimationFrame(() => {
+          if (!botDrawFloating.value) return
+          botDrawFloating.value.style.top = `${targetTop}px`
+          botDrawFloating.value.style.left = `${targetLeft}px`
+        })
+
+        setTimeout(() => {
+          botDrawFloating.value = null
+        }, 260)
+      }
+    }
+  },
+  {
+    flush: 'post', // 👈 chave para não “bater” com o watcher do bot
+  },
+)
 
 
 </script>
@@ -172,7 +281,7 @@ watch(
             :alt="`Carta do bot ${bisca.tableCards.bot.suit} ${bisca.displayRank(bisca.tableCards.bot.rank)}`"
             class="table-card-image table-card-image--bot">
           <span v-else class="table-card table-card--empty">
-            
+
           </span>
         </div>
 
@@ -182,7 +291,7 @@ watch(
             :alt="`Tua carta ${bisca.tableCards.player.suit} ${bisca.displayRank(bisca.tableCards.player.rank)}`"
             class="table-card-image table-card-image--you">
           <span v-else class="table-card table-card--empty">
-            
+
           </span>
         </div>
       </div>
@@ -191,10 +300,12 @@ watch(
       <div class="side-info">
         <div class="deck-stack">
           <!-- Trunfo por baixo, deitado -->
-          <img v-if="bisca.trumpCard" v-show="bisca.stock.length > 0" :src="getCardImageUrl(bisca.trumpCard)" alt="Carta de trunfo" class="trump-image">
+          <img v-if="bisca.trumpCard" v-show="bisca.stock.length > 0" :src="getCardImageUrl(bisca.trumpCard)"
+            alt="Carta de trunfo" class="trump-image trump-image-bold">
 
           <!-- Deck cover por cima -->
-          <img v-if="deckBackImageUrl" v-show="bisca.stock.length > 0" :src="deckBackImageUrl" alt="Monte de cartas" class="deck-image">
+          <img v-if="deckBackImageUrl" v-show="bisca.stock.length > 0" :src="deckBackImageUrl" alt="Monte de cartas"
+            class="deck-image">
         </div>
       </div>
     </div>
@@ -206,7 +317,19 @@ watch(
     <div v-if="botFloatingCard" class="bot-floating-card" :style="botFloatingCard.style">
       <img :src="botFloatingCard.imgUrl" alt="Carta jogada pelo bot" class="bot-floating-card-image">
     </div>
+    <!-- Carta flutuante de DRAW para o PLAYER -->
+    <div v-if="playerDrawFloating" class="draw-floating-card" :style="playerDrawFloating.style">
+      <img :src="playerDrawFloating.imgUrl" alt="Carta vinda do baralho para a tua mão"
+        class="draw-floating-card-image">
+    </div>
+
+    <!-- Carta flutuante de DRAW para o BOT -->
+    <div v-if="botDrawFloating" class="draw-floating-card" :style="botDrawFloating.style">
+      <img :src="botDrawFloating.imgUrl" alt="Carta vinda do baralho para a mão do bot"
+        class="draw-floating-card-image">
+    </div>
   </section>
+
 </template>
 
 
@@ -286,7 +409,8 @@ watch(
 }
 
 .table-card-image--you,
-.table-card-image--bot {
+.table-card-image--bot,
+.trump-image-bold {
   outline: 2px solid #111827;
 }
 
@@ -344,7 +468,8 @@ watch(
   z-index: 2;
 }
 
-.bot-floating-card-image {
+.bot-floating-card-image,
+.draw-floating-card-image {
   width: 100%;
   height: 100%;
   object-fit: contain;

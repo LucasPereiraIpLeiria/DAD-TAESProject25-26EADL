@@ -32,10 +32,11 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAPIStore } from '@/stores/api'
 import { toast } from 'vue-sonner'
+import router from '@/router/index.js'
 import CustomizationPurchaseDialog from '@/components/customization/CustomizationPurchaseDialog.vue'
 import CustomizationCard from '@/components/customization/CustomizationCard.vue'
 
@@ -176,4 +177,11 @@ const handleSelect = async (type, item) => {
         toast.error(msg)
     }
 }
+
+watch(() => authStore.isLoggedIn, (newValue) => {
+  console.log('isLoggedIn changed:', newValue)
+  if (!newValue) {
+    router.push('/')
+  }
+})
 </script>

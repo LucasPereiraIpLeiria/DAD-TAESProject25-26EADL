@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
 
 class Game extends Model
 {
@@ -34,4 +35,64 @@ class Game extends Model
     {
         return $this->hasOne(User::class, 'id', 'player2_user_id');
     }
+
+    // Leaderboard for singleplayer games
+    public function scopeSingleplayerLeaderboard($query, $type)
+    {
+        $botId = config('bots.bot_ids.default');
+
+        return $query
+            ->select(
+                'winner_user_id',
+                DB::raw('COUNT(*) as total_wins'),
+                DB::raw('SUM(
+                    CASE 
+                        WHEN winner_user_id = player1_user_id THEN player1_points
+                        WHEN winner_user_id = player2_user_id THEN player2_points
+                        ELSE 0
+                    END
+                ) as total_points'),
+                DB::raw('COALESCE(users.nickname, users.name) as username'),
+                DB::raw('users.photo_avatar_filename as avatar_filename')
+            )
+            ->where('games.type', $type)
+            ->whereNotNull('winner_user_id')
+            ->where('player2_user_id', '=', $botId)                   // ONLY vs bot
+            ->join('users', 'users.id', '=', 'winner_user_id')
+            ->groupBy('winner_user_id', 'users.nickname', 'users.name', 'users.photo_avatar_filename')
+            ->orderByDesc('total_wins')
+            ->orderByDesc('total_points');
+    }
+
+    // Leaderboard for multiplayer games
+    public function scopeMultiplayerLeaderboard($query, $type)
+    {
+        $botId = config('bots.bot_ids.default');
+
+        return $query
+            ->select(
+                'winner_user_id',
+                DB::raw('COUNT(*) as total_wins'),
+                DB::raw('SUM(
+                    CASE 
+                        WHEN winner_user_id = player1_user_id THEN player1_points
+                        WHEN winner_user_id = player2_user_id THEN player2_points
+                        ELSE 0
+                    END
+                ) as total_points'),
+                DB::raw('COALESCE(users.nickname, users.name) as username'),
+                DB::raw('users.photo_avatar_filename as avatar_filename')
+            )
+            ->where('games.type', $type)
+            ->whereNotNull('winner_user_id')                          // finished games only
+            ->where('player1_user_id', '!=', $botId)                  // EXCLUDE bot
+            ->where('player2_user_id', '!=', $botId)                  // EXCLUDE bot
+            ->join('users', 'users.id', '=', 'winner_user_id')
+            ->groupBy('winner_user_id', 'users.nickname', 'users.name', 'users.photo_avatar_filename')
+            ->orderByDesc('total_wins')
+            ->orderByDesc('total_points');
+    }
+
+
 }
+

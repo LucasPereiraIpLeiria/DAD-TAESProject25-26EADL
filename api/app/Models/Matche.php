@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
 
 class Matche extends Model
 {
@@ -31,6 +32,7 @@ class Matche extends Model
     {
         return $this->hasOne(User::class, 'id', 'player1_user_id');
     }
+    
     public function player2(): HasOne
     {
         return $this->hasOne(User::class, 'id', 'player2_user_id');
@@ -117,7 +119,7 @@ class Matche extends Model
 
 
     //this comment exists to try and merge this branch with main
-    //still trying
+    //comment dsjnbfhjdsv
 
 
 }

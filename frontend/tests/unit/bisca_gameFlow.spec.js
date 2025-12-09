@@ -103,7 +103,7 @@ describe('Bisca game flow (jogar cartas e contar vazas)', () => {
 
   it('resolveTrick contabiliza corretamente a vaza quando o player ganha', () => {
     bisca.status = 'in_game'
-    bisca.trumpCard = { id: 100, suit: '♠', rank: 7, points: 10 }
+    bisca.trumpCard = { id: 100, suit: '♠', rank: 7, points: 10, strength: 9 }
     bisca.trickLeader = 'player'
 
     // começar sem pontos / vazas
@@ -113,20 +113,23 @@ describe('Bisca game flow (jogar cartas e contar vazas)', () => {
     bisca.collectedTricksBot = []
 
     // ainda há cartas na mão e no stock → o jogo não acaba
-    bisca.playerHand = [{ id: 3, suit: '♣', rank: 3, points: 0 }]
-    bisca.botHand = [{ id: 4, suit: '♦', rank: 4, points: 0 }]
-    bisca.stock = [{ id: 5, suit: '♣', rank: 5, points: 0 }]
+    bisca.playerHand = [{ id: 3, suit: '♣', rank: 3, points: 0, strength: 2 }]
+    bisca.botHand = [{ id: 4, suit: '♦', rank: 4, points: 0, strength: 3 }]
+    bisca.stock = [{ id: 5, suit: '♣', rank: 5, points: 0, strength: 4 }]
 
-    const playerCard = { id: 1, suit: '♥', rank: 1, points: 11 }
-    const botCard = { id: 2, suit: '♥', rank: 11, points: 3 }
+    // 👉 agora com strength definido, alinhado com o baralho real
+    const playerCard = { id: 1, suit: '♥', rank: 1, points: 11, strength: 10 } // Ás, mais forte
+    const botCard = { id: 2, suit: '♥', rank: 11, points: 3, strength: 6 }     // Valete, mais fraco
 
-    // player e bot já “jogaram” estas cartas para a mesa
     bisca.tableCards = {
       player: playerCard,
       bot: botCard,
     }
 
+    // resolve a vaza
     bisca.resolveTrick()
+    // simula o fim da animação (limpa mesa + compra cartas + prepara próxima jogada)
+    bisca.afterTrickAnimation()
 
     // vaza vai para o player
     expect(bisca.collectedTricksPlayer).toHaveLength(2)
@@ -139,17 +142,17 @@ describe('Bisca game flow (jogar cartas e contar vazas)', () => {
     expect(bisca.playerPoints).toBe(playerCard.points + botCard.points)
     expect(bisca.botPoints).toBe(0)
 
-    // mesa limpa
+    // mesa limpa (feito em afterTrickAnimation)
     expect(bisca.tableCards.player).toBeNull()
     expect(bisca.tableCards.bot).toBeNull()
 
-    // como ainda não é fim de jogo, apenas prepara próxima jogada
+    // ainda não é fim de jogo → próxima jogada começa no vencedor
     expect(['player', 'bot']).toContain(bisca.currentTurn)
   })
 
   it('resolveTrick contabiliza corretamente a vaza quando o bot ganha', () => {
     bisca.status = 'in_game'
-    bisca.trumpCard = { id: 200, suit: '♠', rank: 7, points: 10 }
+    bisca.trumpCard = { id: 200, suit: '♠', rank: 7, points: 10, strength: 9 }
     bisca.trickLeader = 'player'
 
     bisca.playerPoints = 0
@@ -158,12 +161,12 @@ describe('Bisca game flow (jogar cartas e contar vazas)', () => {
     bisca.collectedTricksBot = []
 
     // manter jogo a decorrer
-    bisca.playerHand = [{ id: 3, suit: '♣', rank: 3, points: 0 }]
-    bisca.botHand = [{ id: 4, suit: '♦', rank: 4, points: 0 }]
-    bisca.stock = [{ id: 5, suit: '♦', rank: 5, points: 0 }]
+    bisca.playerHand = [{ id: 3, suit: '♣', rank: 3, points: 0, strength: 2 }]
+    bisca.botHand = [{ id: 4, suit: '♦', rank: 4, points: 0, strength: 3 }]
+    bisca.stock = [{ id: 5, suit: '♦', rank: 5, points: 0, strength: 4 }]
 
-    const playerCard = { id: 1, suit: '♥', rank: 11, points: 3 }
-    const botCard = { id: 2, suit: '♥', rank: 1, points: 11 } // mais forte
+    const playerCard = { id: 1, suit: '♥', rank: 11, points: 3, strength: 6 }  // Valete, mais fraco
+    const botCard = { id: 2, suit: '♥', rank: 1, points: 11, strength: 10 }    // Ás, mais forte
 
     bisca.tableCards = {
       player: playerCard,
@@ -171,6 +174,7 @@ describe('Bisca game flow (jogar cartas e contar vazas)', () => {
     }
 
     bisca.resolveTrick()
+    bisca.afterTrickAnimation()
 
     // vaza vai para o bot
     expect(bisca.collectedTricksBot).toHaveLength(2)
@@ -183,10 +187,11 @@ describe('Bisca game flow (jogar cartas e contar vazas)', () => {
     expect(bisca.botPoints).toBe(playerCard.points + botCard.points)
     expect(bisca.playerPoints).toBe(0)
 
-    // mesa limpa
+    // mesa limpa (feito em afterTrickAnimation)
     expect(bisca.tableCards.player).toBeNull()
     expect(bisca.tableCards.bot).toBeNull()
   })
+
 
   it('não deixa o player jogar carta se não for a vez dele', () => {
     bisca.status = 'in_game'

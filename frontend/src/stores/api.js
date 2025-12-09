@@ -139,14 +139,12 @@ export const useAPIStore = defineStore('api', () => {
     })
   }
 
-  //get user games
-
+  // get user games
   const getUserGames = async () => {
     if (!token.value) {
       throw new Error('No authentication token available')
     }
     const response = await axios.get(`${API_BASE_URL}/users/matches`)
-    //console.log(response);
     return response
   }
 
@@ -175,10 +173,6 @@ export const useAPIStore = defineStore('api', () => {
     return axios.post(`${API_BASE_URL}/games`, game)
   }
 
-  /*const postMatche = (game) => {
-    return axios.post(`${API_BASE_URL}/matches`, game)
-  }*/
-
   const postPurchaseCustomization = async (payload) => {
     if (!token.value) {
       throw new Error('No authentication token available')
@@ -200,6 +194,51 @@ export const useAPIStore = defineStore('api', () => {
       throw new Error('No authentication token available')
     }
     return axios.post(`${API_BASE_URL}/customizations/debug/reset`)
+  }
+
+  const updateProfile = async (data) => {
+    if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+
+    // Convert File to base64 if photo exists
+    let photoBase64 = null
+    if (data.photo instanceof File) {
+      photoBase64 = await new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onload = (e) => resolve(e.target.result)
+        reader.readAsDataURL(data.photo)
+      })
+    }
+
+    // Build payload with all data as JSON
+    const payload = {
+      name: data.name,
+      email: data.email,
+      nickname: data.nickname,
+    }
+
+    if (data.currentPassword && data.currentPassword.trim()) {
+      payload.currentPassword = data.currentPassword
+      payload.newPassword = data.newPassword
+      payload.newPassword_confirmation = data.confirmPassword
+    }
+
+    if (photoBase64) {
+      payload.photo = photoBase64 // Send as base64 string
+    }
+
+    return axios.patch(`${API_BASE_URL}/users/edit`, payload)
+  }
+
+  const deleteUser = async (password) => {
+    if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+
+    return axios.delete(`${API_BASE_URL}/users/delete`, {
+      data: { password: password },
+    })
   }
 
   return {
@@ -224,5 +263,7 @@ export const useAPIStore = defineStore('api', () => {
     postPurchaseCustomization,
     patchSelectCustomization,
     postDebugResetCustomizations,
+    updateProfile,
+    deleteUser,
   }
 })

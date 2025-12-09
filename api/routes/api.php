@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\EconomyController;
+use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MatcheController;
@@ -15,6 +16,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users/me', function (Request $request) {
         return $request->user();
     });
+    Route::patch('/users/edit', [UserController::class, 'update']);
+    Route::delete('/users/delete', [UserController::class, 'destroy']); // Add this line
     Route::post('logout', [AuthController::class, 'logout']);
 
     Route::get('users/matches', function (Request $request) {

@@ -35,4 +35,89 @@ class Matche extends Model
     {
         return $this->hasOne(User::class, 'id', 'player2_user_id');
     }
+
+
+    public function scopeMultiplayerLeaderboard($query, $type)
+    {
+        $botId = config('bots.bot_ids.default');
+
+        return $query
+            ->select(
+                'winner_user_id as user_id',
+                DB::raw('COUNT(*) as total_wins'),
+                DB::raw('SUM(CASE WHEN player1_marks = 2 OR player2_marks = 2 THEN 1 ELSE 0 END) as total_capotes'),
+                DB::raw('SUM(CASE WHEN player1_marks = 3 OR player2_marks = 3 THEN 1 ELSE 0 END) as total_bandeiras'),
+                DB::raw('MIN(ended_at) as first_win_at'),
+                DB::raw('COALESCE(users.nickname, users.name) as username'),
+                DB::raw('users.photo_avatar_filename as avatar_filename')
+            )
+            ->where('matches.type', $type)
+            ->whereNotNull('winner_user_id')
+
+            //EXCLUDE bot matches
+            ->where('player1_user_id', '!=', $botId)
+            ->where('player2_user_id', '!=', $botId)
+
+            ->join('users', 'users.id', '=', 'winner_user_id')
+
+            ->groupBy(
+                'winner_user_id',
+                'users.nickname',
+                'users.name',
+                'users.photo_avatar_filename'
+            )
+
+            ->orderByDesc('total_wins')
+            ->orderByDesc('total_capotes')
+            ->orderByDesc('total_bandeiras')
+            ->orderBy('first_win_at', 'asc');
+    }
+
+
+
+    public function scopeSingleplayerLeaderboard($query, $type)
+    {
+        $botId = config('bots.bot_ids.default');
+
+        return $query
+            ->select(
+                'winner_user_id',
+                DB::raw('COUNT(*) as total_wins'),
+                DB::raw('SUM(CASE WHEN player1_marks = 2 OR player2_marks = 2 THEN 1 ELSE 0 END) as total_capotes'),
+                DB::raw('SUM(CASE WHEN player1_marks = 3 OR player2_marks = 3 THEN 1 ELSE 0 END) as total_bandeiras'),
+                DB::raw('MIN(ended_at) as first_win_at'),
+                DB::raw('COALESCE(users.nickname, users.name) as username'),
+                DB::raw('users.photo_avatar_filename as avatar_filename')
+            )
+
+            ->where('matches.type', $type)
+            ->whereNotNull('winner_user_id')
+
+            //ONLY matches against the BOT
+            ->where(function ($q) use ($botId) {
+                $q->where('player1_user_id', $botId)
+                ->orWhere('player2_user_id', $botId);
+            })
+
+            ->join('users', 'users.id', '=', 'winner_user_id')
+
+            ->groupBy(
+                'winner_user_id',
+                'users.nickname',
+                'users.name',
+                'users.photo_avatar_filename'
+            )
+
+            ->orderByDesc('total_wins')
+            ->orderByDesc('total_capotes')
+            ->orderByDesc('total_bandeiras')
+            ->orderBy('first_win_at', 'asc');
+    }
+
+
+
+    //this comment exists to try and merge this branch with main
+    //still trying
+
+
 }

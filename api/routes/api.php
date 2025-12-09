@@ -24,13 +24,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Create a new match
     Route::post('matches', [MatcheController::class, 'store']);
-
+    Route::patch('matches/{matche}', [MatcheController::class, 'update']);
     Route::post('standalone', [GameController::class, 'store']);
+    Route::post('games', [GameController::class, 'store']);
+
     Route::post('/economy/award-match-reward', [EconomyController::class, 'awardMatchReward']);
-    Route::post('/economy/deduct-entry-fee', [
-        EconomyController::class,
-        'deductEntryFee'
-    ]);
+    Route::post('/economy/deduct-entry-fee', [EconomyController::class, 'deductEntryFee']);
     Route::post('/coin-purchases', [EconomyController::class, 'createCoinPurchase']);
 });
 

@@ -10,7 +10,6 @@ class Matche extends Model
 {
     public $timestamps = false;
     protected $fillable = [
-        'id',
         'player1_user_id',
         'player2_user_id',
         'winner_user_id',
@@ -18,8 +17,6 @@ class Matche extends Model
         'type',
         'status',
         'stake',
-        'ended_at',
-        'total_time',
         'began_at',
         'ended_at',
         'player1_marks',
@@ -27,8 +24,8 @@ class Matche extends Model
         'player1_points',
         'player2_points',
         'total_time',
-        //'custom'
     ];
+
 
 
     public function player1(): HasOne

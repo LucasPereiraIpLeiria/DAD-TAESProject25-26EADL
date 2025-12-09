@@ -100,7 +100,7 @@ export const useAuthStore = defineStore('auth', () => {
     console.warn('refreshUser: no token found, skipping refresh')
     return
   }
-
+ 
   try {
     const response = await apiStore.getAuthUser()
     currentUser.value = response.data

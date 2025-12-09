@@ -18,7 +18,17 @@ class GameController extends Controller
 
     public function store(StoreGameRequest $request)
     {
-        $game = Game::create($request->validated());
+        $data = $request->validated();
+
+        if (!empty($data['began_at']) && !empty($data['ended_at'])) {
+            $start = strtotime($data['began_at']);
+            $end   = strtotime($data['ended_at']);
+
+            if ($start !== false && $end !== false && $end >= $start) {
+                $data['total_time'] = $end - $start;
+            }
+        }
+        $game = Game::create($data);
         return response()->json($game, 201);
     }
     public function show(Game $game)
@@ -32,10 +42,10 @@ class GameController extends Controller
     }
 
     //public function getUserGames(User $user){
-      //  return $user -> games();
+    //  return $user -> games();
     //}
-    public function getUserGames(User $user){
+    public function getUserGames(User $user)
+    {
         return response()->json($user->games()->get());
     }
-
 }

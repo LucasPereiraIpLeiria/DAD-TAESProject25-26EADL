@@ -12,6 +12,10 @@ const props = defineProps({
     type: Boolean,
     required: true,
   },
+  mustFollowSuit: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['play-card'])
@@ -78,20 +82,9 @@ function getCardImageUrl(card) {
 <template>
   <section class="board">
     <!-- MÃO DO BOT POR CIMA DO GAMEBOARD -->
-    <div
-      v-if="bisca.botHand && bisca.botHand.length > 0"
-      class="opponent-hand"
-    >
-      <div
-        v-for="card in bisca.botHand"
-        :key="card.id"
-        class="opponent-card"
-      >
-        <img
-          :src="deckBackImageUrl"
-          alt="Carta do bot"
-          class="opponent-card-image"
-        >
+    <div v-if="bisca.botHand && bisca.botHand.length > 0" class="opponent-hand">
+      <div v-for="card in bisca.botHand" :key="card.id" class="opponent-card">
+        <img :src="deckBackImageUrl" alt="Carta do bot" class="opponent-card-image">
       </div>
     </div>
 
@@ -100,35 +93,20 @@ function getCardImageUrl(card) {
       <div class="center-cards">
         <!-- Bot -->
         <div class="table-slot">
-          <img
-            v-if="bisca.tableCards.bot"
-            :src="getCardImageUrl(bisca.tableCards.bot)"
+          <img v-if="bisca.tableCards.bot" :src="getCardImageUrl(bisca.tableCards.bot)"
             :alt="`Carta do bot ${bisca.tableCards.bot.suit} ${bisca.displayRank(bisca.tableCards.bot.rank)}`"
-            class="table-card-image"
-          >
-          <span
-            v-else
-            class="table-card table-card--empty"
-          >
+            class="table-card-image">
+          <span v-else class="table-card table-card--empty">
             —
           </span>
         </div>
 
         <!-- Tu -->
-        <div
-          id="table-player-slot"
-          class="table-slot"
-        >
-          <img
-            v-if="bisca.tableCards.player"
-            :src="getCardImageUrl(bisca.tableCards.player)"
+        <div id="table-player-slot" class="table-slot">
+          <img v-if="bisca.tableCards.player" :src="getCardImageUrl(bisca.tableCards.player)"
             :alt="`Tua carta ${bisca.tableCards.player.suit} ${bisca.displayRank(bisca.tableCards.player.rank)}`"
-            class="table-card-image table-card-image--you"
-          >
-          <span
-            v-else
-            class="table-card table-card--empty"
-          >
+            class="table-card-image table-card-image--you">
+          <span v-else class="table-card table-card--empty">
             —
           </span>
         </div>
@@ -138,30 +116,17 @@ function getCardImageUrl(card) {
       <div class="side-info">
         <div class="deck-stack">
           <!-- Trunfo por baixo, deitado -->
-          <img
-            v-if="bisca.trumpCard"
-            :src="getCardImageUrl(bisca.trumpCard)"
-            alt="Carta de trunfo"
-            class="trump-image"
-          >
+          <img v-if="bisca.trumpCard" :src="getCardImageUrl(bisca.trumpCard)" alt="Carta de trunfo" class="trump-image">
 
           <!-- Deck cover por cima -->
-          <img
-            v-if="deckBackImageUrl"
-            :src="deckBackImageUrl"
-            alt="Monte de cartas"
-            class="deck-image"
-          >
+          <img v-if="deckBackImageUrl" :src="deckBackImageUrl" alt="Monte de cartas" class="deck-image">
         </div>
       </div>
     </div>
 
     <!-- MÃO DO PLAYER POR BAIXO DO GAMEBOARD, MAS AINDA DENTRO DO MESMO COMPONENTE -->
-    <BiscaPlayerHand
-      :bisca="bisca"
-      :is-player-turn="isPlayerTurn"
-      @play-card="onPlayCard"
-    />
+    <BiscaPlayerHand :bisca="bisca" :is-player-turn="isPlayerTurn" :must-follow-suit="mustFollowSuit"
+      @play-card="onPlayCard" />
   </section>
 </template>
 
@@ -263,7 +228,8 @@ function getCardImageUrl(card) {
 
 .deck-stack {
   position: relative;
-  width: 140px;   /* um pouco mais largo para caber o T */
+  width: 140px;
+  /* um pouco mais largo para caber o T */
   height: 120px;
 }
 
@@ -271,7 +237,8 @@ function getCardImageUrl(card) {
 .trump-image {
   position: absolute;
   top: 50%;
-  left: 40%; /* ligeiramente mais à esquerda */
+  left: 40%;
+  /* ligeiramente mais à esquerda */
   transform: translate(-50%, -50%) rotate(90deg);
   transform-origin: center center;
   z-index: 1;

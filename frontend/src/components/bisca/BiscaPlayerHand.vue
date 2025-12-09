@@ -8,6 +8,10 @@ const props = defineProps({
     type: Boolean,
     required: true,
   },
+  mustFollowSuit: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['play-card'])
@@ -54,47 +58,27 @@ function getCardImageUrl(card) {
 <template>
   <section class="hand-section">
     <div class="hand-header">
-      <h2>As tuas cartas</h2>
-      <span
-        v-if="!isPlayerTurn"
-        class="hand-hint"
-      >
-        Aguarda a jogada do bot…
+      <span v-if="!isPlayerTurn" class="hand-hint">
+        A aguardar
       </span>
-      <span
-        v-else
-        class="hand-hint hand-hint--active"
-      >
+      <span v-else-if="mustFollowSuit" class="hand-hint hand-hint--warning">
+        Obrigado a assistir — escolhe uma carta do mesmo naipe.
+      </span>
+      <span v-else class="hand-hint hand-hint--active">
         A tua vez — escolhe uma carta.
       </span>
     </div>
 
     <div class="hand-row">
-      <button
-        v-for="card in bisca.playerHand"
-        :key="card.id"
-        :id="`hand-card-${card.id}`"
-        type="button"
-        class="card-btn"
-        :class="{ 'card-btn--disabled': !isPlayerTurn }"
-        :disabled="!isPlayerTurn"
-        v-motion
-        :initial="{ y: 0, scale: 1 }"
-        :hover="isPlayerTurn ? { y: -6, scale: 1.05 } : {}"
-        :tap="isPlayerTurn ? { scale: 0.95 } : {}"
-        @click="onPlay(card)"
-      >
-        <img
-          :src="getCardImageUrl(card)"
-          :alt="`Carta ${card.suit} ${bisca.displayRank(card.rank)}`"
-          class="hand-card-image"
-        >
+      <button v-for="card in bisca.playerHand" :key="card.id" :id="`hand-card-${card.id}`" type="button"
+        class="card-btn" :class="{ 'card-btn--disabled': !isPlayerTurn }" :disabled="!isPlayerTurn" v-motion
+        :initial="{ y: 0, scale: 1 }" :hover="isPlayerTurn ? { y: -6, scale: 1.05 } : {}"
+        :tap="isPlayerTurn ? { scale: 0.95 } : {}" @click="onPlay(card)">
+        <img :src="getCardImageUrl(card)" :alt="`Carta ${card.suit} ${bisca.displayRank(card.rank)}`"
+          class="hand-card-image">
       </button>
 
-      <p
-        v-if="bisca.playerHand.length === 0"
-        class="hand-empty"
-      >
+      <p v-if="bisca.playerHand.length === 0" class="hand-empty">
         Sem cartas na mão.
       </p>
     </div>
@@ -164,5 +148,10 @@ function getCardImageUrl(card) {
 .hand-empty {
   font-size: 0.85rem;
   color: #6b7280;
+}
+
+.hand-hint--warning {
+  color: #b91c1c; /* vermelho suave */
+  font-weight: 600;
 }
 </style>

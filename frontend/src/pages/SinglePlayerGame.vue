@@ -59,6 +59,24 @@ const isPlayerTurn = computed(
   () => bisca.status === 'in_game' && bisca.currentTurn === 'player',
 )
 
+// Naipe que sou obrigado a seguir na fase final (se existir)
+const requiredSuit = computed(() => {
+  // Só na fase final
+  if (bisca.phase !== 'final_phase') return null
+
+  // Só quando estou a responder à carta do bot
+  const botCard = bisca.tableCards.bot
+  if (!botCard) return null
+
+  const leadingSuit = botCard.suit
+  const hasSuit = bisca.playerHand.some((c) => c.suit === leadingSuit)
+
+  return hasSuit ? leadingSuit : null
+})
+
+// Flag para UI: estou obrigado a assistir?
+const mustFollowSuit = computed(() => requiredSuit.value !== null)
+
 /* ---------- ANIMAÇÃO DA CARTA A IR PARA O BOARD ---------- */
 
 const floatingCard = ref(null) // { card, style, imgUrl }
@@ -89,6 +107,13 @@ function getCardImageUrl(card) {
 async function play(card) {
   if (!isPlayerTurn.value) return
 
+  // ⛔ BLOQUEIA jogada ilegal na fase final (não assiste ao naipe)
+  if (requiredSuit.value && card.suit !== requiredSuit.value) {
+    // Não animamos, não chamamos playCard, não mexemos em nada
+    // A UI vai mostrar "Obrigado a assistir" via mustFollowSuit
+    return
+  }
+
   const handEl = document.querySelector(`#hand-card-${card.id}`)
   const targetEl = document.querySelector('#table-player-slot')
 
@@ -102,10 +127,10 @@ async function play(card) {
   const targetRect = targetEl.getBoundingClientRect()
   const imgUrl = getCardImageUrl(card)
 
-  // 1) Esconder logo a carta verdadeira da mão (mas sem mexer no store ainda)
+  // 1) Esconde a carta verdadeira da mão
   handEl.style.visibility = 'hidden'
 
-  // 2) Criar carta flutuante na posição da carta original
+  // 2) Carta flutuante
   floatingCard.value = {
     card,
     imgUrl,
@@ -123,24 +148,24 @@ async function play(card) {
 
   await nextTick()
 
-  // 3) Animar até ao slot do board
+  // 3) Animar até ao slot
   requestAnimationFrame(() => {
     if (!floatingCard.value) return
     floatingCard.value.style.top = `${targetRect.top}px`
     floatingCard.value.style.left = `${targetRect.left}px`
   })
 
-  // 4) NO FIM da animação é que mexemos no estado
+  // 4) No fim da animação é que aplicamos a jogada
   setTimeout(() => {
-    bisca.playCard(card)      // agora entra no board
+    bisca.playCard(card)
     floatingCard.value = null
 
-    // limpar estilo do elemento da mão (se ainda existir)
     if (handEl) {
       handEl.style.visibility = ''
     }
-  }, 260) // ligeiramente > 0.25s
+  }, 260)
 }
+
 
 
 function nextGame() {
@@ -188,6 +213,7 @@ function exitToSelection() {
               v-if="bisca.status === 'in_game'"
               :bisca="bisca"
               :is-player-turn="isPlayerTurn"
+              :must-follow-suit="mustFollowSuit"
               @play-card="play"
             />
           </div>

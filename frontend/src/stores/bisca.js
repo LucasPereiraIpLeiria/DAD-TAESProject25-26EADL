@@ -60,6 +60,13 @@ export const useBiscaStore = defineStore('bisca', () => {
   // quem começou a vaza atual
   const trickLeader = ref('player') // 'player' | 'bot'
 
+  const lastTrickWinner = ref(null) // 'player' | 'bot' | null
+  const lastTrickCards = ref({
+    // cartas que estavam na mesa
+    player: null,
+    bot: null,
+  })
+  const lastTrickToken = ref(0)
   //
   // ───────────────────────────────────────────────
   // COMPUTED
@@ -93,16 +100,16 @@ export const useBiscaStore = defineStore('bisca', () => {
     // Bisca 40-cartas: 4 naipes * 10 ranks
     const suits = ['♠', '♥', '♦', '♣']
     const ranks = [
-      { rank: 1, points: 11 }, // Ás
-      { rank: 7, points: 10 }, // Bisca / Manilha
-      { rank: 13, points: 4 }, // Rei
-      { rank: 11, points: 3 }, // Valete
-      { rank: 12, points: 2 }, // Dama
-      { rank: 3, points: 0 }, // 3
-      { rank: 2, points: 0 }, // 2
-      { rank: 4, points: 0 }, // 4
-      { rank: 5, points: 0 }, // 5
-      { rank: 6, points: 0 }, // 6
+      { rank: 1, points: 11, strength: 10 }, // Ás
+      { rank: 7, points: 10, strength: 9 }, // 7
+      { rank: 13, points: 4, strength: 8 }, // Rei (K)
+      { rank: 12, points: 3, strength: 7 }, // Dama (Q)
+      { rank: 11, points: 2, strength: 6 }, // Valete (J)
+      { rank: 6, points: 0, strength: 5 }, // 6
+      { rank: 5, points: 0, strength: 4 }, // 5
+      { rank: 4, points: 0, strength: 3 }, // 4
+      { rank: 3, points: 0, strength: 2 }, // 3
+      { rank: 2, points: 0, strength: 1 }, // 2
     ]
 
     const d = []
@@ -115,6 +122,7 @@ export const useBiscaStore = defineStore('bisca', () => {
           suit,
           rank: r.rank,
           points: r.points,
+          strength: r.strength,
         })
       }
     }
@@ -335,13 +343,13 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
-  function sortByPointsAsc(cards) {
-    return [...cards].sort((a, b) => a.points - b.points)
+  function sortByStrengthAsc(cards) {
+    return [...cards].sort((a, b) => a.strength  - b.strength )
   }
 
   function chooseLowest(cards) {
     if (!cards.length) return null
-    return sortByPointsAsc(cards)[0]
+    return sortByStrengthAsc(cards)[0]
   }
 
   function cardBeats(c1, c2, leadingSuit, trumpSuit) {
@@ -351,7 +359,7 @@ export const useBiscaStore = defineStore('bisca', () => {
 
     // mesmo naipe → maior "força" (usamos points como proxy)
     if (c1.suit === c2.suit) {
-      return c1.points > c2.points
+      return c1.strength > c2.strength
     }
 
     // quem respeita o naipe principal ganha
@@ -480,7 +488,7 @@ export const useBiscaStore = defineStore('bisca', () => {
 
       // mesmo naipe → maior “força” (proxy pelos points)
       if (c1.suit === c2.suit) {
-        return c1.points >= c2.points
+        return c1.strength > c2.strength
       }
 
       // quem respeita o naipe principal ganha
@@ -500,11 +508,22 @@ export const useBiscaStore = defineStore('bisca', () => {
       winner = 'bot'
     }
 
-    setTimeout(() => {
+    lastTrickCards.value = { player: p, bot: b }
+    lastTrickWinner.value = winner
+    lastTrickToken.value += 1
+  }
+
+  function afterTrickAnimation() {
+    const winner = lastTrickWinner.value
+    if (!winner) return
+
+    // Agora sim: limpar a mesa e seguir o fluxo normal
     tableCards.value = { player: null, bot: null }
     drawCardsIfNeeded(winner)
-  }, 1000) 
-  
+
+    // limpar info da vaza
+    lastTrickWinner.value = null
+    lastTrickCards.value = { player: null, bot: null }
   }
 
   //
@@ -964,6 +983,9 @@ export const useBiscaStore = defineStore('bisca', () => {
     matchPlayer1Points,
     matchPlayer2Points,
     matchGames,
+    lastTrickWinner,
+    lastTrickCards,
+    lastTrickToken,
 
     // computed
     isDrawPhase,
@@ -989,5 +1011,6 @@ export const useBiscaStore = defineStore('bisca', () => {
     debugForceEndStandalone,
     debugForceEndMatch,
     debugForceEnd,
+    afterTrickAnimation,
   }
 })

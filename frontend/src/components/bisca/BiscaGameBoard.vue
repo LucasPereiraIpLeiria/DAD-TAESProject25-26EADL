@@ -86,6 +86,8 @@ const showBotCard = ref(true)
 const playerDrawFloating = ref(null) // { imgUrl, style }
 const botDrawFloating = ref(null)
 const lastBotCardId = ref(null)
+const trickFloatingCards = ref([]) // [{ key, imgUrl, style }]
+const hideTrickCards = ref(false)
 /**
  * Sempre que o bot mete uma carta na mesa (tableCards.bot deixa de ser null),
  * animamos uma carta a sair da zona da mão do bot até ao slot do bot.
@@ -199,7 +201,7 @@ watch(
             left: `${deckRect.left}px`,
             width: `${cardWidth}px`,
             height: `${cardHeight}px`,
-            transition: 'top 0.25s ease-out, left 0.25s ease-out',
+            transition: 'top 0.6s ease-out, left 0.25s ease-out',
             zIndex: 9997,
             pointerEvents: 'none',
           },
@@ -215,7 +217,7 @@ watch(
 
         setTimeout(() => {
           playerDrawFloating.value = null
-        }, 260)
+        }, 700)
       }
     }
 
@@ -236,7 +238,7 @@ watch(
             left: `${deckRect.left}px`,
             width: `${cardWidth}px`,
             height: `${cardHeight}px`,
-            transition: `top 0.25s ease-out, left 0.25s ease-out`,
+            transition: `top 0.6s ease-out, left 0.25s ease-out`,
             zIndex: 9997,
             pointerEvents: 'none',
           },
@@ -252,7 +254,7 @@ watch(
 
         setTimeout(() => {
           botDrawFloating.value = null
-        }, 260)
+        }, 700)
       }
     }
   },
@@ -261,11 +263,104 @@ watch(
   },
 )
 
+watch(
+  () => props.bisca.lastTrickToken,
+  async (token) => {
+    // primeira vaza terá token = 1, portanto não entra neste early-return
+    if (!token) return
+
+    const winner = props.bisca.lastTrickWinner
+    const cards = props.bisca.lastTrickCards
+
+    if (!winner) return
+    if (!cards?.player || !cards?.bot) return
+
+    // garantir DOM pronto
+    await nextTick()
+
+    // manter as cartas no centro mais 1s
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    const playerSlotEl = document.querySelector('#table-player-slot')
+    const botSlotEl = document.querySelector('#table-bot-slot')
+    const botTrickSlotEl = document.querySelector('#bot-trick-slot')
+    const playerTrickSlotEl = document.querySelector('#player-trick-slot')
+
+    if (!playerSlotEl || !botSlotEl || !botTrickSlotEl || !playerTrickSlotEl) {
+      props.bisca.afterTrickAnimation()
+      return
+    }
+
+    const playerSlotRect = playerSlotEl.getBoundingClientRect()
+    const botSlotRect = botSlotEl.getBoundingClientRect()
+    const botTrickRect = botTrickSlotEl.getBoundingClientRect()
+    const playerTrickRect = playerTrickSlotEl.getBoundingClientRect()
+
+    const destRect = winner === 'player' ? playerTrickRect : botTrickRect
+
+    const cardWidth = 80
+    const cardHeight = 120
+
+    hideTrickCards.value = true
+
+    trickFloatingCards.value = [
+      {
+        key: `trick-player-${cards.player.id}-${token}`,
+        imgUrl: getCardImageUrl(cards.player),
+        style: {
+          position: 'fixed',
+          top: `${playerSlotRect.top}px`,
+          left: `${playerSlotRect.left}px`,
+          width: `${cardWidth}px`,
+          height: `${cardHeight}px`,
+          transition: 'top 0.6s ease-out, left 0.3s ease-out',
+          zIndex: 9996,
+          pointerEvents: 'none',
+        },
+      },
+      {
+        key: `trick-bot-${cards.bot.id}-${token}`,
+        imgUrl: getCardImageUrl(cards.bot),
+        style: {
+          position: 'fixed',
+          top: `${botSlotRect.top}px`,
+          left: `${botSlotRect.left}px`,
+          width: `${cardWidth}px`,
+          height: `${cardHeight}px`,
+          transition: 'top 0.6s ease-out, left 0.3s ease-out',
+          zIndex: 9996,
+          pointerEvents: 'none',
+        },
+      },
+    ]
+
+    await nextTick()
+
+    requestAnimationFrame(() => {
+      for (const fc of trickFloatingCards.value) {
+        fc.style.top = `${destRect.top}px`
+        fc.style.left = `${destRect.left}px`
+      }
+    })
+
+    setTimeout(() => {
+      trickFloatingCards.value = []
+      hideTrickCards.value = false
+      props.bisca.afterTrickAnimation()
+    }, 700)
+  },
+  { flush: 'post' },
+)
+
+
 
 </script>
 
 <template>
   <section class="board">
+    <!-- Slots fixos para onde as vazas "voam" -->
+    <div id="bot-trick-slot" class="trick-slot trick-slot--bot" />
+    <div id="player-trick-slot" class="trick-slot trick-slot--player" />
     <!-- MÃO DO BOT POR CIMA DO GAMEBOARD -->
     <div class="opponent-hand">
       <template v-if="bisca.botHand && bisca.botHand.length > 0">
@@ -283,23 +378,21 @@ watch(
       <div class="center-cards">
         <!-- Bot -->
         <div class="table-slot" id="table-bot-slot">
-          <img v-if="bisca.tableCards.bot && showBotCard" :src="getCardImageUrl(bisca.tableCards.bot)"
+          <img v-if="bisca.tableCards.bot && showBotCard && !hideTrickCards"
+            :src="getCardImageUrl(bisca.tableCards.bot)"
             :alt="`Carta do bot ${bisca.tableCards.bot.suit} ${bisca.displayRank(bisca.tableCards.bot.rank)}`"
             class="table-card-image table-card-image--bot">
-          <span v-else class="table-card table-card--empty">
-
-          </span>
+          <span v-else class="table-card table-card--empty" />
         </div>
 
         <!-- Tu -->
         <div id="table-player-slot" class="table-slot">
-          <img v-if="bisca.tableCards.player" :src="getCardImageUrl(bisca.tableCards.player)"
+          <img v-if="bisca.tableCards.player && !hideTrickCards" :src="getCardImageUrl(bisca.tableCards.player)"
             :alt="`Tua carta ${bisca.tableCards.player.suit} ${bisca.displayRank(bisca.tableCards.player.rank)}`"
             class="table-card-image table-card-image--you">
-          <span v-else class="table-card table-card--empty">
-
-          </span>
+          <span v-else class="table-card table-card--empty" />
         </div>
+
       </div>
 
       <!-- DECK + TRUNFO à direita -->
@@ -321,7 +414,8 @@ watch(
       @play-card="onPlayCard" />
     <!-- Carta flutuante do BOT -->
     <div v-if="botFloatingCard" class="bot-floating-card" :style="botFloatingCard.style">
-      <img :src="botFloatingCard.imgUrl" alt="Carta jogada pelo bot" class="bot-floating-card-image table-card-image--bot">
+      <img :src="botFloatingCard.imgUrl" alt="Carta jogada pelo bot"
+        class="bot-floating-card-image table-card-image--bot">
     </div>
     <!-- Carta flutuante de DRAW para o PLAYER -->
     <div v-if="playerDrawFloating" class="draw-floating-card" :style="playerDrawFloating.style">
@@ -334,6 +428,10 @@ watch(
       <img :src="botDrawFloating.imgUrl" alt="Carta vinda do baralho para a mão do bot"
         class="draw-floating-card-image">
     </div>
+    <!-- Cartas flutuantes da vaza (para os cantos) -->
+    <div v-for="fc in trickFloatingCards" :key="fc.key" class="trick-floating-card" :style="fc.style">
+      <img :src="fc.imgUrl" alt="Carta da vaza" class="trick-floating-card-image trump-image-bold">
+    </div>
   </section>
 
 </template>
@@ -341,6 +439,7 @@ watch(
 
 <style scoped>
 .board {
+  position: relative;
   border-radius: 14px;
   border: 1px solid #e5e7eb;
   background: #f3f4f6;
@@ -482,4 +581,32 @@ watch(
   border-radius: 10px;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.35);
 }
+
+.trick-slot {
+  position: absolute;
+  width: 80px;
+  height: 120px;
+  pointer-events: none;
+}
+
+/* canto superior esquerdo (bot) */
+.trick-slot--bot {
+  top: 8px;
+  left: 8px;
+}
+
+/* canto inferior esquerdo (player) */
+.trick-slot--player {
+  bottom: 8px;
+  left: 8px;
+}
+
+.trick-floating-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.35);
+}
+
 </style>

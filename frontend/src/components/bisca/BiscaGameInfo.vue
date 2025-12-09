@@ -11,21 +11,30 @@ const props = defineProps({
     required: true,
   },
 })
+
+const suitColor = {
+  '♥': 'red',
+  '♦': 'red',
+  '♠': 'black',
+  '♣': 'black',
+}
+
+const suitName = {
+  '♥': 'Copas',
+  '♦': 'Ouros',
+  '♠': 'Espadas',
+  '♣': 'Paus',
+}
+
 </script>
 
 <template>
   <section class="info-grid">
-    <InfoBlock
-      v-if="gametype === 'match'"
-      label="Game"
-    >
+    <InfoBlock v-if="gametype === 'match'" label="Game">
       {{ bisca.currentGameNumber }}
     </InfoBlock>
 
-    <InfoBlock
-      v-if="gametype === 'match'"
-      label="Marks"
-    >
+    <InfoBlock v-if="gametype === 'match'" label="Marks">
       {{ bisca.playerMarks }} — {{ bisca.botMarks }}
     </InfoBlock>
 
@@ -35,6 +44,18 @@ const props = defineProps({
 
     <InfoBlock label="Baralho">
       {{ bisca.stock.length }} cartas
+    </InfoBlock>
+
+    <InfoBlock label="Trunfo">
+      <span v-if="bisca.trumpCard" :style="{
+        color: suitColor[bisca.trumpCard.suit],
+      }">
+
+        {{ bisca.trumpCard.suit }} {{ suitName[bisca.trumpCard.suit] }}
+
+      </span>
+
+      <span v-else>—</span>
     </InfoBlock>
 
     <InfoBlock label="Fase">

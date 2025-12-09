@@ -170,9 +170,9 @@ watch(
         <div class="table-slot" id="table-bot-slot">
           <img v-if="bisca.tableCards.bot && showBotCard" :src="getCardImageUrl(bisca.tableCards.bot)"
             :alt="`Carta do bot ${bisca.tableCards.bot.suit} ${bisca.displayRank(bisca.tableCards.bot.rank)}`"
-            class="table-card-image">
+            class="table-card-image table-card-image--bot">
           <span v-else class="table-card table-card--empty">
-            —
+            
           </span>
         </div>
 
@@ -182,7 +182,7 @@ watch(
             :alt="`Tua carta ${bisca.tableCards.player.suit} ${bisca.displayRank(bisca.tableCards.player.rank)}`"
             class="table-card-image table-card-image--you">
           <span v-else class="table-card table-card--empty">
-            —
+            
           </span>
         </div>
       </div>
@@ -191,10 +191,10 @@ watch(
       <div class="side-info">
         <div class="deck-stack">
           <!-- Trunfo por baixo, deitado -->
-          <img v-if="bisca.trumpCard" :src="getCardImageUrl(bisca.trumpCard)" alt="Carta de trunfo" class="trump-image">
+          <img v-if="bisca.trumpCard" v-show="bisca.stock.length > 0" :src="getCardImageUrl(bisca.trumpCard)" alt="Carta de trunfo" class="trump-image">
 
           <!-- Deck cover por cima -->
-          <img v-if="deckBackImageUrl" :src="deckBackImageUrl" alt="Monte de cartas" class="deck-image">
+          <img v-if="deckBackImageUrl" v-show="bisca.stock.length > 0" :src="deckBackImageUrl" alt="Monte de cartas" class="deck-image">
         </div>
       </div>
     </div>
@@ -263,7 +263,7 @@ watch(
   align-items: center;
   gap: 1.2rem;
   justify-self: center;
-  transform: translateX(25px);
+  transform: translateX(35px);
 }
 
 .table-slot {
@@ -285,7 +285,8 @@ watch(
   object-fit: contain;
 }
 
-.table-card-image--you {
+.table-card-image--you,
+.table-card-image--bot {
   outline: 2px solid #111827;
 }
 

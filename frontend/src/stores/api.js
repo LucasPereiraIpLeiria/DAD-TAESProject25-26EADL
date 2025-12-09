@@ -179,25 +179,28 @@ export const useAPIStore = defineStore('api', () => {
     return axios.post(`${API_BASE_URL}/matches`, game)
   }*/
 
-
   const postPurchaseCustomization = async (payload) => {
-  if (!token.value) {
-    throw new Error('No authentication token available')
+    if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+    // payload: { type: 'avatar' | 'deck', item: 'wood' | 'mage' | ... }
+    return axios.post(`${API_BASE_URL}/customizations/purchase`, payload)
   }
-  // payload: { type: 'avatar' | 'deck', item: 'wood' | 'mage' | ... }
-  return axios.post(`${API_BASE_URL}/customizations/purchase`, payload)
-}
 
-const patchSelectCustomization = async (payload) => {
-  if (!token.value) {
-    throw new Error('No authentication token available')
+  const patchSelectCustomization = async (payload) => {
+    if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+    // payload: { type: 'avatar' | 'deck', item: 'wood' | 'mage' | ... }
+    return axios.patch(`${API_BASE_URL}/customizations/select`, payload)
   }
-  // payload: { type: 'avatar' | 'deck', item: 'wood' | 'mage' | ... }
-  return axios.patch(`${API_BASE_URL}/customizations/select`, payload)
-}
 
-
-
+  const postDebugResetCustomizations = () => {
+    if (!token.value) {
+      throw new Error('No authentication token available')
+    }
+    return axios.post(`${API_BASE_URL}/customizations/debug/reset`)
+  }
 
   return {
     token,
@@ -220,5 +223,6 @@ const patchSelectCustomization = async (payload) => {
     postGame,
     postPurchaseCustomization,
     patchSelectCustomization,
+    postDebugResetCustomizations,
   }
 })

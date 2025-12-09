@@ -34,4 +34,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/customizations', [CustomizationController::class, 'show']);
     Route::post('/customizations/purchase', [CustomizationController::class, 'purchase']);
     Route::patch('/customizations/select', [CustomizationController::class, 'select']);
+    Route::post('/customizations/debug/reset', [CustomizationController::class, 'debugReset']);
+
 });

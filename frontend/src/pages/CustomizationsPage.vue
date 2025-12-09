@@ -24,6 +24,11 @@
             </div>
         </section>
 
+        <button @click="resetCustomDebug" class="px-3 py-1 text-sm bg-red-700 hover:bg-red-800 rounded text-white mt-4">
+            DEBUG: Reset Customizations
+        </button>
+
+
         <CustomizationPurchaseDialog v-model:open="confirmState.open" :type="confirmState.type || ''"
             :item="confirmState.item" :balance="authStore.currentUser?.coins_balance ?? 0" @confirm="confirmBuy"
             @cancel="closeBuyConfirm" />
@@ -176,4 +181,21 @@ const handleSelect = async (type, item) => {
         toast.error(msg)
     }
 }
+
+const resetCustomDebug = async () => {
+    try {
+        await apiStore.postDebugResetCustomizations()
+
+        await authStore.refreshUser()
+
+        toast.success("Customizations reset (debug)");
+    } catch (e) {
+        toast.error("Failed to reset customizations.");
+        console.error(e)
+    }
+}
+
+
+
+
 </script>

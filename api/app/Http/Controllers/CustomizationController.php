@@ -18,7 +18,7 @@ class CustomizationController extends Controller
         'default'   => 0,
         'wood'      => 10,
         'arcane'    => 25,
-        'dark_skull'=> 40,
+        'dark_skull' => 40,
     ];
 
     public function show(Request $request)
@@ -127,6 +127,29 @@ class CustomizationController extends Controller
         return response()->json([
             'message' => 'Item selected successfully.',
             'user'    => $user->fresh(),
+        ]);
+    }
+
+    public function debugReset(Request $request)
+    {
+        $user = $request->user();
+
+        $user->custom = [
+            'avatars' => [
+                'owned' => ['default'],
+                'selected' => 'default',
+            ],
+            'decks' => [
+                'owned' => ['default'],
+                'selected' => 'default',
+            ],
+        ];
+
+        $user->save();
+
+        return response()->json([
+            'message' => 'Customizations reset to default.',
+            'user' => $user->fresh(),
         ]);
     }
 }

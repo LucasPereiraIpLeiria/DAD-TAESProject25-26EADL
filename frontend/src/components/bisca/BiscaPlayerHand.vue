@@ -2,12 +2,12 @@
 const props = defineProps({
   bisca: {
     type: Object,
-    required: true
+    required: true,
   },
   isPlayerTurn: {
     type: Boolean,
-    required: true
-  }
+    required: true,
+  },
 })
 
 const emit = defineEmits(['play-card'])
@@ -16,16 +16,55 @@ function onPlay(card) {
   if (!props.isPlayerTurn) return
   emit('play-card', card)
 }
+
+// Carrega imagens de cartas
+const cardImages = import.meta.glob('/src/assets/images/cards/*.png', {
+  eager: true,
+  import: 'default',
+})
+
+const deckBackImageUrl = cardImages['/src/assets/images/cards/back.png'] || ''
+
+function suitToLetter(suit) {
+  switch (suit) {
+    case '♥':
+      return 'c' // copas
+    case '♦':
+      return 'o' // ouros
+    case '♠':
+      return 'e' // espadas
+    case '♣':
+      return 'p' // paus
+    default:
+      return ''
+  }
+}
+
+function getCardImageUrl(card) {
+  if (!card) return ''
+  const letter = suitToLetter(card.suit)
+  if (!letter) return deckBackImageUrl
+
+  const key = `/src/assets/images/cards/${letter}${card.rank}.png`
+  const img = cardImages[key]
+  return img || deckBackImageUrl || ''
+}
 </script>
 
 <template>
   <section class="hand-section">
     <div class="hand-header">
       <h2>As tuas cartas</h2>
-      <span v-if="!isPlayerTurn" class="hand-hint">
+      <span
+        v-if="!isPlayerTurn"
+        class="hand-hint"
+      >
         Aguarda a jogada do bot…
       </span>
-      <span v-else class="hand-hint hand-hint--active">
+      <span
+        v-else
+        class="hand-hint hand-hint--active"
+      >
         A tua vez — escolhe uma carta.
       </span>
     </div>
@@ -36,17 +75,21 @@ function onPlay(card) {
         :key="card.id"
         type="button"
         class="card-btn"
-        :class="{
-          'card-btn--disabled': !isPlayerTurn
-        }"
+        :class="{ 'card-btn--disabled': !isPlayerTurn }"
         :disabled="!isPlayerTurn"
         @click="onPlay(card)"
       >
-        <span class="card-suit">{{ card.suit }}</span>
-        <span class="card-rank">{{ bisca.displayRank(card.rank) }}</span>
+        <img
+          :src="getCardImageUrl(card)"
+          :alt="`Carta ${card.suit} ${bisca.displayRank(card.rank)}`"
+          class="hand-card-image"
+        >
       </button>
 
-      <p v-if="bisca.playerHand.length === 0" class="hand-empty">
+      <p
+        v-if="bisca.playerHand.length === 0"
+        class="hand-empty"
+      >
         Sem cartas na mão.
       </p>
     </div>
@@ -86,39 +129,37 @@ function onPlay(card) {
   justify-content: center;
 }
 
+/* carta como frame para imagem */
 .card-btn {
-  min-width: 60px;
-  padding: 0.35rem 0.6rem;
+  width: 70px;
+  height: 100px;
+  padding: 0;
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: none;
+  background: transparent;
   cursor: pointer;
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
-  transition: transform 0.05s, box-shadow 0.1s, border-color 0.1s, background 0.1s;
+  justify-content: center;
+  transition: transform 0.05s, box-shadow 0.1s;
 }
 
 .card-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15);
-  border-color: #111827;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
 }
 
 .card-btn--disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.6;
   box-shadow: none;
 }
 
-.card-suit {
-  font-size: 0.9rem;
-}
-
-.card-rank {
-  font-size: 1rem;
-  font-weight: 600;
+.hand-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 10px;
 }
 
 .hand-empty {

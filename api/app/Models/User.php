@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens,HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -28,7 +29,10 @@ class User extends Authenticatable
         'nickname',
         'photo_avatar_filename', // Optional field
         'coins_balance',
+        'custom',
     ];
+
+    protected $dates = ['deleted_at'];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -40,12 +44,19 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'custom' => 'array',
+    ];
 
-    /**
+
+
+    /*
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
-     */
+
     protected function casts(): array
     {
         return [
@@ -53,6 +64,34 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    */
+
+     public function getCustomAttribute($value)
+    {
+        $decoded = json_decode($value, true);
+
+        if (!is_array($decoded)) {
+            $decoded = [];
+        }
+
+        return [
+            'avatars' => [
+                'owned'    => $decoded['avatars']['owned'] ?? ['default'],
+                'selected' => $decoded['avatars']['selected'] ?? 'default',
+            ],
+            'decks' => [
+                'owned'    => $decoded['decks']['owned'] ?? ['default'],
+                'selected' => $decoded['decks']['selected'] ?? 'default',
+            ],
+        ];
+    }
+
+    public function setCustomAttribute($value)
+    {
+        $this->attributes['custom'] = json_encode($value);
+    }
+
+
 
 
     public function matchesAsPlayer1()

@@ -1,8 +1,10 @@
 import HistoryView from '@/pages/user/HistoryView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import RegisterPage from '@/pages/login/RegisterPage.vue'
-import {useAuthStore} from '@/stores/auth.js'
-import {toast} from 'vue-sonner'
+import { useAuthStore } from '@/stores/auth.js'
+import { toast } from 'vue-sonner'
+import UserProfile from "@/pages/user/UserProfile.vue";
+import EditProfile from "@/pages/user/EditProfile.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -10,12 +12,12 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: ()=> import('@/pages/home/HomePage.vue'),
+      component: () => import('@/pages/home/HomePage.vue'),
     },
     {
       path: '/login',
       name: 'login',
-      component: ()=> import('@/pages/login/LoginPage.vue')
+      component: () => import('@/pages/login/LoginPage.vue'),
     },
     {
       path: '/register',
@@ -23,11 +25,7 @@ const router = createRouter({
       component: RegisterPage,
     },
     {
-      path: '/profile',
-      name: 'profile',
-      component: () => import('@/pages/profile/ProfilePage.vue')
-    },
-    {// página de setup singleplayer (escolhas todas + Start Game)
+      // página de setup singleplayer (escolhas todas + Start Game)
       path: '/singleplayer',
       name: 'singleplayer.mode.select',
       component: () => import('@/pages/SinglePlayerModeSelect.vue'),
@@ -37,43 +35,65 @@ const router = createRouter({
       path: '/singleplayer/:mode/:gametype/:variant',
       name: 'singleplayer.game',
       component: () => import('@/pages/SinglePlayerGame.vue'),
+    },
+    {
+      path: '/history',
+      name: 'history',
+      component: HistoryView,
       meta: { requiresAuth: true },
     },
     {
-      path: '/history' ,
-      name: 'history',
-      component: HistoryView
+      path: '/profile',
+      name: 'profile',
+      component: UserProfile,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/profile/edit',
+      name: 'editProfile',
+      component: EditProfile,
+      meta: {requiresAuth: true}
+    },
+    {
+      path: '/customizations',
+      name: 'customizations',
+      component: () => import('@/pages/CustomizationsPage.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
       component: () => import('@/pages/NotFoundPage.vue'),
-    }
+    },
   ],
 })
 
-// Route Guards
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
 
-  // Check authentication
-  if (to.meta.requiresAuth && !authStore.isLoggedIn) {
-    toast.error('This navigation requires authentication')
-    next({ name: 'login' })
-    return
+  // Bloquear login/register se já estiver logado
+  if ((to.name === 'login' || to.name === 'register') && authStore.isLoggedIn) {
+    return next({ name: 'home' })
   }
 
-  // Shield singleplayer route based on parameter
+  // Rotas que exigem autenticação
+  if (to.meta.requiresAuth && !authStore.isLoggedIn) {
+    toast.error('This navigation requires authentication')
+    return next({ name: 'login', query: { redirect: to.fullPath } })
+  }
+
+  // Regras específicas para singleplayer.game
   if (to.name === 'singleplayer.game') {
     const mode = to.params.mode
+
+    // competitive só para utilizadores autenticados
     if (mode === 'competitive' && !authStore.isLoggedIn) {
-      toast.error('This mode is not available')
-      next({ name: 'login' })
-      return
+      toast.error('This navigation requires authentication')
+      return next({ name: 'login', query: { redirect: to.fullPath } })
     }
   }
 
   next()
-});
+})
 
 export default router

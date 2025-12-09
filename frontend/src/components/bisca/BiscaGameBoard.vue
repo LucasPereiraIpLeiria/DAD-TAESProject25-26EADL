@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import BiscaPlayerHand from '@/components/bisca/BiscaPlayerHand.vue'
 
@@ -78,24 +78,97 @@ function getCardImageUrl(card) {
   // fallback para costas (do deck selecionado ou default)
   return img || deckBackImageUrl.value || ''
 }
-</script>
 
+// ---------- ANIMAÇÃO DO BOT ----------
+
+const botFloatingCard = ref(null) // { imgUrl, style }
+const showBotCard = ref(true)
+/**
+ * Sempre que o bot mete uma carta na mesa (tableCards.bot deixa de ser null),
+ * animamos uma carta a sair da zona da mão do bot até ao slot do bot.
+ */
+watch(
+  () => props.bisca.tableCards.bot,
+  async (newCard, oldCard) => {
+    // Quando limpa a mesa -> garantimos que volta a poder mostrar
+    if (!newCard) {
+      showBotCard.value = true
+      botFloatingCard.value = null
+      return
+    }
+
+    // Só anima quando passou de null -> carta
+    if (oldCard) return
+
+    const handEl = document.querySelector('.opponent-hand')
+    const targetEl = document.querySelector('#table-bot-slot')
+
+    if (!handEl || !targetEl) {
+      return
+    }
+
+    const handRect = handEl.getBoundingClientRect()
+    const targetRect = targetEl.getBoundingClientRect()
+    const imgUrl = getCardImageUrl(newCard)
+
+    // 🔴 Esconde a carta real na mesa enquanto anima
+    showBotCard.value = false
+
+    botFloatingCard.value = {
+      imgUrl,
+      style: {
+        position: 'fixed',
+        top: `${handRect.top}px`,
+        left: `${handRect.left + handRect.width / 2 - 40}px`, // centro da mão - metade da carta
+        width: `80px`,
+        height: `120px`,
+        transition: `top 0.25s ease-out, left 0.25s ease-out`,
+        zIndex: 9998,
+        pointerEvents: 'none',
+      },
+    }
+
+    await nextTick()
+
+    requestAnimationFrame(() => {
+      if (!botFloatingCard.value) return
+      botFloatingCard.value.style.top = `${targetRect.top}px`
+      botFloatingCard.value.style.left = `${targetRect.left}px`
+    })
+
+    setTimeout(() => {
+      // ✅ Só agora mostramos a carta “real” na mesa
+      showBotCard.value = true
+      botFloatingCard.value = null
+    }, 260) // mesmo tempo que a animação
+  },
+)
+
+
+
+
+</script>
 
 <template>
   <section class="board">
     <!-- MÃO DO BOT POR CIMA DO GAMEBOARD -->
-    <div v-if="bisca.botHand && bisca.botHand.length > 0" class="opponent-hand">
-      <div v-for="card in bisca.botHand" :key="card.id" class="opponent-card">
-        <img :src="deckBackImageUrl" alt="Carta do bot" class="opponent-card-image">
-      </div>
+    <div class="opponent-hand">
+      <template v-if="bisca.botHand && bisca.botHand.length > 0">
+        <div v-for="card in bisca.botHand" :key="card.id" class="opponent-card">
+          <img :src="deckBackImageUrl" alt="Carta do bot" class="opponent-card-image">
+        </div>
+      </template>
+
+      <!-- placeholder invisível só para manter altura, quando não há cartas -->
+      <div v-else class="opponent-placeholder" />
     </div>
 
     <div class="board-layout">
       <!-- CARTAS JOGADAS AO CENTRO -->
       <div class="center-cards">
         <!-- Bot -->
-        <div class="table-slot">
-          <img v-if="bisca.tableCards.bot" :src="getCardImageUrl(bisca.tableCards.bot)"
+        <div class="table-slot" id="table-bot-slot">
+          <img v-if="bisca.tableCards.bot && showBotCard" :src="getCardImageUrl(bisca.tableCards.bot)"
             :alt="`Carta do bot ${bisca.tableCards.bot.suit} ${bisca.displayRank(bisca.tableCards.bot.rank)}`"
             class="table-card-image">
           <span v-else class="table-card table-card--empty">
@@ -129,6 +202,10 @@ function getCardImageUrl(card) {
     <!-- MÃO DO PLAYER POR BAIXO DO GAMEBOARD, MAS AINDA DENTRO DO MESMO COMPONENTE -->
     <BiscaPlayerHand :bisca="bisca" :is-player-turn="isPlayerTurn" :must-follow-suit="mustFollowSuit"
       @play-card="onPlayCard" />
+    <!-- Carta flutuante do BOT -->
+    <div v-if="botFloatingCard" class="bot-floating-card" :style="botFloatingCard.style">
+      <img :src="botFloatingCard.imgUrl" alt="Carta jogada pelo bot" class="bot-floating-card-image">
+    </div>
   </section>
 </template>
 
@@ -151,6 +228,8 @@ function getCardImageUrl(card) {
   margin-bottom: 0.75rem;
   overflow-x: auto;
   padding-bottom: 0.25rem;
+
+  min-height: 120px;
 }
 
 .opponent-card {
@@ -163,6 +242,11 @@ function getCardImageUrl(card) {
   border-radius: 10px;
   box-shadow: 0 6px 12px rgba(15, 23, 42, 0.35);
   object-fit: contain;
+}
+
+.opponent-placeholder {
+  width: 80px;
+  height: 120px;
 }
 
 /* layout principal */
@@ -257,5 +341,13 @@ function getCardImageUrl(card) {
   left: 60%;
   transform: translate(-50%, -50%);
   z-index: 2;
+}
+
+.bot-floating-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.35);
 }
 </style>

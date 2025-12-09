@@ -118,6 +118,9 @@ function getCardImageUrl(card) {
   justify-content: center;
   overflow-x: auto;
   padding-bottom: 0.25rem;
+
+  min-height: 130px;   
+  align-items: center;
 }
 
 /* Botão é só o wrap da imagem */

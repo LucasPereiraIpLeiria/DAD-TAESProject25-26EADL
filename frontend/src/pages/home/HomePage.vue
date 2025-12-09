@@ -5,8 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import defaultPlaceholder from '@/assets/images/avatars/anonymous.png'
+import avatarMage from '@/assets/images/avatars/mage.png'
+import avatarRobot from '@/assets/images/avatars/robot.png'
+import avatarDragon from '@/assets/images/avatars/dragon.png'
 
 const apiStore = useAPIStore()
+
 // Game modes for the dropdown
 const gameModes = [
   { label: 'Singleplayer Competitive Standalone - Bisca of 3', type: 3, mode: 'S', is_match: false },
@@ -17,12 +22,43 @@ const gameModes = [
   { label: 'Multiplayer Match - Bisca de 3', type: 3, mode: 'M', is_match: true },
   { label: 'Multiplayer Standalone - Bisca de 9', type: 9, mode: 'M', is_match: false },
   { label: 'Multiplayer Match - Bisca de 9', type: 9, mode: 'M', is_match: true },
-];
+]
 
 const selectedGameMode = ref(gameModes[0])
 const leaderboardData = ref([])
+const leaderboardAvatars = ref({}) // store effective avatar URLs
 const isLoading = ref(false)
 const errorMessage = ref('')
+
+// Helper function to determine avatar URL based on custom field
+const getEffectiveAvatar = (player) => {
+  try {
+    // Parse custom JSON if it's a string
+    const customData = typeof player.custom === 'string' ? JSON.parse(player.custom) : player.custom
+    const selectedKey = customData?.avatars?.selected ?? 'default'
+
+    if (selectedKey === 'default') {
+      return player.avatar 
+        ? apiStore.photoAvatarStorageURL + player.avatar 
+        : defaultPlaceholder
+    }
+
+    // Map purchased avatars to local images
+    switch (selectedKey) {
+      case 'mage':
+        return avatarMage
+      case 'robot':
+        return avatarRobot
+      case 'dragon':
+        return avatarDragon
+      default:
+        return defaultPlaceholder
+    }
+  } catch (e) {
+    console.error('Error determining avatar for player', player.username, e)
+    return defaultPlaceholder
+  }
+}
 
 // Fetch leaderboard for the selected game mode
 const fetchLeaderboard = async (modeObject) => {
@@ -35,17 +71,26 @@ const fetchLeaderboard = async (modeObject) => {
       is_match: modeObject.is_match,
     })
 
-    console.log('API response:', response.data) // <-- add this line
-
     // Map fields for template
     leaderboardData.value = response.data.map(p => ({
+      id: p.winner_user_id ?? p.username, // unique key
       username: p.username,
       avatar: p.avatar_filename,
       wins: p.total_wins,
       capotes: p.total_capotes,
       bandeiras: p.total_bandeiras,
       points: p.total_points,
+      custom: p.custom,
     }))
+
+    // Setup effective avatars
+    const avatars = {}
+    leaderboardData.value.forEach(player => {
+      avatars[player.id] = getEffectiveAvatar(player)
+    })
+    leaderboardAvatars.value = avatars
+
+    console.log('Leaderboard data loaded:', leaderboardData.value)
   } catch (err) {
     console.error('Failed to load leaderboard:', err)
     leaderboardData.value = []
@@ -55,16 +100,23 @@ const fetchLeaderboard = async (modeObject) => {
   }
 }
 
-// Triggered when dropdown changes
+// Update selected mode
 const handleGameModeChange = async (modeObject) => {
   selectedGameMode.value = modeObject
-  console.log('Selected game mode:', modeObject) // <-- add this line
   await fetchLeaderboard(modeObject)
 }
 
-// Initial fetch on page load
+// Fallback when an image fails to load
+const onAvatarError = (playerId) => {
+  leaderboardAvatars.value[playerId] = defaultPlaceholder
+}
+
+// Initial fetch
 fetchLeaderboard(selectedGameMode.value)
 </script>
+
+
+
 
 
 <template>
@@ -158,7 +210,10 @@ fetchLeaderboard(selectedGameMode.value)
               <div class="max-h-64 overflow-y-auto">
 
                 <!-- No Data -->
-                <div v-if="leaderboardData.length === 0" class="p-6 text-center text-sm text-muted-foreground">
+                <div 
+                  v-if="leaderboardData.length === 0" 
+                  class="p-6 text-center text-sm text-muted-foreground"
+                >
                   No leaderboard data available yet.
                 </div>
 
@@ -167,21 +222,10 @@ fetchLeaderboard(selectedGameMode.value)
 
                   <!-- Header -->
                   <div class="grid grid-cols-4 text-xs font-semibold px-3 py-2 border-b bg-muted/30">
-                    <!-- Player -->
                     <div class="col-span-1 flex items-center gap-3 pl-6">Player</div>
-
-                    <!-- Matches -->
-                    <template v-if="selectedGameMode.is_match">
-                      <div class="text-right col-span-1 pl-6">Wins</div>
-                      <div class="text-right col-span-1 pl-6">Capotes</div>
-                      <div class="text-right col-span-1 pl-6">Bandeiras</div>
-                    </template>
-
-                    <!-- Games -->
-                    <template v-else>
-                      <div class="text-right col-span-1 pl-6">Wins</div>
-                      <div class="text-right col-span-2 pl-6">Points</div>
-                    </template>
+                    <div class="text-right col-span-1 pl-6">Wins</div>
+                    <div class="text-right col-span-1 pl-6">Capotes</div>
+                    <div class="text-right col-span-1 pl-6">Bandeiras</div>
                   </div>
 
                   <!-- Rows -->
@@ -195,42 +239,59 @@ fetchLeaderboard(selectedGameMode.value)
                       'bg-orange-100 dark:bg-orange-900': index === 2
                     }"
                   >
+
                     <!-- Player Column -->
                     <div class="flex items-center gap-2 col-span-1">
+                      <!-- Rank Circle -->
                       <div class="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-muted-foreground dark:text-muted-foreground">
                         {{ index + 1 }}
                       </div>
-                      <Avatar class="h-8 w-8">
-                        <AvatarImage 
-                          :src="player.avatar ? apiStore.photoAvatarStorageURL + player.avatar : apiStore.anonymousAvatarStorageURL" 
+
+                      <!-- Avatar -->
+                    <Avatar class="h-8 w-8">
+                      <AvatarImage
+                        :src="getEffectiveAvatar(player)"
+                        @error="(e) => e.target.src = defaultPlaceholder"
+                      />
+
+                      <AvatarFallback>
+                        <img
+                          :src="defaultPlaceholder"
+                          alt="Anonymous Avatar"
+                          class="h-8 w-8 rounded-full"
                         />
-                        <AvatarFallback></AvatarFallback>
-                      </Avatar>
+                      </AvatarFallback>
+                    </Avatar>
+
+
+                      <!-- Username -->
                       <div class="flex flex-col">
                         <span class="font-medium text-sm">{{ player.username }}</span>
                       </div>
                     </div>
 
-                    <!-- Matches Layout -->
-                    <template v-if="selectedGameMode.is_match">
-                      <div class="text-sm font-medium text-right col-span-1">{{ player.wins }}</div>
-                      <div class="text-sm font-medium text-right col-span-1">{{ player.capotes }}</div>
-                      <div class="text-sm font-medium text-right col-span-1">{{ player.bandeiras }}</div>
-                    </template>
+                    <!-- Wins -->
+                    <div class="text-sm font-medium text-right col-span-1">
+                      {{ player.wins }}
+                    </div>
 
-                    <!-- Games Layout -->
-                    <template v-else>
-                      <div class="text-sm font-medium text-right col-span-1">{{ player.wins }}</div>
-                      <div class="text-sm font-medium text-right col-span-2">{{ player.points }}</div>
-                    </template>
+                    <!-- Capotes -->
+                    <div class="text-sm font-medium text-right col-span-1">
+                      {{ player.capotes }}
+                    </div>
+
+                    <!-- Bandeiras -->
+                    <div class="text-sm font-medium text-right col-span-1">
+                      {{ player.bandeiras }}
+                    </div>
+
                   </div>
-
-
-
 
                 </div>
               </div>
             </div>
+
+
           </CardContent>
         </Card>
 

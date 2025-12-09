@@ -51,7 +51,8 @@ class Matche extends Model
                 DB::raw('SUM(CASE WHEN player1_marks = 3 OR player2_marks = 3 THEN 1 ELSE 0 END) as total_bandeiras'),
                 DB::raw('MIN(ended_at) as first_win_at'),
                 DB::raw('COALESCE(users.nickname, users.name) as username'),
-                DB::raw('users.photo_avatar_filename as avatar_filename')
+                DB::raw('users.photo_avatar_filename as avatar_filename'),
+                'users.custom'
             )
             ->where('matches.type', $type)
             ->whereNotNull('winner_user_id')
@@ -66,7 +67,8 @@ class Matche extends Model
                 'winner_user_id',
                 'users.nickname',
                 'users.name',
-                'users.photo_avatar_filename'
+                'users.photo_avatar_filename',
+                'users.custom'
             )
 
             ->orderByDesc('total_wins')
@@ -89,7 +91,8 @@ class Matche extends Model
                 DB::raw('SUM(CASE WHEN player1_marks = 3 OR player2_marks = 3 THEN 1 ELSE 0 END) as total_bandeiras'),
                 DB::raw('MIN(ended_at) as first_win_at'),
                 DB::raw('COALESCE(users.nickname, users.name) as username'),
-                DB::raw('users.photo_avatar_filename as avatar_filename')
+                DB::raw('users.photo_avatar_filename as avatar_filename'),
+                'users.custom'
             )
 
             ->where('matches.type', $type)
@@ -107,7 +110,8 @@ class Matche extends Model
                 'winner_user_id',
                 'users.nickname',
                 'users.name',
-                'users.photo_avatar_filename'
+                'users.photo_avatar_filename',
+                'users.custom'
             )
 
             ->orderByDesc('total_wins')

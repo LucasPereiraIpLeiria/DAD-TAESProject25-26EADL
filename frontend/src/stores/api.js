@@ -90,7 +90,7 @@ export const useAPIStore = defineStore('api', () => {
     return axios.get(`${API_BASE_URL}/users/me`)
   }
 
-  // Added from other store
+  
   const getLeaderboard = async (payload) => {
     return axios.post(`${API_BASE_URL}/leaderboard`, payload)
   }

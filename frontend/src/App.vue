@@ -28,7 +28,7 @@
           <NavigationMenuContent class="w-full md:w-48">
             <li class="flex flex-col w-full text-right">
               <NavigationMenuLink as-child>
-                <RouterLink :to="{}" class="block w-full px-3 py-2">
+                <RouterLink :to="{name: 'profile'}" class="block w-full px-3 py-2">
                   Profile
                 </RouterLink>
               </NavigationMenuLink>

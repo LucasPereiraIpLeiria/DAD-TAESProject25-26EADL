@@ -3,6 +3,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import RegisterPage from '@/pages/login/RegisterPage.vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { toast } from 'vue-sonner'
+import UserProfile from "@/pages/user/UserProfile.vue";
+import EditProfile from "@/pages/user/EditProfile.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -39,6 +41,18 @@ const router = createRouter({
       name: 'history',
       component: HistoryView,
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: UserProfile,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/profile/edit',
+      name: 'editProfile',
+      component: EditProfile,
+      meta: {requiresAuth: true}
     },
     {
       path: '/customizations',

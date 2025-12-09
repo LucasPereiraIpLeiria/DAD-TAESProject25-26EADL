@@ -42,8 +42,10 @@ const defaultBack = deckImages['/src/assets/images/decks/default.png'] || ''
 
 const auth = useAuthStore()
 
-// deck selecionado no JSON do user
-const selectedDeckKey = computed(() => auth.currentUser?.selected_deck || 'default')
+const selectedDeckKey = computed(() => {
+  // se não estiver logado ou o custom vier undefined, fica 'default'
+  return auth.currentUser?.custom?.decks?.selected ?? 'default'
+})
 
 const deckBackImageUrl = computed(() => {
   const key = `/src/assets/images/decks/${selectedDeckKey.value}.png`
@@ -143,9 +145,12 @@ function getCardImageUrl(card) {
 /* MÃO DO BOT EM CIMA */
 .opponent-hand {
   display: flex;
+  flex-wrap: nowrap;
   justify-content: center;
-  gap: 0.25rem;
+  gap: 0.4rem;
   margin-bottom: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
 }
 
 .opponent-card {
@@ -174,6 +179,7 @@ function getCardImageUrl(card) {
   align-items: center;
   gap: 1.2rem;
   justify-self: center;
+  transform: translateX(25px);
 }
 
 .table-slot {

@@ -106,8 +106,10 @@ watch(
       return
     }
 
-    // Marca esta como a última carta animada
     lastBotCardId.value = newCard.id
+
+    // 👇 Garante que o DOM já foi atualizado com a nova carta na mesa
+    await nextTick()
 
     const handEl = document.querySelector('.opponent-hand')
     const targetEl = document.querySelector('#table-bot-slot')
@@ -127,7 +129,7 @@ watch(
       style: {
         position: 'fixed',
         top: `${handRect.top}px`,
-        left: `${handRect.left + handRect.width / 2 - 40}px`, // centro da mão - metade da carta
+        left: `${handRect.left + handRect.width / 2 - 40}px`,
         width: `80px`,
         height: `120px`,
         transition: `top 0.25s ease-out, left 0.25s ease-out`,
@@ -136,6 +138,7 @@ watch(
       },
     }
 
+    // Espera a carta flutuante entrar no DOM
     await nextTick()
 
     requestAnimationFrame(() => {
@@ -148,6 +151,9 @@ watch(
       showBotCard.value = true
       botFloatingCard.value = null
     }, 260)
+  },
+  {
+    flush: 'post', // 👈 corre depois do render, alinhado com o watcher do draw
   },
 )
 
@@ -315,7 +321,7 @@ watch(
       @play-card="onPlayCard" />
     <!-- Carta flutuante do BOT -->
     <div v-if="botFloatingCard" class="bot-floating-card" :style="botFloatingCard.style">
-      <img :src="botFloatingCard.imgUrl" alt="Carta jogada pelo bot" class="bot-floating-card-image">
+      <img :src="botFloatingCard.imgUrl" alt="Carta jogada pelo bot" class="bot-floating-card-image table-card-image--bot">
     </div>
     <!-- Carta flutuante de DRAW para o PLAYER -->
     <div v-if="playerDrawFloating" class="draw-floating-card" :style="playerDrawFloating.style">

@@ -228,7 +228,7 @@ function exitToSelection() {
           <img
             :src="floatingCard.imgUrl"
             alt="Carta a ser jogada"
-            class="floating-card-image"
+            class="floating-card-image table-card-bold"
           >
         </div>
 
@@ -283,5 +283,9 @@ function exitToSelection() {
   object-fit: contain;
   border-radius: 10px;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.35);
+}
+
+.table-card-bold{
+  outline: 2px solid #111827;
 }
 </style>

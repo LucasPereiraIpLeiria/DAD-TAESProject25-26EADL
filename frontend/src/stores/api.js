@@ -16,10 +16,9 @@ export const useAPIStore = defineStore('api', () => {
     }
   }
 
-  // Call this once when your app starts (in main.js or router setup)
   initializeToken()
 
-  // Validate token with backend - call this periodically or on app init
+  // Validate token using backend
   const validateToken = async () => {
     if (!token.value || isValidating.value) return true
 
@@ -27,8 +26,7 @@ export const useAPIStore = defineStore('api', () => {
     try {
       await axios.get(`${API_BASE_URL}/users/me`)
       return true
-    } catch (error) {
-      // Token is invalid - clear it
+    } catch {
       clearToken()
       return false
     } finally {
@@ -53,99 +51,76 @@ export const useAPIStore = defineStore('api', () => {
     delete axios.defaults.headers.common['Authorization']
   }
 
-  // Setup axios interceptor to handle 401/403 responses
+  // Global axios interceptor for invalid tokens
   axios.interceptors.response.use(
     (response) => response,
     (error) => {
-      // If we get 401 (Unauthorized) or 403 (Forbidden), token is invalid
       if (error.response?.status === 401 || error.response?.status === 403) {
         clearToken()
-        // Optional: redirect to login
-        // window.location.href = '/login'
       }
       return Promise.reject(error)
-    },
+    }
   )
 
+  // Auth: Login / Register / Logout
   const postLogin = async (credentials) => {
-    try {
-      const response = await axios.post(`${API_BASE_URL}/login`, credentials)
-      const responseToken = response.data.token
-
-      if (!responseToken) {
-        throw new Error('No token received from login API')
-      }
-
-      setToken(responseToken)
-      return response
-    } catch (error) {
-      throw error
-    }
+    const response = await axios.post(`${API_BASE_URL}/login`, credentials)
+    const responseToken = response.data.token
+    if (!responseToken) throw new Error('No token returned.')
+    setToken(responseToken)
+    return response
   }
 
   const postRegister = async (payload) => {
-    try {
-      return await axios.post(`${API_BASE_URL}/register`, payload)
-    } catch (error) {
-      throw error
-    }
+    return axios.post(`${API_BASE_URL}/register`, payload)
   }
 
   const postLogout = async () => {
-    if (!token.value) {
-      return
-    }
-
-    try {
-      await axios.post(`${API_BASE_URL}/logout`)
-    } finally {
-      clearToken()
+    if (token.value) {
+      try {
+        await axios.post(`${API_BASE_URL}/logout`)
+      } finally {
+        clearToken()
+      }
     }
   }
 
-  const postDeductEntryFee = async (payload) => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
+  const getAuthUser = async () => {
+    if (!token.value) throw new Error('No authentication token available')
+    return axios.get(`${API_BASE_URL}/users/me`)
+  }
 
+  // Added from other store
+  const getLeaderboard = async (payload) => {
+    return axios.post(`${API_BASE_URL}/leaderboard`, payload)
+  }
+
+  // Economy
+  const postDeductEntryFee = async (payload) => {
+    if (!token.value) throw new Error('No authentication token available')
     return axios.post(`${API_BASE_URL}/economy/deduct-entry-fee`, payload)
   }
 
   const postAwardMatchReward = async (payload) => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
-
+    if (!token.value) throw new Error('No authentication token available')
     return axios.post(`${API_BASE_URL}/economy/award-match-reward`, payload)
   }
 
-  const getAuthUser = async () => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
-    return axios.get(`${API_BASE_URL}/users/me`)
-  }
-
   const postCoinPurchase = async (data, coins) => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
+    if (!token.value) throw new Error('No authentication token available')
 
     return axios.post(`${API_BASE_URL}/coin-purchases`, {
       euros: data.euros,
       payment_type: data.payment_type,
       payment_reference: data.payment_reference,
-      coins: coins,
+      coins,
     })
   }
 
-  // get user games
+  // Matches / Games
   const getUserGames = async () => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
-    const response = await axios.get(`${API_BASE_URL}/users/matches`)
-    return response
+    if (!token.value) throw new Error('No authentication token available')
+    return axios.get(`${API_BASE_URL}/users/matches`)
   }
 
   const postStandalone = (game) => {
@@ -153,55 +128,40 @@ export const useAPIStore = defineStore('api', () => {
   }
 
   const postMatch = async (match) => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
+    if (!token.value) throw new Error('No authentication token available')
     return axios.post(`${API_BASE_URL}/matches`, match)
   }
 
   const updateMatch = async (matchId, payload) => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
+    if (!token.value) throw new Error('No authentication token available')
     return axios.patch(`${API_BASE_URL}/matches/${matchId}`, payload)
   }
 
   const postGame = async (game) => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
+    if (!token.value) throw new Error('No authentication token available')
     return axios.post(`${API_BASE_URL}/games`, game)
   }
 
+  // Customizations
   const postPurchaseCustomization = async (payload) => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
-    // payload: { type: 'avatar' | 'deck', item: 'wood' | 'mage' | ... }
+    if (!token.value) throw new Error('No authentication token available')
     return axios.post(`${API_BASE_URL}/customizations/purchase`, payload)
   }
 
   const patchSelectCustomization = async (payload) => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
-    // payload: { type: 'avatar' | 'deck', item: 'wood' | 'mage' | ... }
+    if (!token.value) throw new Error('No authentication token available')
     return axios.patch(`${API_BASE_URL}/customizations/select`, payload)
   }
 
   const postDebugResetCustomizations = () => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
+    if (!token.value) throw new Error('No authentication token available')
     return axios.post(`${API_BASE_URL}/customizations/debug/reset`)
   }
 
+  // Profile
   const updateProfile = async (data) => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
+    if (!token.value) throw new Error('No authentication token available')
 
-    // Convert File to base64 if photo exists
     let photoBase64 = null
     if (data.photo instanceof File) {
       photoBase64 = await new Promise((resolve) => {
@@ -211,35 +171,37 @@ export const useAPIStore = defineStore('api', () => {
       })
     }
 
-    // Build payload with all data as JSON
     const payload = {
       name: data.name,
       email: data.email,
       nickname: data.nickname,
     }
 
-    if (data.currentPassword && data.currentPassword.trim()) {
+    if (data.currentPassword?.trim()) {
       payload.currentPassword = data.currentPassword
       payload.newPassword = data.newPassword
       payload.newPassword_confirmation = data.confirmPassword
     }
 
-    if (photoBase64) {
-      payload.photo = photoBase64 // Send as base64 string
-    }
+    if (photoBase64) payload.photo = photoBase64
 
     return axios.patch(`${API_BASE_URL}/users/edit`, payload)
   }
 
   const deleteUser = async (password) => {
-    if (!token.value) {
-      throw new Error('No authentication token available')
-    }
+    if (!token.value) throw new Error('No authentication token available')
 
     return axios.delete(`${API_BASE_URL}/users/delete`, {
-      data: { password: password },
+      data: { password },
     })
   }
+
+  // Added constants from old store
+  const photoAvatarStorageURL =
+    'http://127.0.0.1:8000/storage/photos_avatars/'
+
+  const anonymousAvatarStorageURL =
+    'http://127.0.0.1:8000/storage/photos_avatars/anonymous.png'
 
   return {
     token,
@@ -252,6 +214,7 @@ export const useAPIStore = defineStore('api', () => {
     postRegister,
     postLogout,
     getAuthUser,
+    getLeaderboard,
     postDeductEntryFee,
     postAwardMatchReward,
     postCoinPurchase,
@@ -265,5 +228,7 @@ export const useAPIStore = defineStore('api', () => {
     postDebugResetCustomizations,
     updateProfile,
     deleteUser,
+    photoAvatarStorageURL,
+    anonymousAvatarStorageURL,
   }
 })

@@ -500,10 +500,11 @@ export const useBiscaStore = defineStore('bisca', () => {
       winner = 'bot'
     }
 
-    // limpar mesa
+    setTimeout(() => {
     tableCards.value = { player: null, bot: null }
-
     drawCardsIfNeeded(winner)
+  }, 1000) 
+  
   }
 
   //

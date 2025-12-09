@@ -28,13 +28,13 @@ const deckBackImageUrl = cardImages['/src/assets/images/cards/back.png'] || ''
 function suitToLetter(suit) {
   switch (suit) {
     case '♥':
-      return 'c' // copas
+      return 'c'
     case '♦':
-      return 'o' // ouros
+      return 'o'
     case '♠':
-      return 'e' // espadas
+      return 'e'
     case '♣':
-      return 'p' // paus
+      return 'p'
     default:
       return ''
   }
@@ -73,10 +73,15 @@ function getCardImageUrl(card) {
       <button
         v-for="card in bisca.playerHand"
         :key="card.id"
+        :id="`hand-card-${card.id}`"
         type="button"
         class="card-btn"
         :class="{ 'card-btn--disabled': !isPlayerTurn }"
         :disabled="!isPlayerTurn"
+        v-motion
+        :initial="{ y: 0, scale: 1 }"
+        :hover="isPlayerTurn ? { y: -6, scale: 1.05 } : {}"
+        :tap="isPlayerTurn ? { scale: 0.95 } : {}"
         @click="onPlay(card)"
       >
         <img
@@ -124,42 +129,36 @@ function getCardImageUrl(card) {
 
 .hand-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  flex-wrap: nowrap;
+  gap: 0.4rem;
   justify-content: center;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
 }
 
-/* carta como frame para imagem */
+/* Botão é só o wrap da imagem */
 .card-btn {
-  width: 70px;
-  height: 100px;
   padding: 0;
-  border-radius: 10px;
   border: none;
   background: transparent;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.05s, box-shadow 0.1s;
-}
-
-.card-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+  display: inline-block;
+  flex: 0 0 auto;
+  line-height: 0;
 }
 
 .card-btn--disabled {
   cursor: not-allowed;
-  opacity: 0.6;
-  box-shadow: none;
 }
 
+/* Dimensão fixa da carta */
 .hand-card-image {
-  width: 100%;
-  height: 100%;
+  width: 80px;
+  height: 120px;
+  display: block;
   object-fit: contain;
   border-radius: 10px;
+  box-shadow: 0 6px 12px rgba(15, 23, 42, 0.25);
 }
 
 .hand-empty {

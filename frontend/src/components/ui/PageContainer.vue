@@ -1,11 +1,11 @@
-<!-- src/components/ui/PageContainer.vue -->
 <script setup>
 const props = defineProps({
   maxWidth: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg'].includes(value)
-  }
+    // 👇 agora também aceita 'xl'
+    validator: (value) => ['sm', 'md', 'lg', 'xl'].includes(value),
+  },
 })
 </script>
 
@@ -16,7 +16,8 @@ const props = defineProps({
       :class="[
         maxWidth === 'sm' && 'page-inner--sm',
         maxWidth === 'md' && 'page-inner--md',
-        maxWidth === 'lg' && 'page-inner--lg'
+        maxWidth === 'lg' && 'page-inner--lg',
+        maxWidth === 'xl' && 'page-inner--xl'  // 👈 NOVO
       ]"
     >
       <slot />
@@ -48,5 +49,10 @@ const props = defineProps({
 
 .page-inner--lg {
   max-width: 720px;
+}
+
+/* 👇 NOVO XL – usa algo mais largo, por exemplo 1100px */
+.page-inner--xl {
+  max-width: 1100px;
 }
 </style>

@@ -4,12 +4,12 @@ import InfoBlock from '@/components/ui/InfoBlock.vue'
 const props = defineProps({
   bisca: {
     type: Object,
-    required: true
+    required: true,
   },
   gametype: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 })
 </script>
 
@@ -33,14 +33,17 @@ const props = defineProps({
       Tu {{ bisca.playerPoints }} — {{ bisca.botPoints }} Bot
     </InfoBlock>
 
+    <InfoBlock label="Baralho">
+      {{ bisca.stock.length }} cartas
+    </InfoBlock>
+
     <InfoBlock label="Fase">
       {{
         bisca.phase === 'draw_phase'
-          ? 'Biscar (stock ainda existe)'
-          : 'Fase final (obrigado a seguir naipe)'
+          ? 'Biscar'
+          : 'Assistir'
       }}
     </InfoBlock>
-
   </section>
 </template>
 
@@ -49,6 +52,6 @@ const props = defineProps({
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.6rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.75rem;
 }
 </style>

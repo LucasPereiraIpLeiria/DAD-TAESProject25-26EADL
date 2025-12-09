@@ -1,7 +1,6 @@
 <script setup>
-import { onMounted, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { useRouter } from 'vue-router'
+import { onMounted, computed, watch, ref, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useBiscaStore } from '@/stores/bisca'
 import { useAuthStore } from '@/stores/auth'
 
@@ -11,7 +10,6 @@ import UiCard from '@/components/ui/UiCard.vue'
 import BiscaGameHeader from '@/components/bisca/BiscaGameHeader.vue'
 import BiscaGameInfo from '@/components/bisca/BiscaGameInfo.vue'
 import BiscaGameBoard from '@/components/bisca/BiscaGameBoard.vue'
-import BiscaPlayerHand from '@/components/bisca/BiscaPlayerHand.vue'
 import BiscaEndPanel from '@/components/bisca/BiscaEndPanel.vue'
 
 const bisca = useBiscaStore()
@@ -49,7 +47,6 @@ function startByRoute() {
   }
 }
 
-
 onMounted(() => {
   startByRoute()
 })
@@ -59,16 +56,94 @@ watch([mode, gametype, variant], () => {
 })
 
 const isPlayerTurn = computed(
-  () => bisca.status === 'in_game' && bisca.currentTurn === 'player'
+  () => bisca.status === 'in_game' && bisca.currentTurn === 'player',
 )
 
-function play(card) {
-  if (!isPlayerTurn.value) return
-  bisca.playCard(card)
+/* ---------- ANIMAÇÃO DA CARTA A IR PARA O BOARD ---------- */
+
+const floatingCard = ref(null) // { card, style, imgUrl }
+
+const cardImages = import.meta.glob('/src/assets/images/cards/*.png', {
+  eager: true,
+  import: 'default',
+})
+
+function suitToLetter(suit) {
+  switch (suit) {
+    case '♥': return 'c'
+    case '♦': return 'o'
+    case '♠': return 'e'
+    case '♣': return 'p'
+    default: return ''
+  }
 }
 
+function getCardImageUrl(card) {
+  if (!card) return ''
+  const letter = suitToLetter(card.suit)
+  if (!letter) return ''
+  const key = `/src/assets/images/cards/${letter}${card.rank}.png`
+  return cardImages[key] || ''
+}
+
+async function play(card) {
+  if (!isPlayerTurn.value) return
+
+  const handEl = document.querySelector(`#hand-card-${card.id}`)
+  const targetEl = document.querySelector('#table-player-slot')
+
+  // fallback se algo falhar
+  if (!handEl || !targetEl) {
+    bisca.playCard(card)
+    return
+  }
+
+  const handRect = handEl.getBoundingClientRect()
+  const targetRect = targetEl.getBoundingClientRect()
+  const imgUrl = getCardImageUrl(card)
+
+  // 1) Esconder logo a carta verdadeira da mão (mas sem mexer no store ainda)
+  handEl.style.visibility = 'hidden'
+
+  // 2) Criar carta flutuante na posição da carta original
+  floatingCard.value = {
+    card,
+    imgUrl,
+    style: {
+      position: 'fixed',
+      top: `${handRect.top}px`,
+      left: `${handRect.left}px`,
+      width: `${handRect.width}px`,
+      height: `${handRect.height}px`,
+      transition: 'top 0.25s ease-out, left 0.25s ease-out',
+      zIndex: 9999,
+      pointerEvents: 'none',
+    },
+  }
+
+  await nextTick()
+
+  // 3) Animar até ao slot do board
+  requestAnimationFrame(() => {
+    if (!floatingCard.value) return
+    floatingCard.value.style.top = `${targetRect.top}px`
+    floatingCard.value.style.left = `${targetRect.left}px`
+  })
+
+  // 4) NO FIM da animação é que mexemos no estado
+  setTimeout(() => {
+    bisca.playCard(card)      // agora entra no board
+    floatingCard.value = null
+
+    // limpar estilo do elemento da mão (se ainda existir)
+    if (handEl) {
+      handEl.style.visibility = ''
+    }
+  }, 260) // ligeiramente > 0.25s
+}
+
+
 function nextGame() {
-  // Se for match, avançamos para o próximo game
   if (gametype.value === 'match') {
     bisca.startGame({
       mode: mode.value,
@@ -78,42 +153,109 @@ function nextGame() {
     return
   }
 
-  // Se for standalone, voltamos à seleção
-  router.push({ name: 'singleplayer.mode.select' }) // <-- ajusta o name conforme o teu router
+  router.push({ name: 'singleplayer.mode.select' })
 }
 
 function exitToSelection() {
   router.push({ name: 'singleplayer.mode.select' })
 }
-
 </script>
 
 <template>
-  <PageContainer max-width="lg">
-    <UiCard padding="md">
-      <BiscaGameHeader :mode="mode" :gametype="gametype" :variant="variant" />
+  <PageContainer max-width="xl">
+    <div class="bisca-layout">
+      <UiCard padding="md">
+        <BiscaGameHeader
+          :mode="mode"
+          :gametype="gametype"
+          :variant="variant"
+        />
 
-      <BiscaGameInfo :bisca="bisca" :gametype="gametype" :is-player-turn="isPlayerTurn" />
+        <!-- Info à esquerda + Gameboard à direita -->
+        <div
+          v-if="bisca.status === 'in_game'"
+          class="game-main-layout"
+        >
+          <div class="info-column">
+            <BiscaGameInfo
+              :bisca="bisca"
+              :gametype="gametype"
+            />
+          </div>
 
-      <BiscaGameBoard v-if="bisca.status === 'in_game'" :bisca="bisca" :is-player-turn="isPlayerTurn" />
+          <div class="board-column">
+            <BiscaGameBoard
+              v-if="bisca.status === 'in_game'"
+              :bisca="bisca"
+              :is-player-turn="isPlayerTurn"
+              @play-card="play"
+            />
+          </div>
+        </div>
 
-      <BiscaPlayerHand v-if="bisca.status === 'in_game'" :bisca="bisca" :is-player-turn="isPlayerTurn"
-        @play-card="play" />
+        <!-- Carta flutuante animada -->
+        <div
+          v-if="floatingCard"
+          class="floating-card"
+          :style="floatingCard.style"
+        >
+          <img
+            :src="floatingCard.imgUrl"
+            alt="Carta a ser jogada"
+            class="floating-card-image"
+          >
+        </div>
 
-      <div>
-        <button id="debug-end-any" class="debug-btn" @click="bisca.debugForceEnd()">
-          [DEBUG] Terminar instantaneamente
-        </button>
-      </div>
+        <div>
+          <button
+            id="debug-end-any"
+            class="debug-btn"
+            @click="bisca.debugForceEnd()"
+          >
+            [DEBUG] Terminar instantaneamente
+          </button>
+        </div>
 
-
-
-      <BiscaEndPanel v-if="bisca.status === 'between_games' || bisca.status === 'match_finished'" :bisca="bisca"
-        :gametype="gametype" @next-game="nextGame" @exit="exitToSelection" />
-    </UiCard>
+        <BiscaEndPanel
+          v-if="bisca.status === 'between_games' || bisca.status === 'match_finished'"
+          :bisca="bisca"
+          :gametype="gametype"
+          @next-game="nextGame"
+          @exit="exitToSelection"
+        />
+      </UiCard>
+    </div>
   </PageContainer>
 </template>
 
 <style scoped>
-/* Nothing*/
+.bisca-layout {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* info à esquerda, board à direita */
+.game-main-layout {
+  display: grid;
+  grid-template-columns: minmax(120px, 140px) 1fr;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.info-column {
+  align-self: stretch;
+}
+
+.board-column {
+  align-self: stretch;
+}
+
+.floating-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.35);
+}
 </style>

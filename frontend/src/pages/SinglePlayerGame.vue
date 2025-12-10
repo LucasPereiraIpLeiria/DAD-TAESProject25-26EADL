@@ -42,6 +42,10 @@ async function startByRoute() {
     variant: variant.value,
   }
 
+  if (bisca.status === 'match_finished' || bisca.status === 'between_games') {
+    bisca.resetMatch()
+  }
+
   // 👉 começa o "loading" do jogo
   isInitializingGame.value = true
 
@@ -208,11 +212,11 @@ function nextGame() {
     return
   }
 
-  router.push({ name: 'singleplayer.mode.select' })
+  router.push({ name: 'home' })
 }
 
 function exitToSelection() {
-  router.push({ name: 'singleplayer.mode.select' })
+  router.push({ name: 'home' })
 }
 </script>
 
@@ -234,12 +238,18 @@ function exitToSelection() {
           </div>
         </div>
 
-        <!-- Estado de “a preparar jogo” -->
-        <div v-else class="game-main-layout loading-state">
+        <!-- Estado de “a preparar jogo” (apenas enquanto está a inicializar) -->
+        <div v-else-if="isInitializingGame" class="game-main-layout loading-state">
           <div class="info-column" />
           <div class="board-column loading-message">
             <p>Preparing game...</p>
           </div>
+        </div>
+
+        <!-- Qualquer outro estado (between_games, match_finished, etc.) não mostra board nem loading -->
+        <div v-else class="game-main-layout">
+          <div class="info-column" />
+          <div class="board-column" />
         </div>
 
         <!-- Carta flutuante animada -->
@@ -247,7 +257,7 @@ function exitToSelection() {
           <img :src="floatingCard.imgUrl" alt="Carta a ser jogada" class="floating-card-image table-card-bold">
         </div>
 
-        <div>
+        <div v-if="bisca.status === 'in_game' && bisca.status !== 'between_games'">
           <button id="debug-end-any" class="debug-btn" @click="bisca.debugForceEnd()">
             [DEBUG] Terminar instantaneamente
           </button>
@@ -307,6 +317,4 @@ function exitToSelection() {
   font-size: 0.95rem;
   text-align: center;
 }
-
-
 </style>

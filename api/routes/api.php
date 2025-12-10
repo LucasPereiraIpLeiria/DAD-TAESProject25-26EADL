@@ -14,7 +14,17 @@ Route::post('/register', [AuthController::class, 'register']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users/me', function (Request $request) {
-        return $request->user();
+        //return $request->user();
+        $user = $request->user();
+        return response()->json([
+            'id'                    => $user->id,
+            'name'                  => $user->name,
+            'email'                 => $user->email,
+            'nickname'              => $user->nickname,
+            'photo_avatar_filename' => $user->photo_avatar_filename,
+            'coins_balance'         => $user->coins_balance ?? 0,
+            'custom'                => $user->custom, // já vem tratado pelo accessor
+        ]);
     });
     Route::patch('/users/edit', [UserController::class, 'update']);
     Route::delete('/users/delete', [UserController::class, 'destroy']); // Add this line

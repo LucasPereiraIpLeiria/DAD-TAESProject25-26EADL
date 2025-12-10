@@ -7,7 +7,6 @@ import { useAuthStore } from '@/stores/auth'
 
 import PageContainer from '@/components/ui/PageContainer.vue'
 import UiCard from '@/components/ui/UiCard.vue'
-
 import BiscaGameHeader from '@/components/bisca/BiscaGameHeader.vue'
 import BiscaGameInfo from '@/components/bisca/BiscaGameInfo.vue'
 import BiscaGameBoard from '@/components/bisca/BiscaGameBoard.vue'
@@ -16,28 +15,23 @@ import BiscaEndPanel from '@/components/bisca/BiscaEndPanel.vue'
 const bisca = useBiscaStore()
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 
 const isInitializingGame = ref(false)
 
-
-const mode = computed(() => {
-  const m = route.params.mode
-  return (m === 'competitive' || m === 'practice') ? m : 'practice'
-})
-
+// gametype: 'practice' | 'match'
 const gametype = computed(() => {
   const g = route.params.gametype
-  return (g === 'standalone' || g === 'match') ? g : 'standalone'
+  return g === 'match' ? 'match' : 'practice'
 })
 
 const variant = computed(() => {
   const v = route.params.variant
-  return (v === '3' || v === '9') ? v : '9'
+  return v === '3' || v === '9' ? v : '9'
 })
 
 async function startByRoute() {
   const config = {
-    mode: mode.value,
     gametype: gametype.value,
     variant: variant.value,
   }
@@ -46,37 +40,35 @@ async function startByRoute() {
     bisca.resetMatch()
   }
 
-  // 👉 começa o "loading" do jogo
   isInitializingGame.value = true
 
   try {
-    // Se for competitivo, cobra SEMPRE ao entrar na página
-    if (mode.value === 'competitive') {
-      const result = await bisca.tryStartCompetitiveMatch({ gametype: gametype.value })
-
+    if (gametype.value === 'match') {
+      // MATCH: precisa de login + entry fee
+      const result = await bisca.tryStartMatchEntry()
       if (!result.ok) {
         if (result.reason === 'not_authenticated') {
-          toast.error('Precisas de estar autenticado para jogar competitivo.')
-          router.push({ name: 'login', query: { redirect: route.fullPath } })
+          toast.error('Precisas de estar autenticado para jogar match.')
+          router.push({
+            name: 'login',
+            query: { redirect: route.fullPath },
+          })
         } else if (result.reason === 'insufficient_funds') {
-          toast.error('Não tens coins suficientes para começar este jogo.')
+          toast.error('Não tens coins suficientes para começar este match.')
           router.push({ name: 'singleplayer.mode.select' })
         } else {
-          toast.error('Não foi possível iniciar o jogo competitivo.')
+          toast.error('Não foi possível iniciar o match.')
           router.push({ name: 'singleplayer.mode.select' })
         }
         return
       }
-    }
 
-    // Aqui já está pago (ou é practice) → arranca jogo novo
-    if (gametype.value === 'match') {
       await bisca.startMatch(config)
     } else {
+      // PRACTICE: jogo único em memória, sem coins/BD
       bisca.startGame(config)
     }
   } finally {
-    // 👉 só aqui libertamos o loading, depois do baralho estar criado
     isInitializingGame.value = false
   }
 }
@@ -85,30 +77,24 @@ onMounted(() => {
   startByRoute()
 })
 
-watch([mode, gametype, variant], () => {
+watch([gametype, variant], () => {
   startByRoute()
 })
 
 const isPlayerTurn = computed(
-  () => bisca.status === 'in_game' && bisca.currentTurn === 'player',
+  () => bisca.status === 'in_game' && bisca.currentTurn === 'player'
 )
 
 // Naipe que sou obrigado a seguir na fase final (se existir)
 const requiredSuit = computed(() => {
-  // Só na fase final
   if (bisca.phase !== 'final_phase') return null
-
-  // Só quando estou a responder à carta do bot
   const botCard = bisca.tableCards.bot
   if (!botCard) return null
-
   const leadingSuit = botCard.suit
   const hasSuit = bisca.playerHand.some((c) => c.suit === leadingSuit)
-
   return hasSuit ? leadingSuit : null
 })
 
-// Flag para UI: estou obrigado a assistir?
 const mustFollowSuit = computed(() => requiredSuit.value !== null)
 
 /* ---------- ANIMAÇÃO DA CARTA A IR PARA O BOARD ---------- */
@@ -122,11 +108,16 @@ const cardImages = import.meta.glob('/src/assets/images/cards/*.png', {
 
 function suitToLetter(suit) {
   switch (suit) {
-    case '♥': return 'c'
-    case '♦': return 'o'
-    case '♠': return 'e'
-    case '♣': return 'p'
-    default: return ''
+    case '♥':
+      return 'c'
+    case '♦':
+      return 'o'
+    case '♠':
+      return 'e'
+    case '♣':
+      return 'p'
+    default:
+      return ''
   }
 }
 
@@ -141,17 +132,13 @@ function getCardImageUrl(card) {
 async function play(card) {
   if (!isPlayerTurn.value) return
 
-  // ⛔ BLOQUEIA jogada ilegal na fase final (não assiste ao naipe)
   if (requiredSuit.value && card.suit !== requiredSuit.value) {
-    // Não animamos, não chamamos playCard, não mexemos em nada
-    // A UI vai mostrar "Obrigado a assistir" via mustFollowSuit
     return
   }
 
   const handEl = document.querySelector(`#hand-card-${card.id}`)
   const targetEl = document.querySelector('#table-player-slot')
 
-  // fallback se algo falhar
   if (!handEl || !targetEl) {
     bisca.playCard(card)
     return
@@ -161,10 +148,8 @@ async function play(card) {
   const targetRect = targetEl.getBoundingClientRect()
   const imgUrl = getCardImageUrl(card)
 
-  // 1) Esconde a carta verdadeira da mão
   handEl.style.visibility = 'hidden'
 
-  // 2) Carta flutuante
   floatingCard.value = {
     card,
     imgUrl,
@@ -182,31 +167,25 @@ async function play(card) {
 
   await nextTick()
 
-  // 3) Animar até ao slot
   requestAnimationFrame(() => {
     if (!floatingCard.value) return
     floatingCard.value.style.top = `${targetRect.top}px`
     floatingCard.value.style.left = `${targetRect.left}px`
   })
 
-  // 4) No fim da animação é que aplicamos a jogada
   setTimeout(() => {
     bisca.playCard(card)
     floatingCard.value = null
-
     if (handEl) {
       handEl.style.visibility = ''
     }
   }, 260)
 }
 
-
-
 function nextGame() {
   if (gametype.value === 'match') {
     bisca.startGame({
-      mode: mode.value,
-      gametype: gametype.value,
+      gametype: 'match',
       variant: variant.value,
     })
     return
@@ -224,21 +203,18 @@ function exitToSelection() {
   <PageContainer max-width="xl">
     <div class="bisca-layout">
       <UiCard padding="md">
-        <BiscaGameHeader :mode="mode" :gametype="gametype" :variant="variant" />
+        <BiscaGameHeader :gametype="gametype" :variant="variant" />
 
-        <!-- Info à esquerda + Gameboard à direita -->
         <div v-if="bisca.status === 'in_game' && !isInitializingGame" class="game-main-layout">
           <div class="info-column">
             <BiscaGameInfo :bisca="bisca" :gametype="gametype" />
           </div>
-
           <div class="board-column">
             <BiscaGameBoard :bisca="bisca" :is-player-turn="isPlayerTurn" :must-follow-suit="mustFollowSuit"
               @play-card="play" />
           </div>
         </div>
 
-        <!-- Estado de “a preparar jogo” (apenas enquanto está a inicializar) -->
         <div v-else-if="isInitializingGame" class="game-main-layout loading-state">
           <div class="info-column" />
           <div class="board-column loading-message">
@@ -246,28 +222,37 @@ function exitToSelection() {
           </div>
         </div>
 
-        <!-- Qualquer outro estado (between_games, match_finished, etc.) não mostra board nem loading -->
         <div v-else class="game-main-layout">
           <div class="info-column" />
           <div class="board-column" />
         </div>
 
-        <!-- Carta flutuante animada -->
         <div v-if="floatingCard" class="floating-card" :style="floatingCard.style">
           <img :src="floatingCard.imgUrl" alt="Carta a ser jogada" class="floating-card-image table-card-bold">
         </div>
 
         <div v-if="bisca.status === 'in_game' && bisca.status !== 'between_games'">
-          <button id="debug-end-any" class="debug-btn" @click="bisca.debugForceEnd()">
-            [DEBUG] Terminar instantaneamente
+          <button id="debug-win-capote" class="debug-btn" @click="bisca.debugWinCapoteGame()">
+            [DEBUG] Win (Capote)
           </button>
-          <button id="debug-end-loss" class="debug-btn loss-btn" @click="bisca.debugForceLoss()">
-            [DEBUG] Terminar instantaneamente (perder)
+
+          <button id="debug-win-bandeira" class="debug-btn" @click="bisca.debugWinBandeiraGame()">
+            [DEBUG] Win (Bandeira)
+          </button>
+
+          <button id="debug-lose-bandeira" class="debug-btn loss-btn" @click="bisca.debugLoseBandeiraGame()">
+            [DEBUG] Lose (Bot Bandeira)
+          </button>
+
+          <button id="debug-draw" class="debug-btn" @click="bisca.debugDrawGame()">
+            [DEBUG] Draw
           </button>
         </div>
 
-        <BiscaEndPanel v-if="bisca.status === 'between_games' || bisca.status === 'match_finished'" :bisca="bisca"
-          :gametype="gametype" @next-game="nextGame" @exit="exitToSelection" />
+        <BiscaEndPanel v-if="
+          bisca.status === 'between_games' ||
+          bisca.status === 'match_finished'
+        " :bisca="bisca" :gametype="gametype" @next-game="nextGame" @exit="exitToSelection" />
       </UiCard>
     </div>
   </PageContainer>
@@ -279,7 +264,6 @@ function exitToSelection() {
   margin: 0 auto;
 }
 
-/* info à esquerda, board à direita */
 .game-main-layout {
   display: grid;
   grid-template-columns: minmax(120px, 140px) 1fr;
@@ -321,19 +305,13 @@ function exitToSelection() {
   text-align: center;
 }
 
-.debug-buttons {
-  display: flex;
-  justify-content: flex-end; 
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
 .debug-btn {
-  cursor: pointer;           
+  cursor: pointer;
   padding: 0.4rem 0.6rem;
   background: #eee;
   border: 1px solid #ccc;
   border-radius: 4px;
+  margin-right: 0.5rem;
 }
 
 .debug-btn:hover {
@@ -341,7 +319,6 @@ function exitToSelection() {
 }
 
 .loss-btn {
-  float: right;
   background: #ffe5e5;
   border-color: #ffaaaa;
 }
@@ -349,5 +326,4 @@ function exitToSelection() {
 .loss-btn:hover {
   background: #ffcccc;
 }
-
 </style>

@@ -2,18 +2,14 @@
 import UiPill from '@/components/ui/UiPill.vue'
 
 const props = defineProps({
-  mode: {
-    type: String,
-    required: true
-  },
   gametype: {
     type: String,
-    required: true
+    required: true, // 'practice' | 'match'
   },
   variant: {
     type: String,
-    required: true
-  }
+    required: true, // '3' | '9'
+  },
 })
 </script>
 
@@ -21,18 +17,19 @@ const props = defineProps({
   <header class="game-header">
     <div>
       <h1>Bisca — Single Player</h1>
-      <p>Joga contra o bot seguindo as regras oficiais de Bisca.</p>
+      <p>
+        {{
+          gametype === 'match'
+            ? 'Match contra o bot, com coins e registo.'
+            : 'Jogo de prática casual contra o bot.'
+        }}
+      </p>
     </div>
 
     <div class="pill-row">
       <UiPill>
-        {{ mode === 'competitive' ? 'Competitive' : 'Practice' }}
+        {{ gametype === 'match' ? 'Match' : 'Practice' }}
       </UiPill>
-
-      <UiPill>
-        {{ gametype === 'match' ? 'Match' : 'Standalone' }}
-      </UiPill>
-
       <UiPill>
         {{ variant === '3' ? 'Bisca de 3' : 'Bisca de 9' }}
       </UiPill>

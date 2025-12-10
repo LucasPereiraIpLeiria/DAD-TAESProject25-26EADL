@@ -16,28 +16,28 @@ class UserController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => [
+            'name'                  => 'required|string|max:255',
+            'email'                 => [
                 'required',
                 'email',
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
-            'nickname' => [
+            'nickname'              => [
                 'required',
                 'string',
                 'max:255',
                 Rule::unique('users', 'nickname')->ignore($user->id),
             ],
-            'currentPassword' => 'nullable|string',
-            'newPassword' => 'nullable|string|min:6|confirmed',
+            'currentPassword'       => 'nullable|string',
+            'newPassword'           => 'nullable|string|min:6|confirmed',
             'newPassword_confirmation' => 'nullable|string',
-            'photo' => 'nullable|string', // Accept base64 string
+            'photo'                 => 'nullable|string', // Accept base64 string
         ]);
 
         // Update basic info
         $user->update([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
+            'name'     => $validated['name'],
+            'email'    => $validated['email'],
             'nickname' => $validated['nickname'],
         ]);
 
@@ -46,6 +46,7 @@ class UserController extends Controller
             if (!Hash::check($validated['currentPassword'], $user->password)) {
                 return response()->json(['error' => 'Current password is incorrect'], 422);
             }
+
             $user->update(['password' => Hash::make($validated['newPassword'])]);
         }
 
@@ -59,6 +60,7 @@ class UserController extends Controller
             // Decode base64 and save
             $imageData = base64_decode(explode(',', $validated['photo'])[1]);
             $filename = uniqid() . '_' . time() . '.png';
+
             Storage::disk('public')->put('photos_avatars/' . $filename, $imageData);
 
             $user->update(['photo_avatar_filename' => $filename]);

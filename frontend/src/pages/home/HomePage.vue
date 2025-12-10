@@ -1,56 +1,43 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { useAPIStore } from '@/stores/api.js'
-import { useLeaderboardMonitor } from '@/stores/leaderboardMonitor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+
 import defaultPlaceholder from '@/assets/images/avatars/anonymous.png'
 import avatarMage from '@/assets/images/avatars/mage.png'
 import avatarRobot from '@/assets/images/avatars/robot.png'
 import avatarDragon from '@/assets/images/avatars/dragon.png'
 
+const auth = useAuthStore()
 const apiStore = useAPIStore()
-const leaderboardMonitor = useLeaderboardMonitor()
 
-// Game modes for the dropdown
-const gameModes = [
-  { label: 'Singleplayer Competitive Standalone - Bisca of 3', type: 3, mode: 'S', is_match: false },
-  { label: 'Singleplayer Competitive Match - Bisca of 3', type: 3, mode: 'S', is_match: true },
-  { label: 'Singleplayer Competitive Standalone - Bisca of 9', type: 9, mode: 'S', is_match: false },
-  { label: 'Singleplayer Competitive Match - Bisca of 9', type: 9, mode: 'S', is_match: true },
-  { label: 'Multiplayer Standalone - Bisca de 3', type: 3, mode: 'M', is_match: false },
-  { label: 'Multiplayer Match - Bisca de 3', type: 3, mode: 'M', is_match: true },
-  { label: 'Multiplayer Standalone - Bisca de 9', type: 9, mode: 'M', is_match: false },
-  { label: 'Multiplayer Match - Bisca de 9', type: 9, mode: 'M', is_match: true },
-]
+const personalStats = ref(null)
+const globalScoreboards = ref({
+  top_matches: [],
+  top_achievements: [],
+  top_coins: [],
+})
 
-const selectedGameMode = ref(gameModes[0])
-const leaderboardData = ref([])
-const leaderboardAvatars = ref({}) // store effective avatar URLs
-const isLoading = ref(false)
-const errorMessage = ref('')
-let pollInterval = null
-
-// Add route to read query parameters
-const route = useRoute()
-
-// Helper function to determine avatar URL based on custom field
-const getEffectiveAvatar = (player) => {
+// avatar helper (igual ao do History antigo, mas aqui só para global scoreboards)
+function getEffectiveAvatar(player) {
   try {
-    // Parse custom JSON if it's a string
-    const customData = typeof player.custom === 'string' ? JSON.parse(player.custom) : player.custom
-    const selectedKey = customData?.avatars?.selected ?? 'default'
+    const custom = typeof player.custom === 'string'
+      ? JSON.parse(player.custom)
+      : player.custom
+
+    const selectedKey = custom?.avatars?.selected ?? 'default'
 
     if (selectedKey === 'default') {
-      return player.avatar
-        ? apiStore.photoAvatarStorageURL + player.avatar
-        : defaultPlaceholder
+      if (player.avatar_filename) {
+        return apiStore.photoAvatarStorageURL + player.avatar_filename
+      }
+      return defaultPlaceholder
     }
 
-    // Map purchased avatars to local images
     switch (selectedKey) {
       case 'mage':
         return avatarMage
@@ -62,99 +49,43 @@ const getEffectiveAvatar = (player) => {
         return defaultPlaceholder
     }
   } catch (e) {
-    console.error('Error determining avatar for player', player.username, e)
+    console.error('Error resolving avatar', e)
     return defaultPlaceholder
   }
 }
 
-// Fetch leaderboard for the selected game mode
-const fetchLeaderboard = async (modeObject) => {
-  isLoading.value = true
-  errorMessage.value = ''
+async function loadPersonalStats() {
+  if (!auth.isLoggedIn) {
+    personalStats.value = null
+    return
+  }
+
   try {
-    const response = await apiStore.getLeaderboard({
-      type: modeObject.type,
-      mode: modeObject.mode,
-      is_match: modeObject.is_match,
-    })
-
-    // Map fields for template
-    leaderboardData.value = response.data.map(p => ({
-      id: p.winner_user_id,
-      username: p.username,
-      avatar: p.avatar_filename,
-      wins: p.total_wins,
-      capotes: p.total_capotes,
-      bandeiras: p.total_bandeiras,
-      custom: p.custom,
-    }))
-
-    // Check for changes and trigger toast if data changed
-    leaderboardMonitor.checkForChanges(modeObject, mappedData)
-
-    leaderboardData.value = mappedData
-
-    // Setup effective avatars
-    const avatars = {}
-    leaderboardData.value.forEach(player => {
-      avatars[player.id] = getEffectiveAvatar(player)
-    })
-    leaderboardAvatars.value = avatars
-
-    console.log('Leaderboard data loaded:', leaderboardData.value)
+    const response = await apiStore.getUserStats()
+    personalStats.value = response.data
   } catch (err) {
-    console.error('Failed to load leaderboard:', err)
-    leaderboardData.value = []
-    errorMessage.value = 'Failed to fetch leaderboard. Please try again.'
-  } finally {
-    isLoading.value = false
+    console.error('Failed to load personal stats', err)
+    personalStats.value = null
   }
 }
 
-// Start polling for leaderboard updates
-const startPolling = (modeObject) => {
-  if (pollInterval) clearInterval(pollInterval)
-  pollInterval = setInterval(() => {
-    fetchLeaderboard(modeObject)
-  }, 30000) // Check every 30 seconds
-}
-
-// Update selected mode
-const handleGameModeChange = async (modeObject) => {
-  selectedGameMode.value = modeObject
-  await fetchLeaderboard(modeObject)
-  startPolling(modeObject)
-}
-
-// Fallback when an image fails to load
-const onAvatarError = (playerId) => {
-  leaderboardAvatars.value[playerId] = defaultPlaceholder
-}
-
-// Lifecycle hooks - just load initial data when homepage mounts
-onMounted(() => {
-  // Check if query params specify a leaderboard mode
-  const selectedType = route.query.selectedType
-  const selectedMode = route.query.selectedMode
-  const selectedIsMatch = route.query.selectedIsMatch
-
-  if (selectedType && selectedMode && selectedIsMatch !== undefined) {
-    const requestedMode = gameModes.find(m =>
-      m.type === parseInt(selectedType) &&
-      m.mode === selectedMode &&
-      m.is_match === (selectedIsMatch === 'true')
-    )
-
-    if (requestedMode) {
-      selectedGameMode.value = requestedMode
+async function loadGlobalScoreboards() {
+  try {
+    const response = await apiStore.getGlobalScoreboards()
+    globalScoreboards.value = response.data
+  } catch (err) {
+    console.error('Failed to load global scoreboards', err)
+    globalScoreboards.value = {
+      top_matches: [],
+      top_achievements: [],
+      top_coins: [],
     }
   }
+}
 
-  fetchLeaderboard(selectedGameMode.value)
-})
-
-onUnmounted(() => {
-  if (pollInterval) clearInterval(pollInterval)
+onMounted(() => {
+  loadGlobalScoreboards()
+  loadPersonalStats()
 })
 </script>
 
@@ -182,7 +113,7 @@ onUnmounted(() => {
           <CardHeader>
             <CardTitle class="text-2xl">Singleplayer</CardTitle>
             <CardDescription>
-              Dive into solo matches and improve your skills by playing against AI opponents in practice or competitive modes.
+              Dive into solo matches and improve your skills by playing against AI opponents in practice or match modes.
             </CardDescription>
           </CardHeader>
           <CardContent class="space-y-3">
@@ -212,145 +143,173 @@ onUnmounted(() => {
         </Card>
       </div>
 
-      <!-- Third Div Card side by side -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Left Card - Leaderboards -->
-        <Card>
-          <CardHeader>
-            <CardTitle class="text-2xl">Leaderboards</CardTitle>
-            <CardDescription>
-              View top players for each game mode
-            </CardDescription>
-          </CardHeader>
+      <!-- Scoreboards (full width, dividido em 2 colunas) -->
+      <Card>
+        <CardHeader>
+          <CardTitle class="text-2xl">Scoreboards</CardTitle>
+          <CardDescription>
+            Check your personal performance and see how you compare globally.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- Personal bests -->
+            <div class="border rounded-lg p-4 bg-white">
+              <h2 class="text-lg font-semibold mb-2">Personal Bests</h2>
+              <p class="text-xs text-gray-500 mb-3">
+                Your overall performance in matches.
+              </p>
 
-          <CardContent class="space-y-4">
+              <div v-if="personalStats" class="grid grid-cols-2 gap-3 text-sm">
+                <div class="flex flex-col">
+                  <span class="text-xs text-gray-500">Matches</span>
+                  <span class="font-semibold">{{ personalStats.total_matches }}</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-xs text-gray-500">Wins</span>
+                  <span class="font-semibold text-green-700">{{ personalStats.wins }}</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-xs text-gray-500">Losses</span>
+                  <span class="font-semibold text-red-700">{{ personalStats.losses }}</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-xs text-gray-500">Draws</span>
+                  <span class="font-semibold text-gray-700">{{ personalStats.draws }}</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-xs text-gray-500">Win rate</span>
+                  <span class="font-semibold">
+                    {{ personalStats.win_rate }}%
+                  </span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-xs text-gray-500">Capotes</span>
+                  <span class="font-semibold">{{ personalStats.total_capotes }}</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-xs text-gray-500">Bandeiras</span>
+                  <span class="font-semibold">{{ personalStats.total_bandeiras }}</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-xs text-gray-500">Coins earned (theoretical)</span>
+                  <span class="font-semibold text-yellow-700">
+                    {{ personalStats.coins_earned }}
+                  </span>
+                </div>
+              </div>
 
-            <!-- Game Mode Dropdown -->
-            <div class="space-y-2">
-              <label class="text-sm font-medium">Select Game Mode</label>
-              <Select v-model="selectedGameMode" @update:model-value="handleGameModeChange">
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a game mode" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem
-                    v-for="mode in gameModes"
-                    :key="mode.label"
-                    :value="mode"
-                  >
-                    {{ mode.label }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <p
+                v-else
+                class="text-xs text-gray-500"
+              >
+                {{ auth.isLoggedIn ? 'No match data yet.' : 'Log in to see your personal stats.' }}
+              </p>
             </div>
 
-            <!-- Leaderboard -->
-            <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
-              <div class="max-h-64 overflow-y-auto">
+            <!-- Global Scoreboards -->
+            <div class="border rounded-lg p-4 bg-white">
+              <h2 class="text-lg font-semibold mb-2">Global Rankings</h2>
+              <p class="text-xs text-gray-500 mb-3">
+                Rankings across all registered players.
+              </p>
 
-                <!-- No Data -->
-                <div
-                  v-if="leaderboardData.length === 0"
-                  class="p-6 text-center text-sm text-muted-foreground"
-                >
-                  No leaderboard data available yet.
-                </div>
-
-                <!-- With Data -->
-                <div v-else>
-
-                  <!-- Header -->
-                  <div class="grid grid-cols-4 text-xs font-semibold px-3 py-2 border-b bg-muted/30">
-                    <div class="col-span-1 flex items-center gap-3 pl-6">Player</div>
-                    <div class="text-right col-span-1 pl-6">Wins</div>
-                    <div class="text-right col-span-1 pl-6">Capotes</div>
-                    <div class="text-right col-span-1 pl-6">Bandeiras</div>
-                  </div>
-
-                  <!-- Rows -->
-                  <div
-                    v-for="(player, index) in leaderboardData"
-                    :key="index"
-                    class="grid grid-cols-4 items-center px-3 py-3 border-b hover:bg-muted/50 transition-colors"
-                    :class="{
-                      'bg-yellow-100 dark:bg-yellow-900': index === 0,
-                      'bg-gray-100 dark:bg-gray-800': index === 1,
-                      'bg-orange-100 dark:bg-orange-900': index === 2
-                    }"
-                  >
-
-                    <!-- Player Column -->
-                    <div class="flex items-center gap-2 col-span-1">
-                      <!-- Rank Circle -->
-                      <div class="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-muted-foreground dark:text-muted-foreground">
-                        {{ index + 1 }}
-                      </div>
-
-                      <!-- Avatar -->
-                      <Avatar class="h-8 w-8">
-                        <AvatarImage
-                          :src="getEffectiveAvatar(player)"
-                          @error="(e) => e.target.src = defaultPlaceholder"
-                        />
-
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                <!-- Most matches won -->
+                <div>
+                  <h3 class="font-semibold mb-1">Most matches won</h3>
+                  <ul class="space-y-1">
+                    <li
+                      v-for="(p, idx) in globalScoreboards.top_matches"
+                      :key="'tm-'+p.user_id"
+                      class="flex items-center gap-2"
+                    >
+                      <span class="w-4 text-right mr-1">{{ idx + 1 }}.</span>
+                      <Avatar class="h-6 w-6">
+                        <AvatarImage :src="getEffectiveAvatar(p)" />
                         <AvatarFallback>
                           <img
                             :src="defaultPlaceholder"
-                            alt="Anonymous Avatar"
-                            class="h-8 w-8 rounded-full"
-                          />
+                            alt=""
+                            class="h-6 w-6 rounded-full"
+                          >
                         </AvatarFallback>
                       </Avatar>
+                      <span class="truncate">{{ p.username }}</span>
+                      <span class="ml-auto font-semibold">{{ p.total_wins }}</span>
+                    </li>
+                    <li v-if="!globalScoreboards.top_matches?.length" class="text-gray-400">
+                      No data.
+                    </li>
+                  </ul>
+                </div>
 
+                <!-- Most achievements -->
+                <div>
+                  <h3 class="font-semibold mb-1">Most achievements</h3>
+                  <ul class="space-y-1">
+                    <li
+                      v-for="(p, idx) in globalScoreboards.top_achievements"
+                      :key="'ta-'+p.user_id"
+                      class="flex items-center gap-2"
+                    >
+                      <span class="w-4 text-right mr-1">{{ idx + 1 }}.</span>
+                      <Avatar class="h-6 w-6">
+                        <AvatarImage :src="getEffectiveAvatar(p)" />
+                        <AvatarFallback>
+                          <img
+                            :src="defaultPlaceholder"
+                            alt=""
+                            class="h-6 w-6 rounded-full"
+                          >
+                        </AvatarFallback>
+                      </Avatar>
+                      <span class="truncate">{{ p.username }}</span>
+                      <span class="ml-auto font-semibold">
+                        {{ p.total_achievements ?? (p.total_capotes + p.total_bandeiras) }}
+                      </span>
+                    </li>
+                    <li v-if="!globalScoreboards.top_achievements?.length" class="text-gray-400">
+                      No data.
+                    </li>
+                  </ul>
+                </div>
 
-                      <!-- Username -->
-                      <div class="flex flex-col">
-                        <span class="font-medium text-sm">{{ player.username }}</span>
-                      </div>
-                    </div>
-
-                    <!-- Wins -->
-                    <div class="text-sm font-medium text-right col-span-1">
-                      {{ player.wins }}
-                    </div>
-
-                    <!-- Capotes -->
-                    <div class="text-sm font-medium text-right col-span-1">
-                      {{ player.capotes }}
-                    </div>
-
-                    <!-- Bandeiras -->
-                    <div class="text-sm font-medium text-right col-span-1">
-                      {{ player.bandeiras }}
-                    </div>
-
-                  </div>
-
+                <!-- Most coins -->
+                <div>
+                  <h3 class="font-semibold mb-1">Most coins (theoretical)</h3>
+                  <ul class="space-y-1">
+                    <li
+                      v-for="(p, idx) in globalScoreboards.top_coins"
+                      :key="'tc-'+p.user_id"
+                      class="flex items-center gap-2"
+                    >
+                      <span class="w-4 text-right mr-1">{{ idx + 1 }}.</span>
+                      <Avatar class="h-6 w-6">
+                        <AvatarImage :src="getEffectiveAvatar(p)" />
+                        <AvatarFallback>
+                          <img
+                            :src="defaultPlaceholder"
+                            alt=""
+                            class="h-6 w-6 rounded-full"
+                          >
+                        </AvatarFallback>
+                      </Avatar>
+                      <span class="truncate">{{ p.username }}</span>
+                      <span class="ml-auto font-semibold text-yellow-700">
+                        {{ p.total_coins }}
+                      </span>
+                    </li>
+                    <li v-if="!globalScoreboards.top_coins?.length" class="text-gray-400">
+                      No data.
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
-
-
-          </CardContent>
-        </Card>
-
-
-        <!-- Right Card - Match History -->
-        <Card>
-          <CardHeader>
-            <CardTitle class="text-2xl">Match History</CardTitle>
-            <CardDescription>
-              View your recent matches and performance
-            </CardDescription>
-          </CardHeader>
-          <CardContent class="space-y-3">
-            <div class="p-6 text-center text-sm text-muted-foreground">
-              No match history available yet.
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+          </div>
+        </CardContent>
+      </Card>
     </div>
   </div>
 </template>

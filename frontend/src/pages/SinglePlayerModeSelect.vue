@@ -2,7 +2,6 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-
 import PageContainer from '@/components/ui/PageContainer.vue'
 import PrimaryButton from '@/components/ui/PrimaryButton.vue'
 import UiOptionTile from '@/components/ui/UiOptionTile.vue'
@@ -11,58 +10,51 @@ import UiCard from '@/components/ui/UiCard.vue'
 const auth = useAuthStore()
 const router = useRouter()
 
-const modes = computed(() => {
+const gameTypes = computed(() => {
   const base = [
-    { value: 'practice', label: 'Practice', description: 'Jogo casual, sem ranking' },
+    {
+      value: 'practice',
+      label: 'Practice',
+      description: 'Um único game de prática contra o bot, sem coins.',
+    },
   ]
 
   if (auth.isLoggedIn) {
     base.push({
-      value: 'competitive',
-      label: 'Competitive',
-      description: 'Jogo competitivo'
+      value: 'match',
+      label: 'Match',
+      description: 'Match até 4 marks contra o bot, com coins e registo.',
     })
   }
 
   return base
 })
 
-const gameTypes = [
-  { value: 'standalone', label: 'Standalone', description: 'Um único jogo' },
-  { value: 'match', label: 'Match', description: 'Match até 4 marks' },
-]
-
 const variants = [
-  { value: '3', label: 'Bisca de 3', description: 'Mão inicial de 3 cartas' },
-  { value: '9', label: 'Bisca de 9', description: 'Mão inicial de 9 cartas' },
+  {
+    value: '3',
+    label: 'Bisca de 3',
+    description: 'Mão inicial de 3 cartas',
+  },
+  {
+    value: '9',
+    label: 'Bisca de 9',
+    description: 'Mão inicial de 9 cartas',
+  },
 ]
 
-const selectedMode = ref('practice')
-const selectedGameType = ref('standalone')
+const selectedGameType = ref('practice')
 const selectedVariant = ref('9')
 
-//para o caso de o user perder o estado de login enquanto está na página, e caso tenha pré selecionado competitive
+// se o user perder login, garantir que não fica "match" selecionado
 watch(
   () => auth.isLoggedIn,
   (loggedIn) => {
-    if (!loggedIn && selectedMode.value === 'competitive') {
-      selectedMode.value = 'practice'
+    if (!loggedIn && selectedGameType.value === 'match') {
+      selectedGameType.value = 'practice'
     }
   }
 )
-
-async function startGame() {
-  const mode = selectedMode.value
-  const gametype = selectedGameType.value
-  const variant = selectedVariant.value
-
-  router.push({ name: 'singleplayer.game', params: { mode, gametype, variant } })
-}
-
-
-function selectMode(value) {
-  selectedMode.value = value
-}
 
 function selectGameType(value) {
   selectedGameType.value = value
@@ -71,69 +63,66 @@ function selectGameType(value) {
 function selectVariant(value) {
   selectedVariant.value = value
 }
+
+async function startGame() {
+  const gametype = selectedGameType.value // 'practice' | 'match'
+  const variant = selectedVariant.value
+
+  router.push({
+    name: 'singleplayer.game',
+    params: {
+      gametype,
+      variant,
+    },
+  })
+}
 </script>
 
 <template>
   <PageContainer max-width="sm">
     <UiCard padding="md">
-    <header class="sp-header">
-      <h1>Single Player</h1>
-      <p>Escolhe o modo, tipo de jogo e variante de Bisca.</p>
-    </header>
+      <header class="sp-header">
+        <h1>Single Player</h1>
+        <p>Escolhe o tipo de jogo e a variante de Bisca.</p>
+      </header>
 
-    <!-- MODO -->
-    <section class="sp-section">
-      <h2>Mode</h2>
-      <div class="sp-options-row">
-        <UiOptionTile
-          v-for="m in modes"
-          :key="m.value"
-          :active="selectedMode === m.value"
-          @click="selectMode(m.value)"
-        >
-          <template #title>{{ m.label }}</template>
-          <template #description>{{ m.description }}</template>
-        </UiOptionTile>
-      </div>
-    </section>
+      <!-- TIPO DE JOGO -->
+      <section class="sp-section">
+        <h2>Game Type</h2>
+        <div class="sp-options-row">
+          <UiOptionTile
+            v-for="t in gameTypes"
+            :key="t.value"
+            :active="selectedGameType === t.value"
+            @click="selectGameType(t.value)"
+          >
+            <template #title>{{ t.label }}</template>
+            <template #description>{{ t.description }}</template>
+          </UiOptionTile>
+        </div>
+      </section>
 
-    <!-- TIPO DE JOGO -->
-    <section class="sp-section">
-      <h2>Game Type</h2>
-      <div class="sp-options-row">
-        <UiOptionTile
-          v-for="t in gameTypes"
-          :key="t.value"
-          :active="selectedGameType === t.value"
-          @click="selectGameType(t.value)"
-        >
-          <template #title>{{ t.label }}</template>
-          <template #description>{{ t.description }}</template>
-        </UiOptionTile>
-      </div>
-    </section>
+      <!-- VARIANTE -->
+      <section class="sp-section">
+        <h2>Variant</h2>
+        <div class="sp-options-row">
+          <UiOptionTile
+            v-for="v in variants"
+            :key="v.value"
+            :active="selectedVariant === v.value"
+            @click="selectVariant(v.value)"
+          >
+            <template #title>{{ v.label }}</template>
+            <template #description>{{ v.description }}</template>
+          </UiOptionTile>
+        </div>
+      </section>
 
-    <!-- VARIANTE -->
-    <section class="sp-section">
-      <h2>Variant</h2>
-      <div class="sp-options-row">
-        <UiOptionTile
-          v-for="v in variants"
-          :key="v.value"
-          :active="selectedVariant === v.value"
-          @click="selectVariant(v.value)"
-        >
-          <template #title>{{ v.label }}</template>
-          <template #description>{{ v.description }}</template>
-        </UiOptionTile>
-      </div>
-    </section>
-
-    <footer class="sp-footer">
-      <PrimaryButton @click="startGame">
-        Start Game
-      </PrimaryButton>
-    </footer>
+      <footer class="sp-footer">
+        <PrimaryButton @click="startGame">
+          Start Game
+        </PrimaryButton>
+      </footer>
     </UiCard>
   </PageContainer>
 </template>

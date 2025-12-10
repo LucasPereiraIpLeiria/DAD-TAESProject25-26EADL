@@ -8,7 +8,7 @@ const props = defineProps({
   },
   gametype: {
     type: String,
-    required: true,
+    required: true, // 'practice' | 'match'
   },
 })
 
@@ -25,49 +25,69 @@ function handleExit() {
 
 <template>
   <!-- Fim de game (mas match ainda não acabou) -->
-  <section v-if="bisca.status === 'between_games'" class="end-panel">
+  <section
+    v-if="bisca.status === 'between_games'"
+    class="end-panel"
+  >
     <h2>Game terminado</h2>
     <p>Pontos deste game: {{ bisca.playerPoints }} - {{ bisca.botPoints }}</p>
     <p>Marks: {{ bisca.playerMarks }} - {{ bisca.botMarks }}</p>
 
-    <PrimaryButton type="button" @click="handleNextGame"> Começar próximo game </PrimaryButton>
+    <PrimaryButton type="button" @click="handleNextGame">
+      Começar próximo game
+    </PrimaryButton>
   </section>
 
-  <!-- Fim de match / standalone -->
-  <section v-else-if="bisca.status === 'match_finished' && bisca.summary" class="end-panel">
-    <h2>{{ gametype === 'standalone' ? 'Game terminado' : 'Match terminado' }}</h2>
+  <!-- Fim de match ou prática -->
+  <section
+    v-else-if="bisca.status === 'match_finished' && bisca.summary"
+    class="end-panel"
+  >
+    <h2>{{ gametype === 'match' ? 'Match terminado' : 'Game terminado' }}</h2>
 
     <p class="end-result">
       <strong>Resultado:</strong>
-      {{ bisca.summary.result === 'win' ? 'Vitória' : 'Derrota' }}
+      {{ bisca.summary.result === 'win' ? 'Vitória' : bisca.summary.result === 'loss' ? 'Derrota' : 'Empate' }}
     </p>
 
-    <p v-if="gametype === 'match'">
-      <strong>Marks:</strong>
-      {{ bisca.summary.playerMarks }} - {{ bisca.summary.botMarks }}
-    </p>
+    <!-- MATCH: mostra marks e pontos totais -->
+    <template v-if="gametype === 'match'">
+      <p>
+        <strong>Marks:</strong>
+        {{ bisca.summary.playerMarks }} - {{ bisca.summary.botMarks }}
+      </p>
+      <p>
+        <strong>Pontos totais do match:</strong>
+        {{ bisca.matchPlayer1Points }} - {{ bisca.matchPlayer2Points }}
+      </p>
+    </template>
 
-    <p v-if="gametype === 'match'">
-      <strong>Pontos totais do match:</strong>
-      {{ bisca.matchPlayer1Points }} - {{ bisca.matchPlayer2Points }}
-    </p>
+    <!-- PRACTICE: só pontos do game -->
+    <template v-else>
+      <p>
+        <strong>Pontos:</strong>
+        {{ bisca.summary.playerPoints }} - {{ bisca.summary.botPoints }}
+      </p>
+    </template>
 
-    <!-- Standalone: só os pontos desse game -->
-    <p v-else>
-      <strong>Pontos:</strong>
-      {{ bisca.summary.playerPoints }} - {{ bisca.summary.botPoints }}
-    </p>
-
-    <p v-if="bisca.summary.result === 'win' && bisca.summary.coinsAwarded != null" class="coins-awarded">
-      <strong>Coins ganhos:</strong>
-      +{{ bisca.summary.coinsAwarded }} !!!!!!
+    <p
+      v-if="bisca.summary.result === 'win' && bisca.summary.coinsAwarded != null"
+      class="coins-awarded"
+    >
+      <strong>Coins ganhos:</strong> +{{ bisca.summary.coinsAwarded }} !!!
     </p>
 
     <!-- Lista de games do match -->
-    <div v-if="gametype === 'match' && bisca.matchGames && bisca.matchGames.length" class="games-list">
+    <div
+      v-if="gametype === 'match' && bisca.matchGames && bisca.matchGames.length"
+      class="games-list"
+    >
       <h3>Resultados por game</h3>
       <ul>
-        <li v-for="g in bisca.matchGames" :key="g.gameNumber">
+        <li
+          v-for="g in bisca.matchGames"
+          :key="g.gameNumber"
+        >
           <span class="game-label">Game {{ g.gameNumber }}:</span>
           <span class="game-score">
             {{ g.playerPoints }} - {{ g.botPoints }}
@@ -82,19 +102,25 @@ function handleExit() {
                   : 'Empate'
             }}
           </span>
-
-          <span v-if="g.achievements?.bandeira" class="badge">
+          <span
+            v-if="g.achievements?.bandeira"
+            class="badge"
+          >
             Bandeira
           </span>
-          <span v-else-if="g.achievements?.capote" class="badge">
+          <span
+            v-else-if="g.achievements?.capote"
+            class="badge"
+          >
             Capote
           </span>
         </li>
       </ul>
     </div>
 
-
-    <PrimaryButton type="button" @click="handleExit"> Voltar à Dashboard </PrimaryButton>
+    <PrimaryButton type="button" @click="handleExit">
+      Voltar à Dashboard
+    </PrimaryButton>
   </section>
 </template>
 
@@ -126,11 +152,6 @@ function handleExit() {
 
 .end-result {
   margin-top: 0.4rem;
-}
-
-.match-achievements {
-  margin-top: 0.4rem;
-  font-size: 0.9rem;
 }
 
 .games-list {
@@ -176,6 +197,4 @@ function handleExit() {
   border: 1px solid #e5e7eb;
   font-size: 0.75rem;
 }
-
-
 </style>

@@ -1,10 +1,10 @@
-import HistoryView from '@/pages/user/HistoryView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
+import HistoryView from '@/pages/user/HistoryView.vue'
 import RegisterPage from '@/pages/login/RegisterPage.vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { toast } from 'vue-sonner'
-import UserProfile from "@/pages/user/UserProfile.vue";
-import EditProfile from "@/pages/user/EditProfile.vue";
+import UserProfile from '@/pages/user/UserProfile.vue'
+import EditProfile from '@/pages/user/EditProfile.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -25,14 +25,15 @@ const router = createRouter({
       component: RegisterPage,
     },
     {
-      // página de setup singleplayer (escolhas todas + Start Game)
+      // página de setup singleplayer
       path: '/singleplayer',
       name: 'singleplayer.mode.select',
       component: () => import('@/pages/SinglePlayerModeSelect.vue'),
     },
     {
       // página do jogo em si
-      path: '/singleplayer/:mode/:gametype/:variant',
+      // gametype = 'practice' | 'match'
+      path: '/singleplayer/:gametype/:variant',
       name: 'singleplayer.game',
       component: () => import('@/pages/SinglePlayerGame.vue'),
     },
@@ -52,7 +53,7 @@ const router = createRouter({
       path: '/profile/edit',
       name: 'editProfile',
       component: EditProfile,
-      meta: {requiresAuth: true}
+      meta: { requiresAuth: true },
     },
     {
       path: '/customizations',
@@ -72,7 +73,10 @@ router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
 
   // Bloquear login/register se já estiver logado
-  if ((to.name === 'login' || to.name === 'register') && authStore.isLoggedIn) {
+  if (
+    (to.name === 'login' || to.name === 'register') &&
+    authStore.isLoggedIn
+  ) {
     return next({ name: 'home' })
   }
 
@@ -84,10 +88,10 @@ router.beforeEach((to, from, next) => {
 
   // Regras específicas para singleplayer.game
   if (to.name === 'singleplayer.game') {
-    const mode = to.params.mode
+    const gametype = to.params.gametype
 
-    // competitive só para utilizadores autenticados
-    if (mode === 'competitive' && !authStore.isLoggedIn) {
+    // matches precisam de autenticação
+    if (gametype === 'match' && !authStore.isLoggedIn) {
       toast.error('This navigation requires authentication')
       return next({ name: 'login', query: { redirect: to.fullPath } })
     }

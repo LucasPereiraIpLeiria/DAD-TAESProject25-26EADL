@@ -43,16 +43,18 @@ class Game extends Model
         return $query
             ->select(
                 'winner_user_id',
-                DB::raw('COUNT(*) as total_wins'),
+                DB::raw('COUNT(*) AS total_wins'),
 
+                // CAPOTE = winner gets 91–119 points
                 DB::raw('SUM(CASE WHEN 
-                    (winner_user_id = player1_user_id AND player1_points = 2) OR
-                    (winner_user_id = player2_user_id AND player2_points = 2)
+                    (winner_user_id = player1_user_id AND player1_points BETWEEN 91 AND 119) OR
+                    (winner_user_id = player2_user_id AND player2_points BETWEEN 91 AND 119)
                 THEN 1 ELSE 0 END) AS total_capotes'),
 
+                // BANDEIRA = winner gets exactly 120 points
                 DB::raw('SUM(CASE WHEN 
-                    (winner_user_id = player1_user_id AND player1_points = 3) OR
-                    (winner_user_id = player2_user_id AND player2_points = 3)
+                    (winner_user_id = player1_user_id AND player1_points = 120) OR
+                    (winner_user_id = player2_user_id AND player2_points = 120)
                 THEN 1 ELSE 0 END) AS total_bandeiras'),
 
                 DB::raw('MIN(ended_at) as first_win_at'),
@@ -87,6 +89,7 @@ class Game extends Model
     }
 
 
+
     public function scopeMultiplayerLeaderboard($query, $type)
     {
         $botId = config('bots.bot_ids.default');
@@ -94,18 +97,18 @@ class Game extends Model
         return $query
             ->select(
                 'winner_user_id',
-                DB::raw('COUNT(*) as total_wins'),
+                DB::raw('COUNT(*) AS total_wins'),
 
-                // CAPOTES = winner reaches exactly 2 points
+                // CAPOTE = winner gets 91–119 points
                 DB::raw('SUM(CASE WHEN 
-                    (winner_user_id = player1_user_id AND player1_points = 2) OR
-                    (winner_user_id = player2_user_id AND player2_points = 2)
+                    (winner_user_id = player1_user_id AND player1_points BETWEEN 91 AND 119) OR
+                    (winner_user_id = player2_user_id AND player2_points BETWEEN 91 AND 119)
                 THEN 1 ELSE 0 END) AS total_capotes'),
 
-                // BANDEIRAS = winner reaches exactly 3 points
+                // BANDEIRA = winner gets exactly 120
                 DB::raw('SUM(CASE WHEN 
-                    (winner_user_id = player1_user_id AND player1_points = 3) OR
-                    (winner_user_id = player2_user_id AND player2_points = 3)
+                    (winner_user_id = player1_user_id AND player1_points = 120) OR
+                    (winner_user_id = player2_user_id AND player2_points = 120)
                 THEN 1 ELSE 0 END) AS total_bandeiras'),
 
                 DB::raw('MIN(ended_at) as first_win_at'),
@@ -136,6 +139,7 @@ class Game extends Model
             ->orderByDesc('total_bandeiras')
             ->orderBy('first_win_at', 'asc');
     }
+
 
 
 

@@ -44,38 +44,73 @@ class Matche extends Model
         $botId = config('bots.bot_ids.default');
 
         return $query
+            ->from('matches')
             ->select(
-                'winner_user_id as user_id',
-                DB::raw('COUNT(*) as total_wins'),
-                DB::raw('SUM(CASE WHEN player1_marks = 2 OR player2_marks = 2 THEN 1 ELSE 0 END) as total_capotes'),
-                DB::raw('SUM(CASE WHEN player1_marks = 3 OR player2_marks = 3 THEN 1 ELSE 0 END) as total_bandeiras'),
-                DB::raw('MIN(ended_at) as first_win_at'),
+                'matches.winner_user_id as user_id',
+
+                // FIX: total wins must be match-wise, not game-wise
+                DB::raw('COUNT(DISTINCT matches.id) as total_wins'),
+
+                // capotes
+                DB::raw("
+                    SUM(
+                        CASE
+                            WHEN g.winner_user_id = matches.winner_user_id
+                            AND (
+                                CASE 
+                                    WHEN g.winner_user_id = g.player1_user_id THEN g.player1_points
+                                    ELSE g.player2_points
+                                END
+                            ) BETWEEN 91 AND 119
+                        THEN 1 ELSE 0
+                        END
+                    ) as total_capotes
+                "),
+
+                // bandeiras
+                DB::raw("
+                    SUM(
+                        CASE
+                            WHEN g.winner_user_id = matches.winner_user_id
+                            AND (
+                                CASE 
+                                    WHEN g.winner_user_id = g.player1_user_id THEN g.player1_points
+                                    ELSE g.player2_points
+                                END
+                            ) = 120
+                        THEN 1 ELSE 0
+                        END
+                    ) as total_bandeiras
+                "),
+
+                DB::raw('MIN(matches.ended_at) as first_win_at'),
                 DB::raw('COALESCE(users.nickname, users.name) as username'),
                 DB::raw('users.photo_avatar_filename as avatar_filename'),
                 'users.custom'
             )
             ->where('matches.type', $type)
-            ->whereNotNull('winner_user_id')
+            ->whereNotNull('matches.winner_user_id')
 
-            //EXCLUDE bot matches
-            ->where('player1_user_id', '!=', $botId)
-            ->where('player2_user_id', '!=', $botId)
+            // EXCLUDE bot matches
+            ->where('matches.player1_user_id', '!=', $botId)
+            ->where('matches.player2_user_id', '!=', $botId)
 
-            ->join('users', 'users.id', '=', 'winner_user_id')
+            ->leftJoin('games as g', 'g.match_id', '=', 'matches.id')
+            ->join('users', 'users.id', '=', 'matches.winner_user_id')
 
             ->groupBy(
-                'winner_user_id',
+                'matches.winner_user_id',
                 'users.nickname',
                 'users.name',
                 'users.photo_avatar_filename',
                 'users.custom'
             )
-
             ->orderByDesc('total_wins')
             ->orderByDesc('total_capotes')
             ->orderByDesc('total_bandeiras')
             ->orderBy('first_win_at', 'asc');
     }
+
 
 
 
@@ -84,46 +119,70 @@ class Matche extends Model
         $botId = config('bots.bot_ids.default');
 
         return $query
+            ->from('matches')
             ->select(
-                'winner_user_id',
-                DB::raw('COUNT(*) as total_wins'),
-                DB::raw('SUM(CASE WHEN player1_marks = 2 OR player2_marks = 2 THEN 1 ELSE 0 END) as total_capotes'),
-                DB::raw('SUM(CASE WHEN player1_marks = 3 OR player2_marks = 3 THEN 1 ELSE 0 END) as total_bandeiras'),
-                DB::raw('MIN(ended_at) as first_win_at'),
+                'matches.winner_user_id as user_id',
+
+                // FIX: distinct match wins
+                DB::raw('COUNT(DISTINCT matches.id) as total_wins'),
+
+                DB::raw("
+                    SUM(
+                        CASE
+                            WHEN g.winner_user_id = matches.winner_user_id
+                            AND (
+                                CASE 
+                                    WHEN g.winner_user_id = g.player1_user_id THEN g.player1_points
+                                    ELSE g.player2_points
+                                END
+                            ) BETWEEN 91 AND 119
+                        THEN 1 ELSE 0
+                        END
+                    ) as total_capotes
+                "),
+
+                DB::raw("
+                    SUM(
+                        CASE
+                            WHEN g.winner_user_id = matches.winner_user_id
+                            AND (
+                                CASE 
+                                    WHEN g.winner_user_id = g.player1_user_id THEN g.player1_points
+                                    ELSE g.player2_points
+                                END
+                            ) = 120
+                        THEN 1 ELSE 0
+                        END
+                    ) as total_bandeiras
+                "),
+
+                DB::raw('MIN(matches.ended_at) as first_win_at'),
                 DB::raw('COALESCE(users.nickname, users.name) as username'),
                 DB::raw('users.photo_avatar_filename as avatar_filename'),
                 'users.custom'
             )
-
             ->where('matches.type', $type)
-            ->whereNotNull('winner_user_id')
+            ->whereNotNull('matches.winner_user_id')
 
-            //ONLY matches against the BOT
+            // ONLY matches vs bot
             ->where(function ($q) use ($botId) {
-                $q->where('player1_user_id', $botId)
-                ->orWhere('player2_user_id', $botId);
+                $q->where('matches.player1_user_id', $botId)
+                ->orWhere('matches.player2_user_id', $botId);
             })
 
-            ->join('users', 'users.id', '=', 'winner_user_id')
+            ->leftJoin('games as g', 'g.match_id', '=', 'matches.id')
+            ->join('users', 'users.id', '=', 'matches.winner_user_id')
 
             ->groupBy(
-                'winner_user_id',
+                'matches.winner_user_id',
                 'users.nickname',
                 'users.name',
                 'users.photo_avatar_filename',
                 'users.custom'
             )
-
             ->orderByDesc('total_wins')
             ->orderByDesc('total_capotes')
             ->orderByDesc('total_bandeiras')
             ->orderBy('first_win_at', 'asc');
     }
-
-
-
-    //this comment exists to try and merge this branch with main
-    //comment dsjnbfhjdsv
-
-
 }

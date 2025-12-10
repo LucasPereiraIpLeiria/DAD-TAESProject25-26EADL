@@ -21,51 +21,59 @@ export const useLeaderboardMonitor = defineStore('leaderboardMonitor', () => {
     const cacheKey = getCacheKey(config)
     const oldData = leaderboardCache.value[cacheKey]
 
+    // For standalone games, check if top player has a match version
+    if (!config.is_match) {
+      // Get the corresponding match leaderboard cache key
+      const matchCacheKey = `${config.type}_${config.mode}_true`
+      const matchData = leaderboardCache.value[matchCacheKey]
+
+      // If match data exists and top player is in match leaderboard, skip notification
+      if (matchData) {
+        const matchDataParsed = JSON.parse(matchData)
+        const topPlayerInMatch = matchDataParsed.some(p => p.username === newData[0].username)
+
+        if (topPlayerInMatch) {
+          leaderboardCache.value[cacheKey] = JSON.stringify(newData)
+          return
+        }
+      }
+    }
+
     // Store new data
     leaderboardCache.value[cacheKey] = JSON.stringify(newData)
 
-    // If no previous data, skip notification
+    // If no previous data, just cache it and skip notification (first load)
     if (!oldData) {
-      console.log(`[Leaderboard Monitor] First load for ${cacheKey}`)
       return
     }
 
     // Parse old data and compare
     const oldDataParsed = JSON.parse(oldData)
 
-    // Check if top players changed or points changed
+    // Check if top 3 positions changed
     const hasChanges = hasLeaderboardChanged(oldDataParsed, newData)
 
     if (hasChanges) {
-      console.log(`[Leaderboard Monitor] Changes detected for ${cacheKey}`)
-      notifyLeaderboardChange(config, newData)
+      notifyLeaderboardChange(config, newData, oldDataParsed)
     }
   }
 
-  // Helper function to detect meaningful changes
+  // Helper function to detect meaningful changes in top 3
   const hasLeaderboardChanged = (oldData, newData) => {
-    if (oldData.length !== newData.length) {
-      console.log('[Leaderboard Monitor] Length changed:', oldData.length, '→', newData.length)
-      return true
-    }
-
-    // Check top 5 players for changes
-    const checkLimit = Math.min(5, oldData.length, newData.length)
+    // Only check top 3 usernames for changes
+    const checkLimit = 3
 
     for (let i = 0; i < checkLimit; i++) {
+      // If we don't have enough data, skip
+      if (i >= oldData.length || i >= newData.length) {
+        return false
+      }
+
       const oldPlayer = oldData[i]
       const newPlayer = newData[i]
 
+      // Only check if username changed (position changed), ignore stat changes
       if (oldPlayer.username !== newPlayer.username) {
-        console.log(`[Leaderboard Monitor] Position ${i+1} username changed:`, oldPlayer.username, '→', newPlayer.username)
-        return true
-      }
-      if (oldPlayer.wins !== newPlayer.wins) {
-        console.log(`[Leaderboard Monitor] Position ${i+1} wins changed:`, oldPlayer.wins, '→', newPlayer.wins)
-        return true
-      }
-      if (oldPlayer.points !== newPlayer.points) {
-        console.log(`[Leaderboard Monitor] Position ${i+1} points changed:`, oldPlayer.points, '→', newPlayer.points)
         return true
       }
     }
@@ -74,18 +82,31 @@ export const useLeaderboardMonitor = defineStore('leaderboardMonitor', () => {
   }
 
   // Notify about leaderboard changes using vue-sonner
-  const notifyLeaderboardChange = (config, newData) => {
+  const notifyLeaderboardChange = (config, newData, oldData) => {
     const modeLabel = `${config.type === 3 ? 'Bisca 3' : 'Bisca 9'} - ${config.mode === 'S' ? 'Singleplayer' : 'Multiplayer'}`
-    const topPlayer = newData[0]
 
-    console.log(`[Leaderboard Monitor] Showing toast for ${modeLabel}`)
 
-    toast.success(`${topPlayer.username} is now leading in ${modeLabel}!`, {
-      description: 'Leaderboard Updated 🏆',
+    // Find which position changed
+    let changedMessage = ''
+    for (let i = 0; i < 3; i++) {
+      if (i >= oldData.length || i >= newData.length) break
+
+      const oldPlayer = oldData[i]
+      const newPlayer = newData[i]
+
+      if (oldPlayer.username !== newPlayer.username) {
+        const position = i + 1
+        const positionLabel = position === 1 ? '🥇 1st' : position === 2 ? '🥈 2nd' : '🥉 3rd'
+        changedMessage = `${newPlayer.username} reached ${positionLabel} place!`
+        break
+      }
+    }
+
+    toast.success(changedMessage, {
+      description: modeLabel,
       action: {
         label: 'View',
         onClick: () => {
-          console.log('[Leaderboard Monitor] User clicked View - navigating to home with mode:', config)
           router.push({
             name: 'home',
             query: {

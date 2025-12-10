@@ -258,9 +258,18 @@ export const useBiscaStore = defineStore('bisca', () => {
     // Se vier configuração (standalone), atualiza mode/type/variant
     applyConfig(config || {})
 
-    // se estivermos entre jogos (num match), este é o próximo game
-    if (status.value === 'between_games') {
-      currentGameNumber.value++
+    if (gameType.value === 'standalone') {
+      // standalone é sempre um “mini-match” isolado
+      currentGameNumber.value = 1
+      playerMarks.value = 0
+      botMarks.value = 0
+      matchPlayer1Points.value = 0
+      matchPlayer2Points.value = 0
+    } else {
+      // match normal: se estivermos entre jogos, avança o número do game
+      if (status.value === 'between_games') {
+        currentGameNumber.value++
+      }
     }
 
     status.value = 'in_game'
@@ -344,7 +353,7 @@ export const useBiscaStore = defineStore('bisca', () => {
   }
 
   function sortByStrengthAsc(cards) {
-    return [...cards].sort((a, b) => a.strength  - b.strength )
+    return [...cards].sort((a, b) => a.strength - b.strength)
   }
 
   function chooseLowest(cards) {
@@ -671,11 +680,27 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
+  function computeResult() {
+    // STANDALONE → decide pelos pontos do game
+    if (gameType.value === 'standalone') {
+      if (playerPoints.value > botPoints.value) return 'win'
+      if (playerPoints.value < botPoints.value) return 'loss'
+      return 'draw'
+    }
+
+    // MATCH → decide pelos marks do match
+    if (playerMarks.value > botMarks.value) return 'win'
+    if (playerMarks.value < botMarks.value) return 'loss'
+    return 'loss'
+  }
+
   async function finishMatch() {
     status.value = 'match_finished'
 
+    const result = computeResult()
+
     summary.value = {
-      result: playerMarks.value > botMarks.value ? 'win' : 'loss',
+      result,
       playerMarks: playerMarks.value,
       botMarks: botMarks.value,
       playerPoints: playerPoints.value,
@@ -854,6 +879,7 @@ export const useBiscaStore = defineStore('bisca', () => {
 
     status.value = 'in_game'
 
+
     // Vitória automática
     playerMarks.value = 4
     botMarks.value = 0
@@ -885,6 +911,64 @@ export const useBiscaStore = defineStore('bisca', () => {
     // Isto força o fim do game atual e cria o game na BD
     finishGameIfNeeded('player')
   }
+
+
+function debugForceLoss() {
+  if (gameType.value === 'standalone') {
+    return debugForceLossStandalone()
+  }
+
+  if (gameType.value === 'match') {
+    return debugForceLossMatch()
+  }
+}
+
+function debugForceLossStandalone() {
+  if (gameType.value !== 'standalone') return
+  if (status.value === 'match_finished') return
+
+  // Garantir timestamps válidos
+  if (!beganAt.value) {
+    beganAt.value = new Date(Date.now() - 60_000).toISOString()
+  }
+  endedAt.value = new Date().toISOString()
+
+  status.value = 'in_game'
+
+  // Derrota automática
+  playerMarks.value = 0
+  botMarks.value = 4
+  playerPoints.value = 0
+  botPoints.value = 120
+
+  finishMatch()
+}
+
+function debugForceLossMatch() {
+  if (gameType.value !== 'match') return
+  if (status.value === 'match_finished') return
+
+  status.value = 'in_game'
+
+  // Derrota automática neste game
+  playerHand.value = []
+  botHand.value = []
+  stock.value = []
+  tableCards.value = { player: null, bot: null }
+
+  playerPoints.value = 0
+  botPoints.value = 100
+
+  console.log('[DEBUG MATCH LOSS] antes do finishGameIfNeeded', {
+    playerPoints: playerPoints.value,
+    botPoints: botPoints.value,
+    gameType: gameType.value,
+    status: status.value,
+  })
+
+  finishGameIfNeeded('bot') // <- bot vence
+}
+
 
   //
   // EXPORTAR
@@ -1012,5 +1096,8 @@ export const useBiscaStore = defineStore('bisca', () => {
     debugForceEndMatch,
     debugForceEnd,
     afterTrickAnimation,
+    debugForceLoss,
+    debugForceLossStandalone,
+    debugForceLossMatch,
   }
 })

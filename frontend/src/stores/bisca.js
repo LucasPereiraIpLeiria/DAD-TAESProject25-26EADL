@@ -874,8 +874,8 @@ export const useBiscaStore = defineStore('bisca', () => {
     botHand.value = []
     stock.value = []
     tableCards.value = { player: null, bot: null }
-    playerPoints.value = 100
-    botPoints.value = 0
+    playerPoints.value = 0
+    botPoints.value = 120
     console.log('[DEBUG MATCH] antes do finishGameIfNeeded', {
       playerPoints: playerPoints.value,
       botPoints: botPoints.value,

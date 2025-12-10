@@ -66,6 +66,7 @@ class Game extends Model
             ->where('games.type', $type)
             ->whereNotNull('winner_user_id')
             ->whereNull('match_id')
+            
 
 
             // ONLY games vs bot
@@ -73,6 +74,9 @@ class Game extends Model
                 $q->where('player1_user_id', $botId)
                 ->orWhere('player2_user_id', $botId);
             })
+
+            ->where('winner_user_id', '!=', $botId)
+
 
             ->join('users', 'users.id', '=', 'winner_user_id')
 

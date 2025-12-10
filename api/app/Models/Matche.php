@@ -163,12 +163,15 @@ class Matche extends Model
             )
             ->where('matches.type', $type)
             ->whereNotNull('matches.winner_user_id')
+            
 
             // ONLY matches vs bot
             ->where(function ($q) use ($botId) {
                 $q->where('matches.player1_user_id', $botId)
                 ->orWhere('matches.player2_user_id', $botId);
             })
+
+            ->where('matches.winner_user_id', '!=', $botId)
 
             ->leftJoin('games as g', 'g.match_id', '=', 'matches.id')
             ->join('users', 'users.id', '=', 'matches.winner_user_id')

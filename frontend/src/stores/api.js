@@ -59,7 +59,7 @@ export const useAPIStore = defineStore('api', () => {
         clearToken()
       }
       return Promise.reject(error)
-    }
+    },
   )
 
   // Auth: Login / Register / Logout
@@ -90,7 +90,6 @@ export const useAPIStore = defineStore('api', () => {
     return axios.get(`${API_BASE_URL}/users/me`)
   }
 
-  
   const getLeaderboard = async (payload) => {
     return axios.post(`${API_BASE_URL}/leaderboard`, payload)
   }
@@ -196,12 +195,15 @@ export const useAPIStore = defineStore('api', () => {
     })
   }
 
-  // Added constants from old store
-  const photoAvatarStorageURL =
-    'http://127.0.0.1:8000/storage/photos_avatars/'
+  const getUserActivities = async (userId) => {
+    if (!token.value) throw new Error('No authentication token available')
+    return axios.get(`${API_BASE_URL}/users/${userId}/activities`)
+  }
 
-  const anonymousAvatarStorageURL =
-    'http://127.0.0.1:8000/storage/photos_avatars/anonymous.png'
+  // Added constants from old store
+  const photoAvatarStorageURL = 'http://127.0.0.1:8000/storage/photos_avatars/'
+
+  const anonymousAvatarStorageURL = 'http://127.0.0.1:8000/storage/photos_avatars/anonymous.png'
 
   return {
     token,
@@ -230,5 +232,6 @@ export const useAPIStore = defineStore('api', () => {
     deleteUser,
     photoAvatarStorageURL,
     anonymousAvatarStorageURL,
+    getUserActivities,
   }
 })

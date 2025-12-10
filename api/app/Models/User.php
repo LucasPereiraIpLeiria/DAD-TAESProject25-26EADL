@@ -66,7 +66,7 @@ class User extends Authenticatable
     }
     */
 
-     public function getCustomAttribute($value)
+    public function getCustomAttribute($value): array
     {
         $decoded = json_decode($value, true);
 
@@ -86,7 +86,7 @@ class User extends Authenticatable
         ];
     }
 
-    public function setCustomAttribute($value)
+    public function setCustomAttribute($value): void
     {
         $this->attributes['custom'] = json_encode($value);
     }
@@ -94,12 +94,12 @@ class User extends Authenticatable
 
 
 
-    public function matchesAsPlayer1()
+    public function matchesAsPlayer1(): HasMany
     {
         return $this->hasMany(Matche::class, 'player1_user_id');
     }
 
-    public function matchesAsPlayer2()
+    public function matchesAsPlayer2(): HasMany
     {
         return $this->hasMany(Matche::class, 'player2_user_id');
     }
@@ -107,9 +107,42 @@ class User extends Authenticatable
     /**
      * Combined matches (accessor)
      */
-    public function getMatchesAttribute()
+    /*public function getMatchesAttribute()
     {
         return $this->matchesAsPlayer1()->get()
             ->merge($this->matchesAsPlayer2()->get());
+    }*/
+
+    public function gamesAsPlayer1(): HasMany
+    {
+        return $this->hasMany(Game::class, 'player1_user_id');
+    }
+
+    public function gamesAsPlayer2(): HasMany
+    {
+        return $this->hasMany(Game::class, 'player2_user_id');
+    }
+
+    public function getAllGames(): \Illuminate\Database\Eloquent\Collection
+    {
+        return $this->gamesAsPlayer1()
+            ->union($this->gamesAsPlayer2())
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    public function activities()
+    {
+        $matches = $this->matchesAsPlayer1()
+            ->union($this->matchesAsPlayer2())
+            ->get();
+
+        $games = $this->gamesAsPlayer1()
+            ->whereNull('match_id')
+            ->union($this->gamesAsPlayer2()->whereNull('match_id'))
+            ->get();
+
+        return $matches->merge($games)
+            ->sortByDesc('created_at');
     }
 }

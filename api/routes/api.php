@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\EconomyController;
 use App\Http\Controllers\UserController;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MatcheController;
@@ -51,7 +52,53 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/customizations/select', [CustomizationController::class, 'select']);
     Route::post('/customizations/debug/reset', [CustomizationController::class, 'debugReset']);
 
-    
+    Route::get('/users/{user}/activities', function (User $user) {
+        // Get all matches for this user with activity_type
+        $matches = $user->matchesAsPlayer1()
+            ->select('matches.*')
+            ->get()
+            ->each(function ($match) {
+                $match->activity_type = 'match';
+            });
+
+        $matches2 = $user->matchesAsPlayer2()
+            ->select('matches.*')
+            ->get()
+            ->each(function ($match) {
+                $match->activity_type = 'match';
+            });
+
+        // Get all standalone games (no match_id) for this user with activity_type
+        $games = $user->gamesAsPlayer1()
+            ->whereNull('match_id')
+            ->select('games.*')
+            ->get()
+            ->each(function ($game) {
+                $game->activity_type = 'game';
+            });
+
+        $games2 = $user->gamesAsPlayer2()
+            ->whereNull('match_id')
+            ->select('games.*')
+            ->get()
+            ->each(function ($game) {
+                $game->activity_type = 'game';
+            });
+
+        // Combine all collections
+        $activities = $matches
+            ->merge($matches2)
+            ->merge($games)
+            ->merge($games2)
+            ->sortByDesc('ended_at')
+            ->values();
+
+        return response()->json([
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'activities' => $activities,
+        ]);
+    });
 });
 
 Route::post('/leaderboard', function (Request $request) {

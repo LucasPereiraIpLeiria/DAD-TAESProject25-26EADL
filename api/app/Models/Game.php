@@ -65,6 +65,8 @@ class Game extends Model
 
             ->where('games.type', $type)
             ->whereNotNull('winner_user_id')
+            ->whereNull('match_id')
+
 
             // ONLY games vs bot
             ->where(function ($q) use ($botId) {
@@ -119,6 +121,8 @@ class Game extends Model
 
             ->where('games.type', $type)
             ->whereNotNull('winner_user_id')
+            ->whereNull('match_id')
+
 
             // EXCLUDE bot games
             ->where('player1_user_id', '!=', $botId)

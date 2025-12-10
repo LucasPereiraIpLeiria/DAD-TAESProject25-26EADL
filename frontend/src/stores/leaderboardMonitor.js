@@ -21,25 +21,6 @@ export const useLeaderboardMonitor = defineStore('leaderboardMonitor', () => {
     const cacheKey = getCacheKey(config)
     const oldData = leaderboardCache.value[cacheKey]
 
-    // For standalone games, check if top player has a match version
-    if (!config.is_match) {
-      // Get the corresponding match leaderboard cache key
-      const matchCacheKey = `${config.type}_${config.mode}_true`
-      const matchData = leaderboardCache.value[matchCacheKey]
-
-      // If match data exists and top player is in match leaderboard, skip notification
-      if (matchData) {
-        const matchDataParsed = JSON.parse(matchData)
-        const topPlayerInMatch = matchDataParsed.some(p => p.username === newData[0].username)
-
-        if (topPlayerInMatch) {
-          console.log(`[Leaderboard Monitor] Skipping standalone notification - top player has match version`)
-          leaderboardCache.value[cacheKey] = JSON.stringify(newData)
-          return
-        }
-      }
-    }
-
     // Store new data
     leaderboardCache.value[cacheKey] = JSON.stringify(newData)
 

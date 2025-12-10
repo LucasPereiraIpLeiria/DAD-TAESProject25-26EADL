@@ -79,14 +79,13 @@ const fetchLeaderboard = async (modeObject) => {
     })
 
     // Map fields for template
-    const mappedData = response.data.map(p => ({
-      id: p.winner_user_id ?? p.username, // unique key
+    leaderboardData.value = response.data.map(p => ({
+      id: p.winner_user_id,
       username: p.username,
       avatar: p.avatar_filename,
       wins: p.total_wins,
       capotes: p.total_capotes,
       bandeiras: p.total_bandeiras,
-      points: p.total_points,
       custom: p.custom,
     }))
 

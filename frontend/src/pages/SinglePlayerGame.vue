@@ -261,6 +261,9 @@ function exitToSelection() {
           <button id="debug-end-any" class="debug-btn" @click="bisca.debugForceEnd()">
             [DEBUG] Terminar instantaneamente
           </button>
+          <button id="debug-end-loss" class="debug-btn loss-btn" @click="bisca.debugForceLoss()">
+            [DEBUG] Terminar instantaneamente (perder)
+          </button>
         </div>
 
         <BiscaEndPanel v-if="bisca.status === 'between_games' || bisca.status === 'match_finished'" :bisca="bisca"
@@ -317,4 +320,34 @@ function exitToSelection() {
   font-size: 0.95rem;
   text-align: center;
 }
+
+.debug-buttons {
+  display: flex;
+  justify-content: flex-end; 
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.debug-btn {
+  cursor: pointer;           
+  padding: 0.4rem 0.6rem;
+  background: #eee;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.debug-btn:hover {
+  background: #ddd;
+}
+
+.loss-btn {
+  float: right;
+  background: #ffe5e5;
+  border-color: #ffaaaa;
+}
+
+.loss-btn:hover {
+  background: #ffcccc;
+}
+
 </style>

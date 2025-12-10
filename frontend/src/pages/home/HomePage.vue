@@ -1,6 +1,8 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAPIStore } from '@/stores/api.js'
+import { useLeaderboardMonitor } from '@/stores/leaderboardMonitor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
@@ -11,6 +13,7 @@ import avatarRobot from '@/assets/images/avatars/robot.png'
 import avatarDragon from '@/assets/images/avatars/dragon.png'
 
 const apiStore = useAPIStore()
+const leaderboardMonitor = useLeaderboardMonitor()
 
 // Game modes for the dropdown
 const gameModes = [
@@ -29,6 +32,10 @@ const leaderboardData = ref([])
 const leaderboardAvatars = ref({}) // store effective avatar URLs
 const isLoading = ref(false)
 const errorMessage = ref('')
+let pollInterval = null
+
+// Add route to read query parameters
+const route = useRoute()
 
 // Helper function to determine avatar URL based on custom field
 const getEffectiveAvatar = (player) => {
@@ -38,8 +45,8 @@ const getEffectiveAvatar = (player) => {
     const selectedKey = customData?.avatars?.selected ?? 'default'
 
     if (selectedKey === 'default') {
-      return player.avatar 
-        ? apiStore.photoAvatarStorageURL + player.avatar 
+      return player.avatar
+        ? apiStore.photoAvatarStorageURL + player.avatar
         : defaultPlaceholder
     }
 
@@ -82,6 +89,11 @@ const fetchLeaderboard = async (modeObject) => {
       custom: p.custom,
     }))
 
+    // Check for changes and trigger toast if data changed
+    leaderboardMonitor.checkForChanges(modeObject, mappedData)
+
+    leaderboardData.value = mappedData
+
     // Setup effective avatars
     const avatars = {}
     leaderboardData.value.forEach(player => {
@@ -99,10 +111,19 @@ const fetchLeaderboard = async (modeObject) => {
   }
 }
 
+// Start polling for leaderboard updates
+const startPolling = (modeObject) => {
+  if (pollInterval) clearInterval(pollInterval)
+  pollInterval = setInterval(() => {
+    fetchLeaderboard(modeObject)
+  }, 30000) // Check every 30 seconds
+}
+
 // Update selected mode
 const handleGameModeChange = async (modeObject) => {
   selectedGameMode.value = modeObject
   await fetchLeaderboard(modeObject)
+  startPolling(modeObject)
 }
 
 // Fallback when an image fails to load
@@ -110,18 +131,37 @@ const onAvatarError = (playerId) => {
   leaderboardAvatars.value[playerId] = defaultPlaceholder
 }
 
-// Initial fetch
-fetchLeaderboard(selectedGameMode.value)
+// Lifecycle hooks - just load initial data when homepage mounts
+onMounted(() => {
+  // Check if query params specify a leaderboard mode
+  const selectedType = route.query.selectedType
+  const selectedMode = route.query.selectedMode
+  const selectedIsMatch = route.query.selectedIsMatch
+
+  if (selectedType && selectedMode && selectedIsMatch !== undefined) {
+    const requestedMode = gameModes.find(m =>
+      m.type === parseInt(selectedType) &&
+      m.mode === selectedMode &&
+      m.is_match === (selectedIsMatch === 'true')
+    )
+
+    if (requestedMode) {
+      selectedGameMode.value = requestedMode
+    }
+  }
+
+  fetchLeaderboard(selectedGameMode.value)
+})
+
+onUnmounted(() => {
+  if (pollInterval) clearInterval(pollInterval)
+})
 </script>
-
-
-
-
 
 <template>
   <div class="min-h-screen bg-gray-50 p-6">
     <div class="max-w-7xl mx-auto space-y-6">
-      
+
       <!-- Top Block - Full Width -->
       <Card>
         <CardHeader>
@@ -136,7 +176,7 @@ fetchLeaderboard(selectedGameMode.value)
 
       <!-- Second Div Card side by side -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
+
         <!-- Left Card -->
         <Card>
           <CardHeader>
@@ -173,7 +213,7 @@ fetchLeaderboard(selectedGameMode.value)
       </div>
 
       <!-- Third Div Card side by side -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6"> 
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Left Card - Leaderboards -->
         <Card>
           <CardHeader>
@@ -193,8 +233,8 @@ fetchLeaderboard(selectedGameMode.value)
                   <SelectValue placeholder="Choose a game mode" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem 
-                    v-for="mode in gameModes" 
+                  <SelectItem
+                    v-for="mode in gameModes"
                     :key="mode.label"
                     :value="mode"
                   >
@@ -209,8 +249,8 @@ fetchLeaderboard(selectedGameMode.value)
               <div class="max-h-64 overflow-y-auto">
 
                 <!-- No Data -->
-                <div 
-                  v-if="leaderboardData.length === 0" 
+                <div
+                  v-if="leaderboardData.length === 0"
                   class="p-6 text-center text-sm text-muted-foreground"
                 >
                   No leaderboard data available yet.
@@ -228,8 +268,8 @@ fetchLeaderboard(selectedGameMode.value)
                   </div>
 
                   <!-- Rows -->
-                  <div 
-                    v-for="(player, index) in leaderboardData" 
+                  <div
+                    v-for="(player, index) in leaderboardData"
                     :key="index"
                     class="grid grid-cols-4 items-center px-3 py-3 border-b hover:bg-muted/50 transition-colors"
                     :class="{
@@ -247,20 +287,20 @@ fetchLeaderboard(selectedGameMode.value)
                       </div>
 
                       <!-- Avatar -->
-                    <Avatar class="h-8 w-8">
-                      <AvatarImage
-                        :src="getEffectiveAvatar(player)"
-                        @error="(e) => e.target.src = defaultPlaceholder"
-                      />
-
-                      <AvatarFallback>
-                        <img
-                          :src="defaultPlaceholder"
-                          alt="Anonymous Avatar"
-                          class="h-8 w-8 rounded-full"
+                      <Avatar class="h-8 w-8">
+                        <AvatarImage
+                          :src="getEffectiveAvatar(player)"
+                          @error="(e) => e.target.src = defaultPlaceholder"
                         />
-                      </AvatarFallback>
-                    </Avatar>
+
+                        <AvatarFallback>
+                          <img
+                            :src="defaultPlaceholder"
+                            alt="Anonymous Avatar"
+                            class="h-8 w-8 rounded-full"
+                          />
+                        </AvatarFallback>
+                      </Avatar>
 
 
                       <!-- Username -->

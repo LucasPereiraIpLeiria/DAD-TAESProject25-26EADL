@@ -158,7 +158,6 @@ const logout = async () => {
 
 const handleFundsSubmit = async (data) => {
   const coins = Math.floor(data.euros * 10)
-  console.log(coins)
 
   toast.promise(apiStore.postCoinPurchase(data, coins), {
     loading: 'Contacting payment processor',
@@ -234,11 +233,9 @@ const startGlobalLeaderboardPolling = () => {
 
   if (globalPollInterval) clearInterval(globalPollInterval)
 
-  console.log('[App.vue] Starting global leaderboard polling...')
 
   // Poll immediately on start
   const pollNow = async () => {
-    console.log('[App.vue] Polling leaderboards...')
     for (const mode of allGameModes) {
       try {
         const response = await apiStore.getLeaderboard({

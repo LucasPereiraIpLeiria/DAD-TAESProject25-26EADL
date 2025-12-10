@@ -60,7 +60,7 @@ function handleExit() {
 
     <p v-if="bisca.summary.result === 'win' && bisca.summary.coinsAwarded != null" class="coins-awarded">
       <strong>Coins ganhos:</strong>
-      +{{ bisca.summary.coinsAwarded }}
+      +{{ bisca.summary.coinsAwarded }} !!!!!!
     </p>
 
     <!-- Lista de games do match -->
@@ -94,7 +94,7 @@ function handleExit() {
     </div>
 
 
-    <PrimaryButton type="button" @click="handleExit"> Voltar à seleção </PrimaryButton>
+    <PrimaryButton type="button" @click="handleExit"> Voltar à Dashboard </PrimaryButton>
   </section>
 </template>
 

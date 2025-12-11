@@ -134,8 +134,8 @@ const hasAnyHistory = computed(() => {
 
 <template>
   <PageContainer max-width="xl">
-    <UiCard padding="md">
-      <div class="space-y-6">
+    <UiCard padding="md" background="bg-white/90">
+      <div class="space-y-6 ">
         <header class="flex flex-col gap-1 mb-2">
           <h1 class="text-2xl font-semibold">
             Game History

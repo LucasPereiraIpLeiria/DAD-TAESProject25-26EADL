@@ -80,7 +80,7 @@ async function startGame() {
 
 <template>
   <PageContainer max-width="sm">
-    <UiCard padding="md">
+    <UiCard padding="md" background="bg-white/90">
       <header class="sp-header">
         <h1>Single Player</h1>
         <p>Select the type of game and the Bisca variant.</p>

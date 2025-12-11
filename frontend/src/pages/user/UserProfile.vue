@@ -1,7 +1,7 @@
 <template>
-  <div class="flex min-h-screen bg-gray-200 px-4 py-12 sm:px-6 lg:px-8">
+  <div class="flex min-h-screen  px-4 py-12 sm:px-6 lg:px-8">
     <div class="w-full max-w-2xl mx-auto">
-      <div class="bg-white rounded-lg shadow-md p-8">
+      <div class="bg-white/90 rounded-lg shadow-md p-8">
         <!-- Header -->
         <div class="flex items-start justify-between mb-8">
           <div>

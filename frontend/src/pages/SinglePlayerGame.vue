@@ -199,7 +199,7 @@ function exitToSelection() {
 <template>
   <PageContainer max-width="xl">
     <div class="bisca-layout">
-      <UiCard padding="md">
+      <UiCard padding="md" background="bg-white/90">
         <BiscaGameHeader :gametype="gametype" :variant="variant" />
 
         <div

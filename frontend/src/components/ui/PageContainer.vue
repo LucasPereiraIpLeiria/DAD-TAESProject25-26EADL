@@ -6,13 +6,14 @@ const props = defineProps({
     
     validator: (value) => ['sm', 'md', 'lg', 'xl'].includes(value),
   },
+  
 })
 </script>
 
 <template>
-  <main class="page-container bg-gray-200">
+  <main class="page-container " >
     <div
-      class="page-inner"
+      class="page-inner "
       :class="[
         maxWidth === 'sm' && 'page-inner--sm',
         maxWidth === 'md' && 'page-inner--md',
@@ -32,6 +33,7 @@ const props = defineProps({
   align-items: center;
   justify-content: center;
   padding: 1.5rem; 
+  
 }
 
 .page-inner {

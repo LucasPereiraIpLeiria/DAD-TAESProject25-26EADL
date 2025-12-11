@@ -1,5 +1,9 @@
 <script setup>
+import { watch, ref } from 'vue'
 import PrimaryButton from '@/components/ui/PrimaryButton.vue'
+import confetti from 'canvas-confetti'
+import confettiSound from '@/assets/sounds/confetti.mp3'
+import victorySound from '@/assets/sounds/victory.mp3'
 
 const props = defineProps({
   bisca: {
@@ -14,6 +18,50 @@ const props = defineProps({
 
 const emit = defineEmits(['next-game', 'exit'])
 
+const hasCelebrated = ref(false)
+
+function playConfettiSound() {
+  const audio = new Audio(confettiSound)
+  audio.volume = 0.6    
+  audio.play().catch(err => {
+    console.warn("Som bloqueado até interação do utilizador:", err)
+  })
+}
+
+function playVictorySound() {
+  const audio = new Audio(victorySound)
+  audio.volume = 0.6    
+  audio.play().catch(err => {
+    console.warn("Som bloqueado até interação do utilizador:", err)
+  })
+}
+
+function launchConfettiBurst() {
+
+  playConfettiSound()
+  playVictorySound()
+
+  const delay = 300
+
+  setTimeout(() => {
+    confetti({
+      particleCount: 120,
+      spread: 70,
+      origin: { y: 0.8 },
+      scalar: 0.9,
+    })
+
+    setTimeout(() => {
+      confetti({
+        particleCount: 80,
+        spread: 100,
+        origin: { y: 0.6 },
+        scalar: 0.8,
+      })
+    }, 350)
+  }, delay)
+}
+
 function handleNextGame() {
   emit('next-game')
 }
@@ -21,6 +69,28 @@ function handleNextGame() {
 function handleExit() {
   emit('exit')
 }
+
+
+watch(
+  () => props.bisca.summary?.coinsAwarded,
+  (newCoins, oldCoins) => {
+
+    if (hasCelebrated.value) return
+
+    const summary = props.bisca.summary
+    if (!summary) return
+
+    if (props.gametype !== 'match' && summary.gameType !== 'match') return
+
+    if (summary.result !== 'win') return
+
+    if (newCoins == null || newCoins <= 0) return
+
+    hasCelebrated.value = true
+    launchConfettiBurst()
+  }
+)
+
 </script>
 
 <template>

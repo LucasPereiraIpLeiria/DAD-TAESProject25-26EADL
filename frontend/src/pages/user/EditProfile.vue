@@ -1,6 +1,6 @@
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-gray-200 px-4 py-12 sm:px-6 lg:px-8">
-    <div class="w-full max-w-md space-y-8 bg-white p-6 rounded-lg shadow">
+  <div class="flex min-h-screen items-center justify-center  px-4 py-12 sm:px-6 lg:px-8">
+    <div class="w-full max-w-md space-y-8 bg-white/90 p-6 rounded-lg shadow">
       <div>
         <h2 class="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
           Edit profile

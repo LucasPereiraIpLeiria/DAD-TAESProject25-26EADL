@@ -15,7 +15,6 @@ A base de dados já vem pronta.
 
 
 cd frontend
-cp .env.example .env
 npm install
 npm run dev
 

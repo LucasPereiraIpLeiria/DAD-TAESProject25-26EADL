@@ -400,6 +400,11 @@ class UserStatsController extends Controller
             ->whereNotNull('winner_user_id')
             ->join('users', 'users.id', '=', 'matches.winner_user_id');
 
+        $topMatchesQuery->where(function ($q) {
+            $q->whereNull('users.nickname')
+                ->orWhere('users.nickname', '!=', 'bot');
+        });
+
         if (!empty($typeFilter)) {
             $topMatchesQuery->where('matches.type', $typeFilter);
         }
@@ -415,6 +420,11 @@ class UserStatsController extends Controller
             ->join('games as g', 'g.match_id', '=', 'matches.id')
             ->join('users', 'users.id', '=', 'matches.winner_user_id')
             ->whereNotNull('matches.winner_user_id');
+
+        $topAchievementsQuery->where(function ($q) {
+            $q->whereNull('users.nickname')
+                ->orWhere('users.nickname', '!=', 'bot');
+        });
 
         if (!empty($typeFilter)) {
             $topAchievementsQuery->where('matches.type', $typeFilter);
@@ -465,6 +475,11 @@ class UserStatsController extends Controller
             ->join('matches', 'matches.id', '=', 'ct.match_id')
             ->join('users', 'users.id', '=', 'ct.user_id')
             ->where('ct.coin_transaction_type_id', 6); // Match payout
+
+        $topCoinsQuery->where(function ($q) {
+            $q->whereNull('users.nickname')
+                ->orWhere('users.nickname', '!=', 'bot');
+        });
 
         if (!empty($typeFilter)) {
             $topCoinsQuery->where('matches.type', $typeFilter);

@@ -188,6 +188,8 @@ export const useBiscaStore = defineStore('bisca', () => {
         type: variant.value,
         player1_user_id: p1,
         player2_user_id: p2,
+        // status e began_at podem ser ignorados pelo backend,
+        // mas manter não faz mal
         status: 'Playing',
         stake: 1,
         began_at: nowIso,
@@ -195,10 +197,26 @@ export const useBiscaStore = defineStore('bisca', () => {
 
       try {
         const response = await apiStore.postMatch(matchPayload)
-        currentMatchId.value = response.data.id
-        matchBeganAt.value = response.data.began_at ?? nowIso
+        const data = response.data
+
+        // se mantivermos o retorno como só o match:
+        currentMatchId.value = data.id
+        matchBeganAt.value = data.began_at ?? nowIso
+
+        // coins foram deduzidas no backend → refrescar user
+        await authStore.refreshUser()
       } catch (error) {
         console.error('Failed to create match in API:', error)
+
+        // se for insuficiência de fundos, podes tratar aqui:
+        const reason = error.response?.data?.reason
+        if (reason === 'insufficient_funds') {
+          status.value = 'idle'
+          throw new Error('insufficient_funds')
+        }
+
+        status.value = 'idle'
+        throw error
       }
     }
 
@@ -648,60 +666,33 @@ export const useBiscaStore = defineStore('bisca', () => {
           player2_points: matchPlayer2Points.value,
         }
 
-        await apiStore.updateMatch(currentMatchId.value, payload)
+        const resp = await apiStore.updateMatch(currentMatchId.value, payload)
+
+        // se quiseres usar coins_awarded:
+        const awarded = resp.data?.coins_awarded ?? null
+        if (awarded != null) {
+          summary.value = {
+            ...summary.value,
+            coinsAwarded: awarded,
+          }
+        }
+
+        // coins foram atribuídas no backend → refrescar user
+        await authStore.refreshUser()
       } catch (error) {
         console.error('Failed to update match in API:', error)
       }
     }
 
-    await awardCoinsIfNeeded()
-
     try {
-      // pede o scoreboard só da variante atual (3 ou 9)
       const resp = await apiStore.getGlobalScoreboards({ type: variant.value })
-      // avisa o monitor indicando também a variante
       leaderboardMonitor.checkForChanges(resp.data, variant.value)
     } catch (err) {
       console.error('Failed to refresh global scoreboards after match:', err)
     }
   }
 
-  async function awardCoinsIfNeeded() {
-    const auth = useAuthStore()
-    const api = useAPIStore()
-
-    if (!auth.isLoggedIn) return
-    if (gameType.value !== 'match') return
-    if (!summary.value || summary.value.result !== 'win') return
-
-    const payload = {
-      result: summary.value.result,
-      gametype: 'match',
-      variant: summary.value.variant,
-      player_marks: summary.value.playerMarks,
-      bot_marks: summary.value.botMarks,
-      player_points: summary.value.playerPoints,
-      bot_points: summary.value.botPoints,
-      capote: !!summary.value.achievements?.capote,
-      bandeira: !!summary.value.achievements?.bandeira,
-    }
-
-    try {
-      const response = await api.postAwardMatchReward(payload)
-      const awarded = response.data?.meta?.coins_awarded ?? response.data?.coins_awarded ?? null
-
-      await auth.refreshUser()
-
-      if (awarded != null) {
-        summary.value = {
-          ...summary.value,
-          coinsAwarded: awarded,
-        }
-      }
-    } catch (error) {
-      console.error('Failed to award coins:', error)
-    }
-  }
+  
 
   function displayRank(rank) {
     switch (rank) {
@@ -718,27 +709,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
-  async function tryStartMatchEntry() {
-    const auth = useAuthStore()
-    const api = useAPIStore()
-
-    if (!auth.isLoggedIn) {
-      return { ok: false, reason: 'not_authenticated' }
-    }
-
-    try {
-      await api.postDeductEntryFee({ gametype: 'match' })
-      await auth.refreshUser()
-      return { ok: true }
-    } catch (error) {
-      const res = error.response?.data
-      const reason = res?.reason ?? res?.data?.reason
-      if (reason === 'insufficient_funds') {
-        return { ok: false, reason: 'insufficient_funds' }
-      }
-      return { ok: false, reason: 'unknown_error' }
-    }
-  }
+  
 
   // ───────────────────────────────────────────────
   // DEBUG HELPERS (instant end of game)
@@ -803,32 +774,6 @@ export const useBiscaStore = defineStore('bisca', () => {
 
     // o parâmetro winner aqui é irrelevante porque o isGameOver já é true
     finishGameIfNeeded('player')
-  }
-
-  // Mantemos os antigos para não partir nada, mas agora só “reencaminham”
-  function debugForceEnd() {
-    // por default: vitória bandeira
-    debugWinBandeiraGame()
-  }
-
-  function debugForceEndPractice() {
-    debugWinBandeiraGame()
-  }
-
-  function debugForceEndMatch() {
-    debugWinBandeiraGame()
-  }
-
-  function debugForceLoss() {
-    debugLoseBandeiraGame()
-  }
-
-  function debugForceLossPractice() {
-    debugLoseBandeiraGame()
-  }
-
-  function debugForceLossMatch() {
-    debugLoseBandeiraGame()
   }
 
   async function saveMatchGame(gameWinner) {
@@ -909,20 +854,8 @@ export const useBiscaStore = defineStore('bisca', () => {
     finishGameIfNeeded,
     finishMatch,
     displayRank,
-    tryStartMatchEntry,
-    awardCoinsIfNeeded,
     saveMatchGame,
     afterTrickAnimation,
-
-    // debug antigos
-    debugForceEnd,
-    debugForceEndPractice,
-    debugForceEndMatch,
-    debugForceLoss,
-    debugForceLossPractice,
-    debugForceLossMatch,
-
-    // novos debug específicos de outcome
     debugWinCapoteGame,
     debugWinBandeiraGame,
     debugLoseBandeiraGame,

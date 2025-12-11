@@ -87,15 +87,6 @@ export const useAPIStore = defineStore('api', () => {
   }
 
   // Economy
-  const postDeductEntryFee = async (payload) => {
-    if (!token.value) throw new Error('No authentication token available')
-    return axios.post(`${API_BASE_URL}/economy/deduct-entry-fee`, payload)
-  }
-
-  const postAwardMatchReward = async (payload) => {
-    if (!token.value) throw new Error('No authentication token available')
-    return axios.post(`${API_BASE_URL}/economy/award-match-reward`, payload)
-  }
 
   const postCoinPurchase = async (data, coins) => {
     if (!token.value) throw new Error('No authentication token available')
@@ -108,10 +99,6 @@ export const useAPIStore = defineStore('api', () => {
   }
 
   // Matches / Games
-  const getUserGames = async () => {
-    if (!token.value) throw new Error('No authentication token available')
-    return axios.get(`${API_BASE_URL}/users/matches`)
-  }
 
   const postMatch = async (match) => {
     if (!token.value) throw new Error('No authentication token available')
@@ -149,11 +136,13 @@ export const useAPIStore = defineStore('api', () => {
     return axios.get(`${API_BASE_URL}/users/history`, { params })
   }
 
-  async function getUserStats(params = {}) {
+  const getUserStats = async (params = {}) => {
+    if (!token.value) throw new Error('No authentication token available')
     return axios.get(`${API_BASE_URL}/users/stats`, { params })
   }
 
-  async function getGlobalScoreboards(params = {}) {
+  const getGlobalScoreboards = async (params = {}) => {
+    if (!token.value) throw new Error('No authentication token available')
     return axios.get(`${API_BASE_URL}/users/stats/global`, { params })
   }
 
@@ -208,10 +197,7 @@ export const useAPIStore = defineStore('api', () => {
     postRegister,
     postLogout,
     getAuthUser,
-    postDeductEntryFee,
-    postAwardMatchReward,
     postCoinPurchase,
-    getUserGames,
     postMatch,
     updateMatch,
     postGame,

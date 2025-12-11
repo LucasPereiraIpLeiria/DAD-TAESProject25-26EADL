@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CoinPurchase;
 use App\Models\CoinTransaction;
+use App\Models\CoinTransactionType;
 use Illuminate\Http\Request;
 use App\Http\Resources\UserBalanceResource;
 use App\Http\Resources\ErrorResource;
@@ -13,50 +14,26 @@ use Illuminate\Support\Facades\Log;
 
 class EconomyController extends Controller
 {
-    /**
-     * Deduz coins para entrar num MATCH.
-     * Agora só existe "match" como modo com coins.
-     */
-    public function deductEntryFee(Request $request): \Illuminate\Http\JsonResponse|UserBalanceResource
-    {
-        $user = $request->user();
-
-        $data = $request->validate([
-            'gametype' => 'required|string|in:match',
-        ]);
-
-        // match: usa sempre esta config
-        $entryCost = config('economy.match_entry_fee', 5);
-
-        if ($user->coins_balance < $entryCost) {
-            return (new ErrorResource([
-                'reason'  => 'insufficient_funds',
-                'message' => 'Not enough coins to start this match.',
-            ]))->response()->setStatusCode(400);
-        }
-
-        $user->coins_balance -= $entryCost;
-        $user->save();
-
-        return new UserBalanceResource($user);
-    }
 
     public function createCoinPurchase(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
-            'euros'            => 'required|numeric|min:0.01',
-            'payment_type'     => 'required|in:MBWAY,IBAN,MB,VISA,PAYPAL',
-            'payment_reference'=> 'required|string',
-            'coins'            => 'required|integer|min:1|max:10000',
+            'euros'             => 'required|numeric|min:0.01',
+            'payment_type'      => 'required|in:MBWAY,IBAN,MB,VISA,PAYPAL',
+            'payment_reference' => 'required|string',
+            'coins'             => 'required|integer|min:1|max:10000',
         ]);
 
         try {
             // 1. Call Payment Gateway
-            $gatewayResponse = Http::withoutVerifying()->post('https://dad-payments-api.vercel.app/api/debit', [
-                'type'      => $validated['payment_type'],
-                'reference' => $validated['payment_reference'],
-                'value'     => $validated['euros'], // euros
-            ]);
+            $gatewayResponse = Http::withoutVerifying()->post(
+                'https://dad-payments-api.vercel.app/api/debit',
+                [
+                    'type'      => $validated['payment_type'],
+                    'reference' => $validated['payment_reference'],
+                    'value'     => $validated['euros'],
+                ]
+            );
 
             if (!$gatewayResponse->successful()) {
                 return response()->json([
@@ -68,27 +45,32 @@ class EconomyController extends Controller
             $user = $request->user();
 
             $purchase = DB::transaction(function () use ($user, $validated) {
+                // Coin purchase (C)
+                $type = CoinTransactionType::where('name', 'Coin purchase')
+                    ->where('type', 'C')
+                    ->firstOrFail();
+
                 $coinTransaction = CoinTransaction::create([
                     'user_id'                  => $user->id,
                     'match_id'                 => null,
                     'game_id'                  => null,
-                    'coin_transaction_type_id' => 2,
+                    'coin_transaction_type_id' => $type->id, // ou 2
                     'coins'                    => $validated['coins'],
                     'transaction_datetime'     => now(),
                 ]);
 
                 $purchase = CoinPurchase::create([
-                    'user_id'          => $user->id,
+                    'user_id'             => $user->id,
                     'coin_transaction_id' => $coinTransaction->id,
-                    'euros'            => $validated['euros'],
-                    'payment_type'     => $validated['payment_type'],
-                    'payment_reference'=> $validated['payment_reference'],
-                    'purchase_datetime'=> now(),
+                    'euros'               => $validated['euros'],
+                    'payment_type'        => $validated['payment_type'],
+                    'payment_reference'   => $validated['payment_reference'],
+                    'purchase_datetime'   => now(),
                 ]);
 
                 $user->increment('coins_balance', $validated['coins']);
 
-                Log::debug('Compra feita'.$purchase);
+                Log::debug('Compra feita ' . $purchase->id);
 
                 return $purchase;
             });
@@ -106,60 +88,4 @@ class EconomyController extends Controller
         }
     }
 
-    /**
-     * Premia o MATCH com coins (apenas vitórias).
-     * Agora não há "mode" nem "standalone" aqui – só matches.
-     */
-    public function awardMatchReward(Request $request): \Illuminate\Http\JsonResponse|UserBalanceResource
-    {
-        $user = $request->user();
-
-        $data = $request->validate([
-            'result'        => 'required|string|in:win,loss',
-            'gametype'      => 'required|string|in:match',
-            'variant'       => 'required|string|in:3,9',
-            'player_marks'  => 'required|integer|min:0',
-            'bot_marks'     => 'required|integer|min:0',
-            'player_points' => 'required|integer|min:0',
-            'bot_points'    => 'required|integer|min:0',
-            'capote'        => 'required|boolean',
-            'bandeira'      => 'required|boolean',
-        ]);
-
-        // Só premiamos vitórias
-        if ($data['result'] !== 'win') {
-            return (new ErrorResource([
-                'reason'  => 'no_reward',
-                'message' => 'No coins awarded for this result.',
-            ]))->response()->setStatusCode(400);
-        }
-
-        // Match: base + bónus Capote/Bandeira
-        $base = config('economy.match_base_win_reward', 10);
-        $bonus = 0;
-
-        if ($data['bandeira']) {
-            $bonus += config('economy.match_bandeira_bonus', 20);
-        } elseif ($data['capote']) {
-            $bonus += config('economy.match_capote_bonus', 10);
-        }
-
-        $totalReward = $base + $bonus;
-
-        if ($totalReward <= 0) {
-            return (new ErrorResource([
-                'reason'  => 'no_reward_config',
-                'message' => 'Reward configuration resulted in zero coins.',
-            ]))->response()->setStatusCode(400);
-        }
-
-        $user->coins_balance += $totalReward;
-        $user->save();
-
-        return (new UserBalanceResource($user))->additional([
-            'meta' => [
-                'coins_awarded' => $totalReward,
-            ],
-        ]);
-    }
 }

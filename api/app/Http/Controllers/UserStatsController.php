@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Game;
 use App\Models\Matche;
+use App\Models\CoinTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -47,7 +48,7 @@ class UserStatsController extends Controller
         $matchesQuery = Matche::query()
             ->where(function ($q) use ($userId) {
                 $q->where('player1_user_id', $userId)
-                  ->orWhere('player2_user_id', $userId);
+                    ->orWhere('player2_user_id', $userId);
             })
             ->whereNotNull('ended_at'); // já exclui matches ainda em progresso
 
@@ -136,19 +137,14 @@ class UserStatsController extends Controller
                 ];
             }
 
-            // Coins earned de acordo com a MESMA regra da store:
-            // vitória → 10 base + (10 capote OU 20 bandeira)
-            $coinsEarned = 0;
-            if ($result === 'win') {
-                $base  = 10;
-                $bonus = 0;
-                if ($hasBandeira) {
-                    $bonus = 20;
-                } elseif ($hasCapote) {
-                    $bonus = 10;
-                }
-                $coinsEarned = $base + $bonus;
-            }
+
+            // Coins earned: ler diretamente da coin_transactions (Match payout)
+            $coinsEarned = CoinTransaction::query()
+                ->where('user_id', $userId)
+                ->where('match_id', $match->id)
+                ->where('coin_transaction_type_id', 6) // Match payout
+                ->sum('coins');
+
 
             // filtros de resultado / achievements AO NÍVEL DO MATCH
             if (!empty($filters['result']) && $filters['result'] !== $result) {
@@ -186,7 +182,7 @@ class UserStatsController extends Controller
         $gamesQuery = Game::query()
             ->where(function ($q) use ($userId) {
                 $q->where('player1_user_id', $userId)
-                  ->orWhere('player2_user_id', $userId);
+                    ->orWhere('player2_user_id', $userId);
             })
             ->whereNotNull('ended_at');
 
@@ -296,7 +292,7 @@ class UserStatsController extends Controller
         $baseMatches = Matche::query()
             ->where(function ($q) use ($userId) {
                 $q->where('player1_user_id', $userId)
-                  ->orWhere('player2_user_id', $userId);
+                    ->orWhere('player2_user_id', $userId);
             })
             ->whereNotNull('ended_at');
 
@@ -348,40 +344,19 @@ class UserStatsController extends Controller
         $totalCapotes   = (int) ($achievements->total_capotes ?? 0);
         $totalBandeiras = (int) ($achievements->total_bandeiras ?? 0);
 
-        // coins_earned: mesma regra do store, somando por cada match ganho
+        // IDs dos matches concluídos deste user
+        $matchIds = (clone $completedMatches)->pluck('id');
+
+        // coins_earned: somar todos os Match payout (type 6) destes matches para este user
         $coinsEarned = 0;
-
-        $matches = $completedMatches->with('games')->get();
-
-        foreach ($matches as $match) {
-            if ($match->winner_user_id !== $userId) {
-                continue;
-            }
-
-            $isUserP1    = $match->player1_user_id === $userId;
-            $hasCapote   = false;
-            $hasBandeira = false;
-
-            foreach ($match->games as $game) {
-                $userPoints = $isUserP1 ? $game->player1_points : $game->player2_points;
-
-                if ($userPoints === 120) {
-                    $hasBandeira = true;
-                } elseif ($userPoints >= 91) {
-                    $hasCapote = true;
-                }
-            }
-
-            $base  = 10;
-            $bonus = 0;
-            if ($hasBandeira) {
-                $bonus = 20;
-            } elseif ($hasCapote) {
-                $bonus = 10;
-            }
-
-            $coinsEarned += ($base + $bonus);
+        if ($matchIds->isNotEmpty()) {
+            $coinsEarned = CoinTransaction::query()
+                ->where('user_id', $userId)
+                ->whereIn('match_id', $matchIds)
+                ->where('coin_transaction_type_id', 6) // Match payout
+                ->sum('coins');
         }
+
 
         return response()->json([
             'total_matches'   => $totalMatches,
@@ -485,78 +460,28 @@ class UserStatsController extends Controller
             ->limit(10)
             ->get();
 
-        // TOP: most coins earned (teóricas, mesma regra do store, calculadas em PHP)
-        $matchesCoinsQuery = Matche::query()
-            ->with('games')
-            ->whereNotNull('winner_user_id');
+        // TOP: most coins earned from match payouts (type 6)
+        $topCoinsQuery = DB::table('coin_transactions as ct')
+            ->join('matches', 'matches.id', '=', 'ct.match_id')
+            ->join('users', 'users.id', '=', 'ct.user_id')
+            ->where('ct.coin_transaction_type_id', 6); // Match payout
 
         if (!empty($typeFilter)) {
-            $matchesCoinsQuery->where('type', $typeFilter);
+            $topCoinsQuery->where('matches.type', $typeFilter);
         }
 
-        $matches = $matchesCoinsQuery->get();
+        $topCoinsCollection = $topCoinsQuery
+            ->selectRaw('
+        ct.user_id AS user_id,
+        COALESCE(users.nickname, users.name) AS username,
+        users.photo_avatar_filename AS avatar_filename,
+        users.custom,
+        SUM(ct.coins) AS total_coins')
+            ->groupBy('ct.user_id', 'users.nickname', 'users.name', 'users.photo_avatar_filename', 'users.custom')
+            ->orderByDesc('total_coins')
+            ->limit(10)
+            ->get();
 
-        $coinsPerUser = [];
-
-        foreach ($matches as $match) {
-            $winnerId    = $match->winner_user_id;
-            $isWinnerP1  = $match->player1_user_id === $winnerId;
-            $hasCapote   = false;
-            $hasBandeira = false;
-
-            foreach ($match->games as $game) {
-                $winnerPoints = $isWinnerP1 ? $game->player1_points : $game->player2_points;
-
-                if ($winnerPoints === 120) {
-                    $hasBandeira = true;
-                } elseif ($winnerPoints >= 91) {
-                    $hasCapote = true;
-                }
-            }
-
-            $base  = 10;
-            $bonus = 0;
-            if ($hasBandeira) {
-                $bonus = 20;
-            } elseif ($hasCapote) {
-                $bonus = 10;
-            }
-            $coins = $base + $bonus;
-
-            if (!isset($coinsPerUser[$winnerId])) {
-                $coinsPerUser[$winnerId] = 0;
-            }
-            $coinsPerUser[$winnerId] += $coins;
-        }
-
-        // buscar dados dos users e construir ranking
-        $userIds = array_keys($coinsPerUser);
-        $users   = DB::table('users')
-            ->whereIn('id', $userIds)
-            ->select(
-                'id',
-                DB::raw('COALESCE(nickname, name) as username'),
-                'photo_avatar_filename as avatar_filename',
-                'custom'
-            )
-            ->get()
-            ->keyBy('id');
-
-        $topCoinsCollection = collect($coinsPerUser)
-            ->map(function ($coins, $userId) use ($users) {
-                $user = $users[$userId] ?? null;
-
-                return [
-                    'user_id'         => (int) $userId,
-                    'username'        => $user->username ?? 'Unknown',
-                    'avatar_filename' => $user->avatar_filename ?? null,
-                    'custom'          => $user->custom ?? null,
-                    'total_coins'     => $coins,
-                ];
-            })
-            ->sortByDesc('total_coins')
-            ->take(10)
-            ->values();
 
         return response()->json([
             'top_matches'      => $topMatches,

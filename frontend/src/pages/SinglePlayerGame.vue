@@ -44,34 +44,43 @@ async function startByRoute() {
 
   try {
     if (gametype.value === 'match') {
-      // MATCH: requires login + entry fee
-      const result = await bisca.tryStartMatchEntry()
-      if (!result.ok) {
-        if (result.reason === 'not_authenticated') {
-          toast.error('You must be logged in to play a match.')
-          router.push({
-            name: 'login',
-            query: { redirect: route.fullPath },
-          })
-        } else if (result.reason === 'insufficient_funds') {
-          toast.error('Not enough coins to start this match.')
-          router.push({ name: 'singleplayer.mode.select' })
-        } else {
-          toast.error('Unable to start the match.')
-          router.push({ name: 'singleplayer.mode.select' })
-        }
+      // MATCH: precisa de login
+      if (!auth.isLoggedIn) {
+        toast.error('You must be logged in to play a match.')
+        router.push({
+          name: 'login',
+          query: { redirect: route.fullPath },
+        })
         return
       }
 
-      await bisca.startMatch(config)
+      // Aqui o startMatch já:
+      // - chama o backend
+      // - pode lançar 'insufficient_funds'
+      try {
+        await bisca.startMatch(config)
+      } catch (e) {
+        const msg = e?.message || ''
+
+        if (msg === 'insufficient_funds') {
+          toast.error('Not enough coins to start this match.')
+        } else {
+          console.error(e)
+          toast.error('Unable to start the match.')
+        }
+
+        router.push({ name: 'singleplayer.mode.select' })
+        return
+      }
     } else {
-      // PRACTICE: single in-memory game, no coins/DB
+      // PRACTICE: single in-memory game, sem coins
       bisca.startGame(config)
     }
   } finally {
     isInitializingGame.value = false
   }
 }
+
 
 onMounted(() => {
   startByRoute()
@@ -239,7 +248,7 @@ function exitToSelection() {
 
         <!-- DEBUG BUTTONS -->
         <div
-          v-if="bisca.status === 'in_game' && bisca.status !== 'between_games'"
+          v-if="bisca.status === 'in_game'"
         >
           <button id="debug-win-capote" class="debug-btn" @click="bisca.debugWinCapoteGame()">
             [DEBUG] Win (Capote)

@@ -32,10 +32,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/users/delete', [UserController::class, 'destroy']);
     Route::post('logout', [AuthController::class, 'logout']);
 
-    Route::get('users/matches', function (Request $request) {
-        return $request->user()->matches;
-    });
-
     // MATCHES
     Route::post('matches', [MatcheController::class, 'store']);
     Route::patch('matches/{matche}', [MatcheController::class, 'update']);
@@ -43,9 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // GAMES (usado para jogos de MATCH)
     Route::post('games', [GameController::class, 'store']);
 
-    // Economy (apenas MATCH)
-    Route::post('/economy/award-match-reward', [EconomyController::class, 'awardMatchReward']);
-    Route::post('/economy/deduct-entry-fee', [EconomyController::class, 'deductEntryFee']);
+    // Economy
     Route::post('/coin-purchases', [EconomyController::class, 'createCoinPurchase']);
 
     // Customizations

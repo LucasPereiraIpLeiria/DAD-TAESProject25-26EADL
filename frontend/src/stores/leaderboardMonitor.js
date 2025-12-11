@@ -68,7 +68,7 @@ export const useLeaderboardMonitor = defineStore('leaderboardMonitor', () => {
     checkSingleScoreboard(
       bucket,
       'top_coins',
-      'Most coins (theoretical)',
+      'Most coins',
       'Bisca – Global scoreboards',
       scoreboards.top_coins,
       variant,

@@ -10,17 +10,19 @@ import 'vue-sonner/style.css'
 
 const API_BASE_URL = 'http://localhost:8000/api'
 
-
 const app = createApp(App)
 
-app.use(createPinia())
+const pinia = createPinia()
+
+app.use(pinia)
 app.use(router)
 app.use(MotionPlugin)
 app.provide('apiBaseURL', API_BASE_URL)
 
-
-const store = useAPIStore()
-
-await store.validateToken()
+// Garante que o inject('apiBaseURL') funciona dentro do store
+await app.runWithContext(async () => {
+  const store = useAPIStore()
+  await store.validateToken()
+})
 
 app.mount('#app')

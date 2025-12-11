@@ -1,24 +1,16 @@
 <template>
-  <div class="min-h-screen bg-gray-200 flex items-start justify-center">
-    <div class="w-full max-w-5xl p-6">
+  <PageContainer max-width="xl" >
+    <div class="w-full bg-white/90 max-w-4xl mx-auto rounded-2xl shadow-xl border border-slate-200 p-6 md:p-8">
       <h1 class="text-2xl font-bold mb-6 text-center">Customizations</h1>
 
       <!-- ROW AVATARS -->
       <section class="mb-8">
         <h2 class="text-xl font-semibold mb-3 text-center">Avatars</h2>
         <div class="flex flex-wrap justify-center gap-4">
-          <CustomizationCard
-            v-for="avatar in avatars"
-            :key="avatar.key"
-            :label="avatar.label"
-            :price="avatar.price"
-            :image="avatar.image"
-            :owned="ownedAvatars.includes(avatar.key)"
-            :selected="selectedAvatar === avatar.key"
-            :is-default="avatar.key === 'default'"
-            @buy="() => openBuyConfirm('avatar', avatar)"
-            @select="() => handleSelect('avatar', avatar)"
-          />
+          <CustomizationCard v-for="avatar in avatars" :key="avatar.key" :label="avatar.label" :price="avatar.price"
+            :image="avatar.image" :owned="ownedAvatars.includes(avatar.key)" :selected="selectedAvatar === avatar.key"
+            :is-default="avatar.key === 'default'" @buy="() => openBuyConfirm('avatar', avatar)"
+            @select="() => handleSelect('avatar', avatar)" />
         </div>
       </section>
 
@@ -26,43 +18,30 @@
       <section class="mb-8">
         <h2 class="text-xl font-semibold mb-3 text-center">Deck styles</h2>
         <div class="flex flex-wrap justify-center gap-4">
-          <CustomizationCard
-            v-for="deck in decks"
-            :key="deck.key"
-            :label="deck.label"
-            :price="deck.price"
-            :image="deck.image"
-            :owned="ownedDecks.includes(deck.key)"
-            :selected="selectedDeck === deck.key"
-            :is-default="deck.key === 'default'"
-            @buy="() => openBuyConfirm('deck', deck)"
-            @select="() => handleSelect('deck', deck)"
-          />
+          <CustomizationCard v-for="deck in decks" :key="deck.key" :label="deck.label" :price="deck.price"
+            :image="deck.image" :owned="ownedDecks.includes(deck.key)" :selected="selectedDeck === deck.key"
+            :is-default="deck.key === 'default'" @buy="() => openBuyConfirm('deck', deck)"
+            @select="() => handleSelect('deck', deck)" />
         </div>
       </section>
 
-      <div class="flex justify-end pr-40">
-        <button
-          @click="resetCustomDebug"
-          class="px-3 py-1 text-sm bg-red-700 hover:bg-red-800 rounded text-white mt-2"
-        >
+      <div class="flex justify-end">
+        <button @click="resetCustomDebug" class="px-3 py-1 text-sm bg-red-700 hover:bg-red-800 rounded text-white mt-2">
           DEBUG: Reset Customizations
         </button>
       </div>
 
-      <CustomizationPurchaseDialog
-        v-model:open="confirmState.open"
-        :type="confirmState.type || ''"
-        :item="confirmState.item"
-        :balance="authStore.currentUser?.coins_balance ?? 0"
-        @confirm="confirmBuy"
-        @cancel="closeBuyConfirm"
-      />
+      <CustomizationPurchaseDialog v-model:open="confirmState.open" :type="confirmState.type || ''"
+        :item="confirmState.item" :balance="authStore.currentUser?.coins_balance ?? 0" @confirm="confirmBuy"
+        @cancel="closeBuyConfirm" />
     </div>
-  </div>
+  </PageContainer>
 </template>
 
+
 <script setup>
+import PageContainer from '@/components/ui/PageContainer.vue'
+
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'

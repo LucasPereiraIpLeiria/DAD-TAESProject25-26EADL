@@ -2,6 +2,29 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
+import notificationSound from '@/assets/sounds/notification.mp3'
+
+let notificationAudio = null
+
+function ensureNotificationAudio() {
+  if (!notificationAudio) {
+    notificationAudio = new Audio(notificationSound)
+    notificationAudio.volume = 0.6 
+  }
+}
+
+function playNotificationSound() {
+  ensureNotificationAudio()
+  notificationAudio.currentTime = 0
+
+  notificationAudio
+    .play()
+    .then(() => {
+    })
+    .catch((err) => {
+      console.error('[SFX] Erro ao tocar notificação:', err)
+    })
+}
 
 export const useLeaderboardMonitor = defineStore('leaderboardMonitor', () => {
   // Guardar o líder por VARIANTE (3 e 9) e por tipo de scoreboard
@@ -125,6 +148,8 @@ export const useLeaderboardMonitor = defineStore('leaderboardMonitor', () => {
         : 'Bisca of 9'
 
     const message = `${leader.username} is now #1 in "${scoreboardLabel}" (${variantLabel})!`
+
+    playNotificationSound()
 
     toast.success(message, {
       description,

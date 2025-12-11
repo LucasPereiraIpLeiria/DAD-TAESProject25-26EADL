@@ -5,19 +5,29 @@ const props = defineProps({
     type: String,
     default: 'md',
     validator: (v) => ['sm', 'md', 'lg'].includes(v)
+  },
+  
+  background: {
+    type: String,
+    default: '' 
   }
 })
 </script>
 
 <template>
-  <section class="ui-card" :class="`ui-card--${padding}`">
+  <section 
+    class="ui-card" 
+    :class="[
+      `ui-card--${padding}`,
+      props.background
+    ]"
+  >
     <slot />
   </section>
 </template>
 
 <style scoped>
 .ui-card {
-  background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 12px 35px rgba(15, 23, 42, 0.12);
   border: 1px solid #e5e7eb;

@@ -1,8 +1,8 @@
 <template>
-    <div class="flex min-h-screen items-center justify-center bg-gray-200 px-4 py-12 sm:px-6 lg:px-8">
+    <div class="flex min-h-screen items-center justify-center  px-4 py-12 sm:px-6 lg:px-8">
         <div class="w-full max-w-md space-y-8">
 
-            <div class="bg-white p-8 rounded-xl shadow-lg">
+            <div class="bg-white/90 p-8 rounded-xl shadow-lg">
                 <h2 class="mt-2 text-center text-3xl font-bold tracking-tight text-gray-900">
                     Sign in to your account
                 </h2>

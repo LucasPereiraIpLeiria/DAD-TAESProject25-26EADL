@@ -6,6 +6,9 @@ import { useAPIStore } from '@/stores/api.js'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { useLeaderboardMonitor } from '@/stores/leaderboardMonitor'
+import { useRoute, useRouter } from 'vue-router'
+
 
 import defaultPlaceholder from '@/assets/images/avatars/anonymous.png'
 import avatarMage from '@/assets/images/avatars/mage.png'
@@ -14,6 +17,7 @@ import avatarDragon from '@/assets/images/avatars/dragon.png'
 
 const auth = useAuthStore()
 const apiStore = useAPIStore()
+const leaderboardMonitor = useLeaderboardMonitor()
 
 const personalStats = ref(null)
 const globalScoreboards = ref({
@@ -22,10 +26,12 @@ const globalScoreboards = ref({
   top_coins: [],
 })
 
+const route = useRoute()
+const router = useRouter()
 // Variant toggle (3 / 9), default 9
 const variant = ref('9')
 
-// avatar helper (igual ao do History)
+// avatar helper (igual ao do History/global)
 function getEffectiveAvatar(player) {
   try {
     const custom = typeof player.custom === 'string'
@@ -85,6 +91,9 @@ async function loadGlobalScoreboards() {
   try {
     const response = await apiStore.getGlobalScoreboards({ type: variant.value })
     globalScoreboards.value = response.data
+
+    // Monitor: verifica alterações de líder para esta variante
+    leaderboardMonitor.checkForChanges(response.data, variant.value)
   } catch (err) {
     console.error('Failed to load global scoreboards', err)
     globalScoreboards.value = {
@@ -98,6 +107,14 @@ async function loadGlobalScoreboards() {
 function setVariant(v) {
   if (variant.value === v) return
   variant.value = v
+
+  router.replace({
+    name: 'home',
+    query: {
+      ...route.query,
+      variant: v,
+    },
+  })
 }
 
 // Quando muda a variante, recarregar stats e scoreboards (se estiver logado)
@@ -122,10 +139,24 @@ watch(
         top_coins: [],
       }
     }
-  }
+  },
+)
+
+watch(
+  () => route.query.variant,
+  (newVariant) => {
+    if (newVariant === '3' || newVariant === '9') {
+      variant.value = newVariant
+    }
+  },
 )
 
 onMounted(() => {
+  const qVariant = route.query.variant
+  if (qVariant === '3' || qVariant === '9') {
+    variant.value = qVariant
+  }
+
   if (auth.isLoggedIn) {
     loadGlobalScoreboards()
     loadPersonalStats()
@@ -170,9 +201,7 @@ onMounted(() => {
         </Card>
 
         <!-- Right Card - Multiplayer (visível mas desativado se não logado) -->
-        <Card
-          :class="!auth.isLoggedIn ? 'opacity-60' : ''"
-        >
+        <Card :class="!auth.isLoggedIn ? 'opacity-60' : ''">
           <CardHeader>
             <CardTitle class="text-2xl">Multiplayer</CardTitle>
             <CardDescription>
@@ -181,12 +210,8 @@ onMounted(() => {
             </CardDescription>
           </CardHeader>
           <CardContent class="space-y-3">
-            <Button
-              class="w-full"
-              variant="default"
-              :disabled="!auth.isLoggedIn"
-              :class="!auth.isLoggedIn ? 'cursor-not-allowed' : ''"
-            >
+            <Button class="w-full" variant="default" :disabled="!auth.isLoggedIn"
+              :class="!auth.isLoggedIn ? 'cursor-not-allowed' : ''">
               Multiplayer: Coming Soon
               <span v-if="!auth.isLoggedIn" class="ml-2 text-xs">
                 (login required)
@@ -209,24 +234,14 @@ onMounted(() => {
           <!-- Variant Toggle -->
           <div class="flex items-center gap-2 text-xs">
             <span class="font-medium text-gray-700">Variant:</span>
-            <button
-              type="button"
-              class="px-2 py-1 rounded border text-xs"
-              :class="variant === '9'
-                ? 'bg-indigo-600 text-white border-indigo-600'
-                : 'bg-white text-gray-700 border-gray-300'"
-              @click="setVariant('9')"
-            >
+            <button type="button" class="px-2 py-1 rounded border text-xs" :class="variant === '9'
+              ? 'bg-indigo-600 text-white border-indigo-600'
+              : 'bg-white text-gray-700 border-gray-300'" @click="setVariant('9')">
               Bisca of 9
             </button>
-            <button
-              type="button"
-              class="px-2 py-1 rounded border text-xs"
-              :class="variant === '3'
-                ? 'bg-indigo-600 text-white border-indigo-600'
-                : 'bg-white text-gray-700 border-gray-300'"
-              @click="setVariant('3')"
-            >
+            <button type="button" class="px-2 py-1 rounded border text-xs" :class="variant === '3'
+              ? 'bg-indigo-600 text-white border-indigo-600'
+              : 'bg-white text-gray-700 border-gray-300'" @click="setVariant('3')">
               Bisca of 3
             </button>
           </div>
@@ -296,16 +311,13 @@ onMounted(() => {
                 <div>
                   <h3 class="font-semibold mb-1">Most matches won</h3>
                   <ul class="space-y-1">
-                    <li
-                      v-for="(p, idx) in globalScoreboards.top_matches"
-                      :key="'tm-' + p.user_id"
-                      class="flex items-center gap-2"
-                    >
+                    <li v-for="(p, idx) in globalScoreboards.top_matches" :key="'tm-' + p.user_id"
+                      class="flex items-center gap-2">
                       <span class="w-4 text-right mr-1">{{ idx + 1 }}.</span>
                       <Avatar class="h-6 w-6">
                         <AvatarImage :src="getEffectiveAvatar(p)" />
                         <AvatarFallback>
-                          <img :src="defaultPlaceholder" alt="" class="h-6 w-6 rounded-full">
+                          <img :src="defaultPlaceholder" alt="" class="h-6 w-6 rounded-full" />
                         </AvatarFallback>
                       </Avatar>
                       <span class="truncate">{{ p.username }}</span>
@@ -321,16 +333,13 @@ onMounted(() => {
                 <div>
                   <h3 class="font-semibold mb-1">Most achievements</h3>
                   <ul class="space-y-1">
-                    <li
-                      v-for="(p, idx) in globalScoreboards.top_achievements"
-                      :key="'ta-' + p.user_id"
-                      class="flex items-center gap-2"
-                    >
+                    <li v-for="(p, idx) in globalScoreboards.top_achievements" :key="'ta-' + p.user_id"
+                      class="flex items-center gap-2">
                       <span class="w-4 text-right mr-1">{{ idx + 1 }}.</span>
                       <Avatar class="h-6 w-6">
                         <AvatarImage :src="getEffectiveAvatar(p)" />
                         <AvatarFallback>
-                          <img :src="defaultPlaceholder" alt="" class="h-6 w-6 rounded-full">
+                          <img :src="defaultPlaceholder" alt="" class="h-6 w-6 rounded-full" />
                         </AvatarFallback>
                       </Avatar>
                       <span class="truncate">{{ p.username }}</span>
@@ -348,16 +357,13 @@ onMounted(() => {
                 <div>
                   <h3 class="font-semibold mb-1">Most coins</h3>
                   <ul class="space-y-1">
-                    <li
-                      v-for="(p, idx) in globalScoreboards.top_coins"
-                      :key="'tc-' + p.user_id"
-                      class="flex items-center gap-2"
-                    >
+                    <li v-for="(p, idx) in globalScoreboards.top_coins" :key="'tc-' + p.user_id"
+                      class="flex items-center gap-2">
                       <span class="w-4 text-right mr-1">{{ idx + 1 }}.</span>
                       <Avatar class="h-6 w-6">
                         <AvatarImage :src="getEffectiveAvatar(p)" />
                         <AvatarFallback>
-                          <img :src="defaultPlaceholder" alt="" class="h-6 w-6 rounded-full">
+                          <img :src="defaultPlaceholder" alt="" class="h-6 w-6 rounded-full" />
                         </AvatarFallback>
                       </Avatar>
                       <span class="truncate">{{ p.username }}</span>
@@ -376,7 +382,7 @@ onMounted(() => {
         </CardContent>
       </Card>
 
-      <!-- Opcional: mensagem para guests -->
+      <!-- Mensagem para guests -->
       <Card v-else>
         <CardHeader>
           <CardTitle class="text-xl">Scoreboards</CardTitle>

@@ -14,20 +14,33 @@
             {{ coinBalance }}
           </span>
 
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-coin"
-            viewBox="0 0 16 16">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            fill="currentColor"
+            class="bi bi-coin"
+            viewBox="0 0 16 16"
+          >
             <path
-              d="M5.5 9.511c.076.954.83 1.697 2.182 1.785V12h.6v-.709c1.4-.098 2.218-.846 2.218-1.932 0-.987-.626-1.496-1.745-1.76l-.473-.112V5.57c.6.068.982.396 1.074.85h1.052c-.076-.919-.864-1.638-2.126-1.716V4h-.6v.719c-1.195.117-2.01.836-2.01 1.853 0 .9.606 1.472 1.613 1.707l.397.098v2.034c-.615-.093-1.022-.43-1.114-.9zm2.177-2.166c-.59-.137-.91-.416-.91-.836 0-.47.345-.822.915-.925v1.76h-.005zm.692 1.193c.717.166 1.048.435 1.048.91 0 .542-.412.914-1.135.982V8.518z" />
+              d="M5.5 9.511c.76.954 1.83 1.697 3.182 1.785V12h.6v-.709c1.4-.098 2.218-.846 2.218-1.932 0-.987-.626-1.496-1.745-1.76l-.473-.112V5.57c.6.068.982.396 1.074.85h1.052c-.076-.919-.864-1.638-2.126-1.716V4h-.6v.719c-1.195.117-2.01.836-2.01 1.853 0 .9.606 1.472 1.613 1.707l.397.098v2.034c-1.015-.093-1.722-.43-2.114-.9z"
+            />
             <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
-            <path d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12" />
+            <path
+              d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12"
+            />
           </svg>
 
           <!-- Botão + amarelo dentro do pill preto -->
-          <AddFunds :current-balance="coinBalance.value" @submit="handleFundsSubmit" class="flex items-center justify-center w-7 h-7 rounded-full
+          <AddFunds
+            :current-balance="coinBalance.value"
+            @submit="handleFundsSubmit"
+            class="flex items-center justify-center w-7 h-7 rounded-full
                    bg-yellow-400 text-slate-900 text-base font-bold
                    hover:bg-yellow-300 focus:outline-none
                    focus:ring-2 focus:ring-yellow-300 focus:ring-offset-2
-                   transition">
+                   transition"
+          >
             +
           </AddFunds>
         </div>
@@ -36,7 +49,7 @@
       <!-- MENU USER / AVATAR -->
       <NavigationMenuList v-if="authStore.isLoggedIn">
         <NavigationMenuItem>
-          <NavigationMenuTrigger v-if="authStore.isLoggedIn" class="flex items-center gap-2">
+          <NavigationMenuTrigger class="flex items-center gap-2">
             {{ authStore.currentUser?.nickname ?? authStore.currentUser?.name }}
             <Avatar class="h-12 w-12">
               <AvatarImage :src="effectiveAvatarSrc" @error="onAvatarError" :key="effectiveAvatarSrc" />
@@ -64,8 +77,10 @@
               </NavigationMenuLink>
 
               <NavigationMenuLink as-child>
-                <button @click="logout"
-                  class="block w-full px-3 py-2 text-right bg-transparent border-none cursor-pointer">
+                <button
+                  @click="logout"
+                  class="block w-full px-3 py-2 text-right bg-transparent border-none cursor-pointer"
+                >
                   Logout
                 </button>
               </NavigationMenuLink>
@@ -74,7 +89,7 @@
         </NavigationMenuItem>
       </NavigationMenuList>
 
-      <NavigationMenuItem v-if="!authStore.isLoggedIn">
+      <NavigationMenuItem v-else>
         <NavigationMenuLink>
           <RouterLink to="/login">Login</RouterLink>
         </NavigationMenuLink>
@@ -87,6 +102,7 @@
       <RouterView />
     </main>
   </div>
+
   <Toaster position="bottom-right" />
 </template>
 
@@ -101,7 +117,7 @@ import {
 } from '@/components/ui/navigation-menu'
 import AddFunds from '@/components/ui/AddFunds.vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
-import { inject, ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { inject, ref, watch, computed } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth.js'
 import { toast, Toaster } from 'vue-sonner'
@@ -116,9 +132,10 @@ import avatarDragon from '@/assets/images/avatars/dragon.png'
 
 const authStore = useAuthStore()
 const apiStore = useAPIStore()
+
+// Monitor só precisa do router aqui, sem polling
 const leaderboardMonitor = useLeaderboardMonitor()
 const appRouter = useRouter()
-
 leaderboardMonitor.setRouter(appRouter)
 
 const API_BASE_URL = inject('apiBaseURL')
@@ -168,10 +185,8 @@ watch(
 const logout = async () => {
   toast.promise(authStore.logout(), {
     loading: 'Calling API',
-    success: () => {
-      return 'Logout Successful'
-    },
-    error: (data) => `[API] Error Logging out- ${data?.response?.data?.message}`,
+    success: () => 'Logout Successful',
+    error: (data) => `[API] Error Logging out - ${data?.response?.data?.message}`,
   })
 }
 
@@ -180,9 +195,7 @@ const handleFundsSubmit = async (data) => {
 
   toast.promise(apiStore.postCoinPurchase(data, coins), {
     loading: 'Contacting payment processor',
-    success: () => {
-      return 'Funds added successfully!'
-    },
+    success: () => 'Funds added successfully!',
     error: (data) => `[API] Error handling payment method - ${data?.response?.data?.message}`,
   })
 
@@ -228,52 +241,8 @@ watch(
 const onAvatarError = () => {
   effectiveAvatarSrc.value = defaultPlaceholder
 }
-
-// Global scoreboards polling (para notificações de novo líder)
-let globalScoreboardPollInterval = null
-
-const startGlobalScoreboardPolling = () => {
-  if (globalScoreboardPollInterval) clearInterval(globalScoreboardPollInterval)
-
-  const pollNow = async () => {
-    try {
-      const response = await apiStore.getGlobalScoreboards()
-      leaderboardMonitor.checkForChanges(response.data)
-    } catch (err) {
-      console.error('Failed to poll global scoreboards:', err)
-    }
-  }
-
-  pollNow()
-  globalScoreboardPollInterval = setInterval(pollNow, 30000)
-}
-
-onMounted(() => {
-  if (authStore.isLoggedIn) {
-    startGlobalScoreboardPolling()
-  }
-})
-
-watch(
-  () => authStore.isLoggedIn,
-  (loggedIn) => {
-    if (loggedIn) {
-      startGlobalScoreboardPolling()
-    } else if (globalScoreboardPollInterval) {
-      clearInterval(globalScoreboardPollInterval)
-      globalScoreboardPollInterval = null
-    }
-  },
-)
-
-onUnmounted(() => {
-  if (globalScoreboardPollInterval) {
-    clearInterval(globalScoreboardPollInterval)
-    globalScoreboardPollInterval = null
-  }
-})
 </script>
 
 <style scoped>
-/* Estilos globais/gerais podem ir aqui mais tarde */
+/* estilos globais/gerais da navbar podem ir aqui */
 </style>

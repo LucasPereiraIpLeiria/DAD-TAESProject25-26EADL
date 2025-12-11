@@ -185,8 +185,6 @@ const handleSubmit = async () => {
   try {
     const response = await apiStore.updateProfile(formData.value)
 
-    console.log('API Response:', response)
-
     // Update auth store - check if currentUser is a ref or regular object
     if (response.data && response.data.user) {
       if (authStore.currentUser && typeof authStore.currentUser === 'object') {

@@ -4,12 +4,10 @@ import { useAuthStore } from '@/stores/auth'
 import { useAPIStore } from '@/stores/api'
 import { useLeaderboardMonitor } from '@/stores/leaderboardMonitor'
 
-
 export const useBiscaStore = defineStore('bisca', () => {
-
-const apiStore = useAPIStore()
-const authStore = useAuthStore()
-const leaderboardMonitor = useLeaderboardMonitor()
+  const apiStore = useAPIStore()
+  const authStore = useAuthStore()
+  const leaderboardMonitor = useLeaderboardMonitor()
   // ───────────────────────────────────────────────
   // STATE
   // ───────────────────────────────────────────────
@@ -659,9 +657,10 @@ const leaderboardMonitor = useLeaderboardMonitor()
     await awardCoinsIfNeeded()
 
     try {
-      const resp = await apiStore.getGlobalScoreboards()
-      // resp.data deve ser { top_matches, top_achievements, top_coins }
-      leaderboardMonitor.checkForChanges(resp.data)
+      // pede o scoreboard só da variante atual (3 ou 9)
+      const resp = await apiStore.getGlobalScoreboards({ type: variant.value })
+      // avisa o monitor indicando também a variante
+      leaderboardMonitor.checkForChanges(resp.data, variant.value)
     } catch (err) {
       console.error('Failed to refresh global scoreboards after match:', err)
     }

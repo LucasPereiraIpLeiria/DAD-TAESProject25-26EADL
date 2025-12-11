@@ -266,7 +266,7 @@ watch(() => authStore.isLoggedIn, (newValue) => {
 
 // You might want to add an immediate watcher for initial load
 watch(() => authStore.currentUser, (newUser) => {
-  console.log('Current user changed:', newUser)
+  
 }, { immediate: true })
 </script>
 

@@ -1,10 +1,10 @@
-// src/stores/leaderboardMonitor.js
+
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
 
 export const useLeaderboardMonitor = defineStore('leaderboardMonitor', () => {
-  // Guardamos o líder por VARIANTE (3 e 9) e por tipo de scoreboard
+  // Guardar o líder por VARIANTE (3 e 9) e por tipo de scoreboard
   const cachedLeaders = ref({
     '3': {
       top_matches: null,
@@ -36,12 +36,7 @@ export const useLeaderboardMonitor = defineStore('leaderboardMonitor', () => {
     return cachedLeaders.value[v]
   }
 
-  /**
-   * Recebe o payload de /users/stats/global (ou /scoreboards/global)
-   * + a variante (3 | 9) a que diz respeito.
-   *
-   * checkForChanges(scoreboards, '9')
-   */
+
   const checkForChanges = (scoreboards, variant = '9') => {
     if (!scoreboards) return
 
@@ -75,13 +70,12 @@ export const useLeaderboardMonitor = defineStore('leaderboardMonitor', () => {
     )
   }
 
-  /**
-   * Compara o líder atual com o líder anterior para UM tipo de scoreboard
-   * E UMA variante (3 ou 9). Se mudar, notifica.
-   */
+
+   // Compara o líder atual com o líder anterior para UM tipo de scoreboard
+
   const checkSingleScoreboard = (bucket, key, title, description, list, variant) => {
     if (!Array.isArray(list) || list.length === 0) {
-      // Sem dados → limpamos cache dessa variante
+      // Sem dados -> limpar cache dessa variante
       bucket[key] = null
       return
     }
@@ -100,7 +94,7 @@ export const useLeaderboardMonitor = defineStore('leaderboardMonitor', () => {
       return
     }
 
-    // Se o username do líder mudou nesta variante, notificamos
+    // Se o username do líder mudou nesta variante, notificar
     if (oldLeader.username !== newLeader.username) {
       bucket[key] = {
         username: newLeader.username,

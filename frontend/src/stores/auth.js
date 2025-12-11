@@ -5,6 +5,7 @@ import { useAPIStore } from './api'
 export const useAuthStore = defineStore('auth', () => {
   const apiStore = useAPIStore()
 
+  // obter utilizador guardado no localStorage (se existir)
   const getStoredUser = () => {
     const stored = localStorage.getItem('logged_user')
     if (stored) {
@@ -17,12 +18,15 @@ export const useAuthStore = defineStore('auth', () => {
     return undefined
   }
 
+  // utilizador autenticado em memória
   const currentUser = ref(getStoredUser())
 
+  // verificar se existe sessão ativa
   const isLoggedIn = computed(() => {
     return currentUser.value !== undefined && currentUser.value !== null
   })
 
+  // efetuar login: autenticar na API, buscar user e guardar em localStorage
   const login = async (credentials) => {
     try {
       await apiStore.postLogin(credentials)
@@ -37,6 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // registar novo utilizador e iniciar sessão de seguida
   const register = async (user) => {
     const payload = new FormData()
     for (const key in user) {
@@ -56,6 +61,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // terminar sessão: tentar fazer logout na API e limpar estado local
   const logout = async () => {
     try {
       if (apiStore.token.value) {
@@ -73,6 +79,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // inicializar estado de autenticação a partir de localStorage
   const initializeAuth = () => {
     const storedUser = getStoredUser()
     const storedToken = localStorage.getItem('auth_token')
@@ -87,6 +94,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // atualizar dados do utilizador autenticado (ex: coins, avatar) a partir da API
   const refreshUser = async () => {
     if (!apiStore.token) {
       console.warn('refreshUser: no token found, skipping refresh')
@@ -108,6 +116,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // correr init logo ao criar store
   initializeAuth()
 
   return {

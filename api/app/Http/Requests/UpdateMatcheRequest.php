@@ -6,17 +6,13 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateMatcheRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+    
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
+    
     public function rules(): array
     {
         return [
@@ -30,8 +26,6 @@ class UpdateMatcheRequest extends FormRequest
 
             'stake'    => 'sometimes|nullable|numeric',
             'began_at' => 'sometimes|date',
-            // aqui não usamos "after:began_at" porque no update normalmente
-            // só mandas ended_at isolado
             'ended_at' => 'sometimes|date',
 
             'player1_points' => 'sometimes|nullable|numeric',

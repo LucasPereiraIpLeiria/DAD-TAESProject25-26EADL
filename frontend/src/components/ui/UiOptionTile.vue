@@ -1,4 +1,4 @@
-<!-- src/components/ui/UiOptionTile.vue -->
+
 <script setup>
 const props = defineProps({
   active: {

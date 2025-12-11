@@ -1,8 +1,6 @@
-// tests/unit/customizations.spec.js
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 
-// 🔹 mocks hoisted (seguindo a regra do Vitest)
 const mocks = vi.hoisted(() => {
   const baseUser = {
     id: 1,
@@ -29,7 +27,6 @@ const mocks = vi.hoisted(() => {
   }
 })
 
-// 🔹 mocks das stores
 vi.mock('@/stores/auth', () => {
   return {
     useAuthStore: () => mocks.authStore,
@@ -42,7 +39,6 @@ vi.mock('@/stores/api', () => {
   }
 })
 
-// 🔹 mock do vue-sonner (sem precisar de capturar as funções)
 vi.mock('vue-sonner', () => ({
   toast: {
     success: vi.fn(),
@@ -50,14 +46,12 @@ vi.mock('vue-sonner', () => ({
   },
 }))
 
-// 🔹 mock do router
 vi.mock('@/router/index.js', () => ({
   default: {
     push: vi.fn(),
   },
 }))
 
-// 🔹 componentes filhos como stubs simples
 vi.mock('@/components/customization/CustomizationCard.vue', () => ({
   default: {
     name: 'CustomizationCard',
@@ -72,19 +66,16 @@ vi.mock('@/components/customization/CustomizationPurchaseDialog.vue', () => ({
   },
 }))
 
-// 🔹 importa o componente real (ajusta o caminho se for diferente)
 import CustomizationsPage from '@/pages/CustomizationsPage.vue'
 
 describe('CustomizationsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
-    // reset auth store
     mocks.authStore.currentUser = { ...mocks.baseUser }
     mocks.authStore.isLoggedIn = true
     mocks.authStore.refreshUser = vi.fn()
 
-    // reset api store
     const updatedUser = {
       ...mocks.baseUser,
       custom: {
@@ -137,7 +128,6 @@ describe('CustomizationsPage', () => {
       price: 20,
     }
 
-    // simula fluxo “já confirmado no modal”
     await vm.handleBuy('avatar', paidAvatar, { skipConfirm: true })
 
     expect(mocks.apiStore.postPurchaseCustomization).toHaveBeenCalledTimes(1)
@@ -146,7 +136,6 @@ describe('CustomizationsPage', () => {
       item: 'mage',
     })
 
-    // confirma que o currentUser foi atualizado em memória
     expect(mocks.authStore.currentUser.custom.avatars.owned).toContain('mage')
     expect(mocks.authStore.currentUser.custom.avatars.selected).toBe('mage')
   })

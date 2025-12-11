@@ -15,10 +15,10 @@ class MatcheController extends Controller
 {
     public function store(StoreMatcheRequest $request)
     {
-        $user = $request->user(); // user autenticado (Sanctum)
+        $user = $request->user(); 
         $data = $request->validated();
 
-        // taxa de entrada em coins (podes manter a mesma que usavas no EconomyController)
+        // taxa de entrada em coins 
         $entryCost = config('economy.match_entry_fee', 5);
 
         try {
@@ -83,7 +83,7 @@ class MatcheController extends Controller
                 ], 400);
             }
 
-            throw $e; // outras exceções sobem
+            throw $e; 
         }
     }
 
@@ -121,7 +121,7 @@ class MatcheController extends Controller
 
             $matche->save();
 
-            // Só tratamos de coins quando o status passa para 'Ended' pela primeira vez
+            // Só tratar de coins quando o status passa para 'Ended' pela primeira vez
             if ($matche->status !== 'Ended' || $oldStatus === 'Ended') {
                 return $matche;
             }
@@ -136,11 +136,11 @@ class MatcheController extends Controller
                 return $matche;
             }
 
-            // Lógica de recompensa: base + bónus (opcional) tipo EconomyController::awardMatchReward
+            // Lógica de recompensa
             $base  = config('economy.match_base_win_reward', 10);
             $bonus = 0;
 
-            // Opcional: tenta encontrar o último game deste match para avaliar bandeira/capote
+            
             $lastGame = $matche->games()->orderByDesc('ended_at')->first();
 
             if ($lastGame) {
@@ -183,7 +183,7 @@ class MatcheController extends Controller
             // Atualizar saldo
             $user->increment('coins_balance', $totalReward);
 
-            // devolve para o controller saber o valor
+           
             $coinsAwarded = $totalReward;
 
             return $matche;

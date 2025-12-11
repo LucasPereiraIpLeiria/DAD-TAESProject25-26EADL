@@ -7,6 +7,7 @@ use App\Http\Resources\ErrorResource;
 
 class CustomizationController extends Controller
 {
+    // Catálogo de avatares disponíveis e respetivo custo em coins
     private array $availableAvatars = [
         'default' => 0,
         'mage'    => 20,
@@ -14,13 +15,15 @@ class CustomizationController extends Controller
         'dragon'  => 40,
     ];
 
+    // Catálogo de decks disponíveis e respetivo custo em coins
     private array $availableDecks = [
-        'default'   => 0,
-        'wood'      => 10,
-        'arcane'    => 25,
+        'default'    => 0,
+        'wood'       => 10,
+        'arcane'     => 25,
         'dark_skull' => 40,
     ];
 
+    // Devolve o estado atual das customizações do user + saldo de coins
     public function show(Request $request)
     {
         $user = $request->user();
@@ -31,6 +34,7 @@ class CustomizationController extends Controller
         ]);
     }
 
+    // Compra de avatar/deck: valida item, verifica coins e marca como owned
     public function purchase(Request $request)
     {
         $user = $request->user();
@@ -43,8 +47,10 @@ class CustomizationController extends Controller
         $type = $data['type'];
         $item = $data['item'];
 
+        // Escolhe o catálogo correto com base no tipo
         $catalog = $type === 'avatar' ? $this->availableAvatars : $this->availableDecks;
 
+        // Item tem de existir no catálogo
         if (!array_key_exists($item, $catalog)) {
             return (new ErrorResource([
                 'reason'  => 'invalid_item',
@@ -53,25 +59,19 @@ class CustomizationController extends Controller
         }
 
         $price  = $catalog[$item];
-        $custom = $user->custom; // accessor garante defaults
+        $custom = $user->custom; // accessor do User já garante estrutura default
 
-        // Carregamos arrays locais (sem referências)
-        $owned    = $custom[$type . 's']['owned'];
-        $selected = $custom[$type . 's']['selected'];
+        $owned = $custom[$type . 's']['owned'];
 
-        // Se já é owned → só selecionar
+        // Já não vale a pena comprar algo que já está owned
         if (in_array($item, $owned, true)) {
-            $custom[$type . 's']['selected'] = $item;
-            $user->custom = $custom;
-            $user->save();
-
-            return response()->json([
-                'message' => 'Item already owned, selected successfully.',
-                'user'    => $user->fresh(),
-            ]);
+            return (new ErrorResource([
+                'reason'  => 'already_owned',
+                'message' => 'You already own this item.',
+            ]))->response()->setStatusCode(400);
         }
 
-        // Verificar funds
+        // Se tiver custo, verificar se o user tem coins suficientes
         if ($price > 0) {
             if ($user->coins_balance < $price) {
                 return (new ErrorResource([
@@ -83,9 +83,9 @@ class CustomizationController extends Controller
             $user->coins_balance -= $price;
         }
 
-        // Comprar e selecionar
+        // Atualizar lista de owned e guardar no JSON de custom
         $owned[] = $item;
-        $custom[$type . 's']['owned']    = $owned;
+        $custom[$type . 's']['owned'] = $owned;
 
         $user->custom = $custom;
         $user->save();
@@ -96,6 +96,7 @@ class CustomizationController extends Controller
         ]);
     }
 
+    // Seleciona um avatar/deck que o user já possui como o ativo
     public function select(Request $request)
     {
         $user = $request->user();
@@ -109,9 +110,9 @@ class CustomizationController extends Controller
         $item = $data['item'];
 
         $custom = $user->custom;
+        $owned  = $custom[$type . 's']['owned'];
 
-        $owned = $custom[$type . 's']['owned'];
-
+        // Não deixa selecionar items que o user não tem
         if (!in_array($item, $owned, true)) {
             return (new ErrorResource([
                 'reason'  => 'not_owned',
@@ -130,17 +131,18 @@ class CustomizationController extends Controller
         ]);
     }
 
+    // Endpoint de debug: repõe o JSON de custom para o estado default
     public function debugReset(Request $request)
     {
         $user = $request->user();
 
         $user->custom = [
             'avatars' => [
-                'owned' => ['default'],
+                'owned'    => ['default'],
                 'selected' => 'default',
             ],
             'decks' => [
-                'owned' => ['default'],
+                'owned'    => ['default'],
                 'selected' => 'default',
             ],
         ];
@@ -149,7 +151,7 @@ class CustomizationController extends Controller
 
         return response()->json([
             'message' => 'Customizations reset to default.',
-            'user' => $user->fresh(),
+            'user'    => $user->fresh(),
         ]);
     }
 }

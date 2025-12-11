@@ -44,7 +44,7 @@ async function startByRoute() {
 
   try {
     if (gametype.value === 'match') {
-      // MATCH: precisa de login
+      
       if (!auth.isLoggedIn) {
         toast.error('You must be logged in to play a match.')
         router.push({
@@ -54,9 +54,6 @@ async function startByRoute() {
         return
       }
 
-      // Aqui o startMatch já:
-      // - chama o backend
-      // - pode lançar 'insufficient_funds'
       try {
         await bisca.startMatch(config)
       } catch (e) {

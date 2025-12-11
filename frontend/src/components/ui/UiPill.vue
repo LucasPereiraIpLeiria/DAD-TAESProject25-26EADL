@@ -2,7 +2,7 @@
 const props = defineProps({
   variant: {
     type: String,
-    default: 'default', // default | subtle | success | danger etc, se quiseres no futuro
+    default: 'default', 
   }
 })
 </script>
@@ -34,7 +34,7 @@ const props = defineProps({
   white-space: nowrap;
 }
 
-/* exemplos de variantes, caso queiras no futuro */
+
 .pill--subtle {
   background: #e5e7eb;
 }

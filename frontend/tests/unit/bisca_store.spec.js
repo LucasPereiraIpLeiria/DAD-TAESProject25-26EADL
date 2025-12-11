@@ -1,10 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
-// ───────────────────────────────────────────────
-// MOCKS
-// ───────────────────────────────────────────────
-
 vi.mock('@/stores/api', () => {
   const postMatch = vi.fn().mockResolvedValue({
     data: { id: 123, began_at: '2025-01-01T00:00:00.000Z' },
@@ -52,10 +48,6 @@ import { useAPIStore } from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
 import { useBiscaStore } from '@/stores/bisca'
 
-// ───────────────────────────────────────────────
-// TESTS
-// ───────────────────────────────────────────────
-
 describe('Bisca Store', () => {
   let store
 
@@ -65,25 +57,20 @@ describe('Bisca Store', () => {
     store = useBiscaStore()
   })
 
-  // 1) startGame com variant 9 cria jogo com 9 cartas por mão e stock correto
-it('startGame (practice, variant 9) inicializa baralho, mãos e stock corretamente', () => {
-  store.startGame({ variant: '9' })
+  it('startGame (practice, variant 9) inicializa baralho, mãos e stock corretamente', () => {
+    store.startGame({ variant: '9' })
 
-  expect(store.status).toBe('in_game')
-  expect(store.phase).toBe('draw_phase')
+    expect(store.status).toBe('in_game')
+    expect(store.phase).toBe('draw_phase')
 
-  expect(store.playerHand).toHaveLength(9)
-  expect(store.botHand).toHaveLength(9)
+    expect(store.playerHand).toHaveLength(9)
+    expect(store.botHand).toHaveLength(9)
 
-  // 40 cartas totais - 18 usadas = 22 no stock (trunfo incluído)
-  expect(store.stock.length).toBe(40 - 9 - 9)
+    expect(store.stock.length).toBe(40 - 9 - 9)
 
-  expect(store.trumpCard).not.toBeNull()
-  // 🔥 remover esta linha:
-  // expect(store.deck.length).toBe(0)
-})
+    expect(store.trumpCard).not.toBeNull()
+  })
 
-  // 2) startGame com variant 3 dá 3 cartas por mão
   it('startGame (practice, variant 3) dá 3 cartas por mão', () => {
     store.startGame({ variant: '3' })
 
@@ -92,12 +79,11 @@ it('startGame (practice, variant 9) inicializa baralho, mãos e stock corretamen
     expect(store.botHand).toHaveLength(3)
   })
 
-  // 3) playCard não faz nada se não for a vez do player
   it('playCard não permite jogar se não for a vez do player', () => {
     store.startGame({ variant: '9' })
     const card = store.playerHand[0]
 
-    store.currentTurn = 'bot' // força vez do bot
+    store.currentTurn = 'bot'
 
     store.playCard(card)
 
@@ -105,7 +91,6 @@ it('startGame (practice, variant 9) inicializa baralho, mãos e stock corretamen
     expect(store.currentTurn).toBe('bot')
   })
 
-  // 4) playCard coloca a carta do player na mesa e passa a vez para o bot
   it('playCard coloca a carta do player na mesa e passa a vez para o bot', () => {
     store.startGame({ variant: '9' })
     const card = store.playerHand[0]
@@ -117,9 +102,7 @@ it('startGame (practice, variant 9) inicializa baralho, mãos e stock corretamen
     expect(store.currentTurn).toBe('bot')
   })
 
-  // 5) resolveTrick soma pontos corretos e define lastTrickWinner quando player ganha
   it('resolveTrick atribui a vaza ao player e soma pontos corretamente', () => {
-    // setup manual
     store.trumpCard = { suit: '♠' }
 
     const playerCard = { id: 1, suit: '♥', points: 11, strength: 10 }
@@ -132,15 +115,13 @@ it('startGame (practice, variant 9) inicializa baralho, mãos e stock corretamen
 
     store.resolveTrick()
 
-    expect(store.playerPoints).toBe(13) // 11 + 2
+    expect(store.playerPoints).toBe(13)
     expect(store.botPoints).toBe(0)
     expect(store.lastTrickWinner).toBe('player')
     expect(store.lastTrickCards).toEqual({ player: playerCard, bot: botCard })
   })
 
-  // 6) drawCardsIfNeeded dá a primeira carta ao vencedor e muda para final_phase quando o stock acaba
   it('drawCardsIfNeeded dá cartas ao vencedor e entra em final_phase quando o stock esvazia', () => {
-    // mão vazia, mas vamos simular stock com 2 cartas apenas
     store.playerHand = []
     store.botHand = []
     store.stock = [
@@ -149,31 +130,26 @@ it('startGame (practice, variant 9) inicializa baralho, mãos e stock corretamen
     ]
     store.phase = 'draw_phase'
 
-    // winner = player
     store.drawCardsIfNeeded('player')
 
-    // Player deve ter recebido a primeira carta, bot a segunda
     expect(store.playerHand).toHaveLength(1)
     expect(store.botHand).toHaveLength(1)
     expect(store.stock).toHaveLength(0)
 
-    // stock ficou vazio → final_phase
     expect(store.phase).toBe('final_phase')
   })
 
-  // 7) finishGameIfNeeded em match com 61–90 pontos dá 1 mark ao vencedor e passa para between_games
   it('finishGameIfNeeded em match com 61–90 pontos atribui 1 mark ao vencedor', async () => {
     store.gameType = 'match'
     store.playerPoints = 70
     store.botPoints = 40
 
-    // condições de fim de jogo (isGameOver === true)
     store.playerHand = []
     store.botHand = []
     store.stock = []
     store.tableCards = { player: null, bot: null }
 
-    store.currentMatchId = null // evita chamadas de saveMatchGame
+    store.currentMatchId = null
     store.playerMarks = 0
     store.botMarks = 0
 
@@ -184,10 +160,9 @@ it('startGame (practice, variant 9) inicializa baralho, mãos e stock corretamen
     expect(store.status).toBe('between_games')
   })
 
-  // 8) finishGameIfNeeded em match com 91–119 pontos dá 2 marks (capote)
   it('finishGameIfNeeded em match com 91–119 pontos atribui 2 marks (capote)', async () => {
     store.gameType = 'match'
-    store.playerPoints = 100 // capote
+    store.playerPoints = 100
     store.botPoints = 10
 
     store.playerHand = []
@@ -206,13 +181,10 @@ it('startGame (practice, variant 9) inicializa baralho, mãos e stock corretamen
     expect(store.status).toBe('between_games')
   })
 
-  // 9) finishGameIfNeeded em practice com vitória do player define summary.result = 'win' e achievements capote/bandeira corretos
   it('finishGameIfNeeded em practice calcula summary.result e achievements corretamente', async () => {
-    // modo practice (default)
     store.gameType = 'practice'
     store.variant = '9'
 
-    // vitória com capote (>=91 && <120)
     store.playerPoints = 100
     store.botPoints = 20
 
@@ -221,19 +193,16 @@ it('startGame (practice, variant 9) inicializa baralho, mãos e stock corretamen
     store.stock = []
     store.tableCards = { player: null, bot: null }
 
-    // vai acabar o jogo e depois chamar finishMatch()
     await store.finishGameIfNeeded('player')
 
     expect(store.summary).not.toBeNull()
     expect(store.summary.result).toBe('win')
     expect(store.summary.gameType).toBe('practice')
 
-    // achievements em practice baseiam-se nos points do game atual
     expect(store.summary.achievements.capote).toBe(true)
     expect(store.summary.achievements.bandeira).toBe(false)
   })
 
-  // 10) saveMatchGame envia payload com is_draw=true e winner/loser null quando há empate
   it('saveMatchGame envia payload com is_draw=true e winner/loser null quando há empate', async () => {
     const apiStore = useAPIStore()
     const authStore = useAuthStore()

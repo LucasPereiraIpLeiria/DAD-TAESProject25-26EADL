@@ -31,7 +31,7 @@ const router = useRouter()
 // Variant toggle (3 / 9), default 9
 const variant = ref('9')
 
-// avatar helper (igual ao do History/global)
+// avatar helper 
 function getEffectiveAvatar(player) {
   try {
     const custom = typeof player.custom === 'string'
@@ -319,7 +319,7 @@ onMounted(() => {
                 Rankings across all registered players ({{ variant === '9' ? 'Bisca of 9' : 'Bisca of 3' }}).
               </p>
 
-              <!-- AQUI: grid com separadores verticais -->
+              
               <div class="grid grid-cols-1 md:grid-cols-3 text-xs md:divide-x md:divide-gray-200">
                 <!-- Most matches won -->
                 <div class="md:pr-4 mb-3 md:mb-0">

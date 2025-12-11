@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 class EconomyController extends Controller
 {
-
+    // criar compra de coins: validar pagamento externo, registar transação e atualizar saldo
     public function createCoinPurchase(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
@@ -25,7 +25,7 @@ class EconomyController extends Controller
         ]);
 
         try {
-            // 1. Call Payment Gateway
+            // chamar payment gateway externo para debitar o valor em euros
             $gatewayResponse = Http::withoutVerifying()->post(
                 'https://dad-payments-api.vercel.app/api/debit',
                 [
@@ -35,6 +35,7 @@ class EconomyController extends Controller
                 ]
             );
 
+            // abortar compra se o gateway responder com erro
             if (!$gatewayResponse->successful()) {
                 return response()->json([
                     'error'   => 'Payment gateway error',
@@ -44,21 +45,24 @@ class EconomyController extends Controller
 
             $user = $request->user();
 
+            // criar registos da transação e da compra numa transação de BD
             $purchase = DB::transaction(function () use ($user, $validated) {
-                // Coin purchase (C)
+                // obter tipo de transação correspondente a “Coin purchase” (crédito)
                 $type = CoinTransactionType::where('name', 'Coin purchase')
                     ->where('type', 'C')
                     ->firstOrFail();
 
+                // registar transação de coins (histórico interno)
                 $coinTransaction = CoinTransaction::create([
                     'user_id'                  => $user->id,
                     'match_id'                 => null,
                     'game_id'                  => null,
-                    'coin_transaction_type_id' => $type->id, // ou 2
+                    'coin_transaction_type_id' => $type->id,
                     'coins'                    => $validated['coins'],
                     'transaction_datetime'     => now(),
                 ]);
 
+                // registar compra ligada à transação de coins
                 $purchase = CoinPurchase::create([
                     'user_id'             => $user->id,
                     'coin_transaction_id' => $coinTransaction->id,
@@ -68,6 +72,7 @@ class EconomyController extends Controller
                     'purchase_datetime'   => now(),
                 ]);
 
+                // atualizar saldo de coins do user
                 $user->increment('coins_balance', $validated['coins']);
 
                 Log::debug('Compra feita ' . $purchase->id);
@@ -87,5 +92,4 @@ class EconomyController extends Controller
             ], 500);
         }
     }
-
 }

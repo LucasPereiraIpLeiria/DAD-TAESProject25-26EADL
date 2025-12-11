@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -40,6 +38,13 @@ class User extends Authenticatable
         'custom'            => 'array',
     ];
 
+
+     
+    // Accessor para o campo "custom".
+    // Garante que o utilizador tem sempre uma estrutura consistente
+    // para avatares e decks, com valores por defeito quando o JSON
+    // ainda não existe ou está mal formado.
+    
     public function getCustomAttribute($value)
     {
         $decoded = json_decode($value, true);
@@ -59,6 +64,7 @@ class User extends Authenticatable
             ],
         ];
     }
+
 
     public function setCustomAttribute($value)
     {

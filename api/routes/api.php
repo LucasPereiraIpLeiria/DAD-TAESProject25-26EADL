@@ -39,21 +39,19 @@ Route::middleware('auth:sanctum')->group(function () {
     // GAMES (usado para jogos de MATCH)
     Route::post('games', [GameController::class, 'store']);
 
-    // Economy
+    // ECONOMY
     Route::post('/coin-purchases', [EconomyController::class, 'createCoinPurchase']);
 
-    // Customizations
+    // CUSTOMIZATIONS
     Route::get('/customizations', [CustomizationController::class, 'show']);
     Route::post('/customizations/purchase', [CustomizationController::class, 'purchase']);
     Route::patch('/customizations/select', [CustomizationController::class, 'select']);
     Route::post('/customizations/debug/reset', [CustomizationController::class, 'debugReset']);
 
-    // User history + personal stats
+    // User history + personal & global stats
     Route::get('/users/history', [UserStatsController::class, 'history']);
     Route::get('/users/stats', [UserStatsController::class, 'personalStats']);
     Route::get('/users/stats/global', [UserStatsController::class, 'globalScoreboards']);
-    // rota antiga, continua a funcionar para qualquer código legacy
-    Route::get('/scoreboards/global', [UserStatsController::class, 'globalScoreboards']);
 });
 
 

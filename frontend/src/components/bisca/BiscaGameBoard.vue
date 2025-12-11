@@ -266,7 +266,7 @@ watch(
 watch(
   () => props.bisca.lastTrickToken,
   async (token) => {
-    // First trick will have token = 1, so it won’t hit this early return
+    
     if (!token) return
 
     const winner = props.bisca.lastTrickWinner
@@ -375,7 +375,7 @@ watch(
         </div>
       </template>
 
-      <!-- Invisible placeholder to keep height when there are no cards -->
+      
       <div v-else class="opponent-placeholder" />
     </div>
 

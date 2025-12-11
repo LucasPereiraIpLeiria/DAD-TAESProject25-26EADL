@@ -1,20 +1,13 @@
-// tests/unit/SinglePlayerGame.spec.js
 import { mount, flushPromises } from '@vue/test-utils'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { reactive } from 'vue'
-import { toast } from 'vue-sonner' // vamos usar isto nas expectativas
-
-// AJUSTA o caminho do componente real:
+import { toast } from 'vue-sonner'
 import SinglePlayerGame from '@/pages/SinglePlayerGame.vue'
 
 let routeMock
 let routerPushMock
 let biscaMock
 let authMock
-
-// ───────────────────────────────────────────────
-// MOCKS DE DEPENDÊNCIAS
-// ───────────────────────────────────────────────
 
 vi.mock('vue-router', () => ({
   useRoute: () => routeMock,
@@ -29,16 +22,11 @@ vi.mock('@/stores/auth', () => ({
   useAuthStore: () => authMock,
 }))
 
-// Mock de vue-sonner, SEM variáveis externas
 vi.mock('vue-sonner', () => ({
   toast: {
     error: vi.fn(),
   },
 }))
-
-// ───────────────────────────────────────────────
-// HELPER PARA MONTAR O COMPONENTE
-// ───────────────────────────────────────────────
 
 const mountPage = async () => {
   const wrapper = mount(SinglePlayerGame, {
@@ -58,14 +46,9 @@ const mountPage = async () => {
   return wrapper
 }
 
-// ───────────────────────────────────────────────
-// BEFORE / AFTER
-// ───────────────────────────────────────────────
-
 beforeEach(() => {
   routerPushMock = vi.fn()
 
-  // limpar chamadas ao toast.error
   if (toast?.error?.mockReset) {
     toast.error.mockReset()
   }
@@ -80,8 +63,6 @@ beforeEach(() => {
     startMatch: vi.fn().mockResolvedValue(undefined),
     resetMatch: vi.fn(),
     playCard: vi.fn(),
-
-    // debug funcs
     debugWinCapoteGame: vi.fn(),
     debugWinBandeiraGame: vi.fn(),
     debugLoseBandeiraGame: vi.fn(),
@@ -99,10 +80,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.clearAllMocks()
 })
-
-// ───────────────────────────────────────────────
-// TESTES
-// ───────────────────────────────────────────────
 
 describe('SinglePlayerGame.vue', () => {
   it('inicia um jogo de prática no mounted', async () => {
@@ -285,10 +262,6 @@ describe('SinglePlayerGame.vue', () => {
 
     expect(wrapper.exists()).toBe(true)
   })
-
-  // ───────────────────────────────────────────────
-  // DEBUG BUTTONS
-  // ───────────────────────────────────────────────
 
   it('debug-win-capote chama debugWinCapoteGame', async () => {
     const wrapper = await mountPage()

@@ -8,10 +8,11 @@ export const useBiscaStore = defineStore('bisca', () => {
   const apiStore = useAPIStore()
   const authStore = useAuthStore()
   const leaderboardMonitor = useLeaderboardMonitor()
+
   // ───────────────────────────────────────────────
   // STATE
   // ───────────────────────────────────────────────
-
+  // definir estado base do tipo de jogo e variante
   const gameType = ref('practice') // 'practice' | 'match'
   const variant = ref('9') // '3' | '9'
 
@@ -71,6 +72,7 @@ export const useBiscaStore = defineStore('bisca', () => {
   const isDrawPhase = computed(() => phase.value === 'draw_phase')
   const isFinalPhase = computed(() => phase.value === 'final_phase')
 
+  // verificar se o game terminou (sem cartas em mãos, stock vazio, mesa vazia)
   const isGameOver = computed(() => {
     return (
       playerHand.value.length === 0 &&
@@ -81,6 +83,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     )
   })
 
+  // verificar se o match terminou (alguém chegou aos 4 marks)
   const isMatchFinished = computed(() => {
     return playerMarks.value >= 4 || botMarks.value >= 4
   })
@@ -89,6 +92,7 @@ export const useBiscaStore = defineStore('bisca', () => {
   // HELPERS
   // ───────────────────────────────────────────────
 
+  // criar baralho completo de 40 cartas com pontos e força de Bisca
   function createDeck() {
     const suits = ['♠', '♥', '♦', '♣']
     const ranks = [
@@ -120,6 +124,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     return d
   }
 
+  // baralhar cartas (Fisher–Yates)
   function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
@@ -128,6 +133,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     return array
   }
 
+  // agendar jogada inicial do bot se for a vez dele
   function scheduleBotStartIfNeeded() {
     if (
       status.value === 'in_game' &&
@@ -142,6 +148,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
+  // aplicar configuração opcional de gametype/variant
   function applyConfig(config) {
     if (!config) return
 
@@ -158,6 +165,7 @@ export const useBiscaStore = defineStore('bisca', () => {
   // MATCH FLOW
   // ───────────────────────────────────────────────
 
+  // iniciar match completo (criar match no backend e iniciar primeiro game)
   async function startMatch({ gametype, variant: v } = {}) {
     // match é sempre gametype = 'match'
     applyConfig({
@@ -183,6 +191,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     const p2 = 521
     const nowIso = new Date().toISOString()
 
+    // criar match no backend e deduzir coins
     if (p1) {
       const matchPayload = {
         type: variant.value,
@@ -199,16 +208,14 @@ export const useBiscaStore = defineStore('bisca', () => {
         const response = await apiStore.postMatch(matchPayload)
         const data = response.data
 
-        // se mantivermos o retorno como só o match:
         currentMatchId.value = data.id
         matchBeganAt.value = data.began_at ?? nowIso
 
-        // coins foram deduzidas no backend → refrescar user
+        // coins foram deduzidas no backend → refrescar utilizador
         await authStore.refreshUser()
       } catch (error) {
         console.error('Failed to create match in API:', error)
 
-        // se for insuficiência de fundos, podes tratar aqui:
         const reason = error.response?.data?.reason
         if (reason === 'insufficient_funds') {
           status.value = 'idle'
@@ -223,6 +230,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     await startGame()
   }
 
+  // limpar estado de match e preparar para novo match
   function resetMatch() {
     status.value = 'idle'
     summary.value = null
@@ -258,6 +266,7 @@ export const useBiscaStore = defineStore('bisca', () => {
   // GAME FLOW
   // ───────────────────────────────────────────────
 
+  // iniciar game (em practice ou dentro de match)
   function startGame(config) {
     applyConfig(config || {})
 
@@ -311,6 +320,7 @@ export const useBiscaStore = defineStore('bisca', () => {
   // PLAY FLOW
   // ───────────────────────────────────────────────
 
+  // jogar carta do player (validar turno, mão e regra de seguir naipe)
   function playCard(card) {
     if (status.value !== 'in_game') return
     if (currentTurn.value !== 'player') return
@@ -346,15 +356,18 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
+  // ordenar cartas por força crescente
   function sortByStrengthAsc(cards) {
     return [...cards].sort((a, b) => a.strength - b.strength)
   }
 
+  // escolher carta mais fraca de um conjunto
   function chooseLowest(cards) {
     if (!cards.length) return null
     return sortByStrengthAsc(cards)[0]
   }
 
+  // verificar se c1 ganha a c2 dado naipe de saída e trunfo
   function cardBeats(c1, c2, leadingSuit, trumpSuit) {
     if (c1.suit === trumpSuit && c2.suit !== trumpSuit) return true
     if (c2.suit === trumpSuit && c1.suit !== trumpSuit) return false
@@ -367,7 +380,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     return false
   }
 
-  // BOT AI
+  // BOT AI: escolher carta do bot com estratégia simples
   function botPlay() {
     if (status.value !== 'in_game') return
     if (currentTurn.value !== 'bot') return
@@ -378,6 +391,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     const trumpSuit = trumpCard.value?.suit
     let cardToPlay = null
 
+    // bot a abrir a vaza
     if (!tableCards.value.player && !tableCards.value.bot) {
       cardToPlay = chooseLowest(hand)
       botHand.value = botHand.value.filter((c) => c.id !== cardToPlay.id)
@@ -444,6 +458,7 @@ export const useBiscaStore = defineStore('bisca', () => {
   // RESOLVE TRICK
   // ───────────────────────────────────────────────
 
+  // resolver vaza, atribuir pontos e atualizar último vencedor
   function resolveTrick() {
     const p = tableCards.value.player
     const b = tableCards.value.bot
@@ -481,6 +496,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     lastTrickToken.value += 1
   }
 
+  // limpar mesa após animação da vaza e puxar cartas se necessário
   function afterTrickAnimation() {
     const winner = lastTrickWinner.value
     if (!winner) return
@@ -503,6 +519,7 @@ export const useBiscaStore = defineStore('bisca', () => {
   // DRAW CARDS
   // ───────────────────────────────────────────────
 
+  // puxar cartas do stock após vaza e mudar fase quando stock termina
   function drawCardsIfNeeded(winner) {
     if (stock.value.length > 0) {
       if (winner === 'player') {
@@ -529,6 +546,7 @@ export const useBiscaStore = defineStore('bisca', () => {
   // GAME AND MATCH END
   // ───────────────────────────────────────────────
 
+  // finalizar game se estiver concluído, calcular marks e decidir se avança match
   async function finishGameIfNeeded(winner) {
     if (!isGameOver.value) {
       currentTurn.value = winner
@@ -552,6 +570,7 @@ export const useBiscaStore = defineStore('bisca', () => {
       gameWinner = null // empate
     }
 
+    // registar resumo de game no contexto de match
     if (gameType.value === 'match') {
       const playerWonGame = gameWinner === 'player'
       const gameAchievements = {
@@ -568,6 +587,7 @@ export const useBiscaStore = defineStore('bisca', () => {
       })
     }
 
+    // acumular pontos globais de match
     if (gameType.value === 'match') {
       matchPlayer1Points.value += playerPoints.value
       matchPlayer2Points.value += botPoints.value
@@ -581,6 +601,7 @@ export const useBiscaStore = defineStore('bisca', () => {
       }
     }
 
+    // atribuir marks com base nos pontos do game
     if (gameWinner) {
       if (gameWinnerPoints === 120) {
         if (gameWinner === 'player') {
@@ -615,6 +636,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
+  // calcular resultado global (win/loss/draw) para summary
   function computeResult() {
     if (gameType.value === 'practice') {
       if (playerPoints.value > botPoints.value) return 'win'
@@ -627,6 +649,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     return 'loss'
   }
 
+  // finalizar match (atualizar backend, summary e leaderboards)
   async function finishMatch() {
     status.value = 'match_finished'
 
@@ -648,6 +671,7 @@ export const useBiscaStore = defineStore('bisca', () => {
 
     matchEndedAt.value = new Date().toISOString()
 
+    // atualizar match no backend e receber coinsAwarded
     if (summary.value.gameType === 'match' && currentMatchId.value) {
       try {
         const p1 = authStore.currentUser?.id
@@ -668,7 +692,6 @@ export const useBiscaStore = defineStore('bisca', () => {
 
         const resp = await apiStore.updateMatch(currentMatchId.value, payload)
 
-        // se quiseres usar coins_awarded:
         const awarded = resp.data?.coins_awarded ?? null
         if (awarded != null) {
           summary.value = {
@@ -677,13 +700,14 @@ export const useBiscaStore = defineStore('bisca', () => {
           }
         }
 
-        // coins foram atribuídas no backend → refrescar user
+        // coins foram atribuídas no backend → refrescar utilizador
         await authStore.refreshUser()
       } catch (error) {
         console.error('Failed to update match in API:', error)
       }
     }
 
+    // atualizar scoreboards globais depois do match
     try {
       const resp = await apiStore.getGlobalScoreboards({ type: variant.value })
       leaderboardMonitor.checkForChanges(resp.data, variant.value)
@@ -692,8 +716,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
-  
-
+  // converter rank numérico para símbolo de carta
   function displayRank(rank) {
     switch (rank) {
       case 1:
@@ -709,12 +732,11 @@ export const useBiscaStore = defineStore('bisca', () => {
     }
   }
 
-  
-
   // ───────────────────────────────────────────────
   // DEBUG HELPERS (instant end of game)
   // ───────────────────────────────────────────────
 
+  // preparar fim instantâneo de game para cenários de debug
   function prepareInstantEnd() {
     // não mexer se o match já acabou
     if (status.value === 'match_finished') return false
@@ -735,7 +757,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     return true
   }
 
-  // Win com CAPOTE (>=91 e <120)
+  // debug: ganhar com CAPOTE (>=91 e <120)
   function debugWinCapoteGame() {
     if (!prepareInstantEnd()) return
 
@@ -745,7 +767,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     finishGameIfNeeded('player')
   }
 
-  // Win com BANDEIRA (120-0)
+  // debug: ganhar com BANDEIRA (120-0)
   function debugWinBandeiraGame() {
     if (!prepareInstantEnd()) return
 
@@ -755,7 +777,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     finishGameIfNeeded('player')
   }
 
-  // Lose com BANDEIRA do bot (0-120)
+  // debug: perder com BANDEIRA do bot (0-120)
   function debugLoseBandeiraGame() {
     if (!prepareInstantEnd()) return
 
@@ -765,7 +787,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     finishGameIfNeeded('bot')
   }
 
-  // Empate (draw)
+  // debug: empatar game (draw)
   function debugDrawGame() {
     if (!prepareInstantEnd()) return
 
@@ -776,6 +798,7 @@ export const useBiscaStore = defineStore('bisca', () => {
     finishGameIfNeeded('player')
   }
 
+  // guardar game de match no backend
   async function saveMatchGame(gameWinner) {
     if (gameType.value !== 'match') return
     if (!currentMatchId.value) return

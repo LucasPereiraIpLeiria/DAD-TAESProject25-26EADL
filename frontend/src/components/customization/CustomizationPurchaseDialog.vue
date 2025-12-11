@@ -1,6 +1,6 @@
 <template>
   <Dialog v-model:open="localOpen" @update:open="onUpdateOpen">
-    <!-- Como não usamos DialogTrigger aqui, quem controla o open é o pai -->
+    
 
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
@@ -125,7 +125,7 @@ const confirm = async () => {
 
   isSubmitting.value = true
   try {
-    await emit('confirm') // o pai é que faz o POST
+    await emit('confirm') 
     emit('update:open', false)
   } finally {
     isSubmitting.value = false

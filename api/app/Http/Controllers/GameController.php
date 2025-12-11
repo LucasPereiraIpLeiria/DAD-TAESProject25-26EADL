@@ -11,16 +11,17 @@ use App\Models\User;
 
 class GameController extends Controller
 {
-    //public function index()
-
+    // Criar um novo game e calcular o total_time com base em began_at e ended_at
     public function store(StoreGameRequest $request)
     {
         $data = $request->validated();
 
+        // Se tivermos as duas datas, calcular a duração do jogo em segundos
         if (!empty($data['began_at']) && !empty($data['ended_at'])) {
             $start = strtotime($data['began_at']);
             $end   = strtotime($data['ended_at']);
 
+            // Só calcular se as datas forem válidas e o fim não for antes do início
             if ($start !== false && $end !== false && $end >= $start) {
                 $data['total_time'] = $end - $start;
             }
@@ -31,11 +32,13 @@ class GameController extends Controller
         return response()->json($game, 201);
     }
 
+    
     public function show(Game $game)
     {
         return $game;
     }
 
+    
     public function update(StoreGameRequest $request, Game $game)
     {
         $game->update($request->validated());
@@ -43,6 +46,7 @@ class GameController extends Controller
         return response()->json($game);
     }
 
+    
     public function getUserGames(User $user)
     {
         return response()->json($user->games()->get());

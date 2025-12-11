@@ -4,7 +4,7 @@
       <RouterLink :to="{ name: 'home' }">♠ PlayBisca</RouterLink>
     </div>
 
-    <!-- NavigationMenu como flex com espaçamento entre coins e perfil -->
+    
     <NavigationMenu class="flex items-center gap-6">
       <!-- BLOCO COINS -->
       <div v-if="authStore.isLoggedIn" class="flex items-center text-sm">
@@ -31,7 +31,7 @@
             />
           </svg>
 
-          <!-- Botão + amarelo dentro do pill preto -->
+          
           <AddFunds
             :current-balance="coinBalance.value"
             @submit="handleFundsSubmit"
@@ -133,7 +133,7 @@ import avatarDragon from '@/assets/images/avatars/dragon.png'
 const authStore = useAuthStore()
 const apiStore = useAPIStore()
 
-// Monitor só precisa do router aqui, sem polling
+
 const leaderboardMonitor = useLeaderboardMonitor()
 const appRouter = useRouter()
 leaderboardMonitor.setRouter(appRouter)
@@ -244,5 +244,5 @@ const onAvatarError = () => {
 </script>
 
 <style scoped>
-/* estilos globais/gerais da navbar podem ir aqui */
+
 </style>

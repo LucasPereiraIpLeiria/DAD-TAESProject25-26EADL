@@ -166,7 +166,7 @@ watch(open, (newValue) => {
   }
 })
 
-// Calculate coins (assuming 1 euro = 100 coins)
+// Calculate coins 
 const calculatedCoins = computed(() => {
   if (!formData.value.euros) return 0
   return Math.floor(parseFloat(formData.value.euros) * 10)

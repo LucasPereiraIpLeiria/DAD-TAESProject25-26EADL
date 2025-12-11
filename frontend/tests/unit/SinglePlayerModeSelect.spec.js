@@ -1,14 +1,8 @@
-// tests/unit/SinglePlayerPage.spec.js
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import SinglePlayerPage from '@/pages/SinglePlayerModeSelect.vue'
 
-// ───────────────────────────────────────────────
-// MOCKS
-// ───────────────────────────────────────────────
-
-// auth store mockado – não usamos Pinia aqui, só devolvemos um objeto simples
 let authState
 
 vi.mock('@/stores/auth', () => {
@@ -17,7 +11,6 @@ vi.mock('@/stores/auth', () => {
   }
 })
 
-// router mockado
 const routerPushMock = vi.fn()
 
 vi.mock('vue-router', () => {
@@ -28,7 +21,6 @@ vi.mock('vue-router', () => {
   }
 })
 
-// helper para montar com Pinia registado e componentes de UI stubados
 function mountComponent() {
   const pinia = createPinia()
 
@@ -66,11 +58,9 @@ function mountComponent() {
 describe('SinglePlayerPage', () => {
   beforeEach(() => {
     routerPushMock.mockReset()
-    // default: guest
     authState = { isLoggedIn: false }
   })
 
-  // 1) Guest: só Practice
   it('mostra apenas o tipo Practice quando o utilizador não está autenticado', () => {
     authState = { isLoggedIn: false }
 
@@ -81,7 +71,6 @@ describe('SinglePlayerPage', () => {
     expect(text).not.toContain('Match')
   })
 
-  // 2) Logado: Practice + Match
   it('mostra Practice e Match quando o utilizador está autenticado', () => {
     authState = { isLoggedIn: true }
 
@@ -92,7 +81,6 @@ describe('SinglePlayerPage', () => {
     expect(text).toContain('Match')
   })
 
-  // 3) Guest: Start Game → practice / 9
   it('ao clicar em Start Game como guest começa jogo de practice com variant 9', async () => {
     authState = { isLoggedIn: false }
 
@@ -101,7 +89,6 @@ describe('SinglePlayerPage', () => {
     const button = wrapper.get('button')
     await button.trigger('click')
 
-    // pode haver mais chamadas, garantimos apenas que uma delas é a correta
     expect(routerPushMock).toHaveBeenCalled()
 
     const lastCallArgs = routerPushMock.mock.calls.at(-1)[0]
@@ -114,14 +101,12 @@ describe('SinglePlayerPage', () => {
     })
   })
 
-  // 4) Logado: escolher Match e Start Game → match / 9
   it('ao escolher Match e clicar Start Game navega com gametype=match e variant 9', async () => {
     authState = { isLoggedIn: true }
 
     const wrapper = mountComponent()
 
     const options = wrapper.findAll('.option-tile')
-    // gameTypes => [Practice, Match]
     const practiceTile = options[0]
     const matchTile = options[1]
 

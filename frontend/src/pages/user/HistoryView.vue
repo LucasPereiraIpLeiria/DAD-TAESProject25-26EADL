@@ -106,7 +106,7 @@ onMounted(() => {
   loadHistory()
 })
 
-// Sempre que mudas o toggle Bisca of 9 / 3, recarrega automaticamente
+// Sempre que se muda o toggle Bisca of 9 / 3, recarrega automaticamente
 watch(
   () => filters.type,
   () => {
@@ -122,11 +122,7 @@ watch(
     if (val) {
       filters.result = 'win'
     }
-    // Se limpar o achievement (val === ''), não mexemos no result.
-    // Se quiseres resetar também o result, podias fazer:
-    // else {
-    //   filters.result = ''
-    // }
+
   }
 )
 
@@ -227,7 +223,7 @@ const hasAnyHistory = computed(() => {
             <Card>
               <CardHeader class="space-y-2">
 
-                <!-- Linha do título + toggle alinhado à direita -->
+                
                 <div class="flex items-center justify-between">
                   <CardTitle class="text-base">Matches</CardTitle>
 
@@ -251,7 +247,7 @@ const hasAnyHistory = computed(() => {
                   </div>
                 </div>
 
-                <!-- Descrição fica por baixo -->
+                
                 <CardDescription>
                   All your {{ biscaVariantLabel(filters.type) }} matches,
                   ordered by date ({{ filters.order === 'desc' ? 'newest first' : 'oldest first' }}).
@@ -300,7 +296,7 @@ const hasAnyHistory = computed(() => {
                       </div>
                     </div>
 
-                    <!-- Games (mantém mini-cards com bg mais claro) -->
+                    <!-- Games -->
                     <details class="mt-1">
                       <summary class="cursor-pointer text-[11px] text-gray-700">
                         Games ({{ match.games?.length ?? 0 }})

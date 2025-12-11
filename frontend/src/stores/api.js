@@ -7,6 +7,7 @@ export const useAPIStore = defineStore('api', () => {
   const token = ref(null)
   const isValidating = ref(false)
 
+  // inicializar token a partir de localStorage e configurar axios
   const initializeToken = () => {
     const stored = localStorage.getItem('auth_token')
     if (stored) {
@@ -17,6 +18,7 @@ export const useAPIStore = defineStore('api', () => {
 
   initializeToken()
 
+  // validar token atual chamando /users/me
   const validateToken = async () => {
     if (!token.value || isValidating.value) return true
 
@@ -32,6 +34,7 @@ export const useAPIStore = defineStore('api', () => {
     }
   }
 
+  // definir token (guardar em localStorage e header Authorization)
   const setToken = (newToken) => {
     token.value = newToken
     if (newToken) {
@@ -42,12 +45,14 @@ export const useAPIStore = defineStore('api', () => {
     }
   }
 
+  // limpar token de memória, localStorage e axios
   const clearToken = () => {
     token.value = null
     localStorage.removeItem('auth_token')
     delete axios.defaults.headers.common['Authorization']
   }
 
+  // interceptar respostas 401/403 para limpar token automaticamente
   axios.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -58,7 +63,11 @@ export const useAPIStore = defineStore('api', () => {
     },
   )
 
-  // Auth
+  // ───────────────────────────────────────────────
+  // AUTH
+  // ───────────────────────────────────────────────
+
+  // autenticar utilizador e guardar token
   const postLogin = async (credentials) => {
     const response = await axios.post(`${API_BASE_URL}/login`, credentials)
     const responseToken = response.data.token
@@ -67,10 +76,12 @@ export const useAPIStore = defineStore('api', () => {
     return response
   }
 
+  // registar novo utilizador
   const postRegister = async (payload) => {
     return axios.post(`${API_BASE_URL}/register`, payload)
   }
 
+  // terminar sessão no backend e limpar token
   const postLogout = async () => {
     if (token.value) {
       try {
@@ -81,13 +92,17 @@ export const useAPIStore = defineStore('api', () => {
     }
   }
 
+  // obter utilizador autenticado
   const getAuthUser = async () => {
     if (!token.value) throw new Error('No authentication token available')
     return axios.get(`${API_BASE_URL}/users/me`)
   }
 
-  // Economy
+  // ───────────────────────────────────────────────
+  // ECONOMY
+  // ───────────────────────────────────────────────
 
+  // criar compra de coins
   const postCoinPurchase = async (data, coins) => {
     if (!token.value) throw new Error('No authentication token available')
     return axios.post(`${API_BASE_URL}/coin-purchases`, {
@@ -98,55 +113,77 @@ export const useAPIStore = defineStore('api', () => {
     })
   }
 
-  // Matches / Games
+  // ───────────────────────────────────────────────
+  // MATCHES / GAMES
+  // ───────────────────────────────────────────────
 
+  // criar match
   const postMatch = async (match) => {
     if (!token.value) throw new Error('No authentication token available')
     return axios.post(`${API_BASE_URL}/matches`, match)
   }
 
+  // atualizar match
   const updateMatch = async (matchId, payload) => {
     if (!token.value) throw new Error('No authentication token available')
     return axios.patch(`${API_BASE_URL}/matches/${matchId}`, payload)
   }
 
+  // criar game
   const postGame = async (game) => {
     if (!token.value) throw new Error('No authentication token available')
     return axios.post(`${API_BASE_URL}/games`, game)
   }
 
-  // Customizations
+  // ───────────────────────────────────────────────
+  // CUSTOMIZATIONS
+  // ───────────────────────────────────────────────
+
+  // comprar item de customização
   const postPurchaseCustomization = async (payload) => {
     if (!token.value) throw new Error('No authentication token available')
     return axios.post(`${API_BASE_URL}/customizations/purchase`, payload)
   }
 
+  // selecionar item de customização
   const patchSelectCustomization = async (payload) => {
     if (!token.value) throw new Error('No authentication token available')
     return axios.patch(`${API_BASE_URL}/customizations/select`, payload)
   }
 
+  // resetar customizações para estado default (debug)
   const postDebugResetCustomizations = () => {
     if (!token.value) throw new Error('No authentication token available')
     return axios.post(`${API_BASE_URL}/customizations/debug/reset`)
   }
 
+  // ───────────────────────────────────────────────
+  // STATS / SCOREBOARDS
+  // ───────────────────────────────────────────────
+
+  // obter histórico de jogos/matches do utilizador
   const getUserHistory = async (params = {}) => {
     if (!token.value) throw new Error('No authentication token available')
     return axios.get(`${API_BASE_URL}/users/history`, { params })
   }
 
+  // obter estatísticas pessoais do utilizador
   const getUserStats = async (params = {}) => {
     if (!token.value) throw new Error('No authentication token available')
     return axios.get(`${API_BASE_URL}/users/stats`, { params })
   }
 
+  // obter scoreboards globais
   const getGlobalScoreboards = async (params = {}) => {
     if (!token.value) throw new Error('No authentication token available')
     return axios.get(`${API_BASE_URL}/users/stats/global`, { params })
   }
 
-  // Profile
+  // ───────────────────────────────────────────────
+  // PROFILE
+  // ───────────────────────────────────────────────
+
+  // atualizar perfil (incluindo password e avatar base64)
   const updateProfile = async (data) => {
     if (!token.value) throw new Error('No authentication token available')
 
@@ -176,6 +213,7 @@ export const useAPIStore = defineStore('api', () => {
     return axios.patch(`${API_BASE_URL}/users/edit`, payload)
   }
 
+  // eliminar conta do utilizador
   const deleteUser = async (password) => {
     if (!token.value) throw new Error('No authentication token available')
     return axios.delete(`${API_BASE_URL}/users/delete`, {
@@ -183,6 +221,7 @@ export const useAPIStore = defineStore('api', () => {
     })
   }
 
+  // URLs base para avatares (BD só guarda filename)
   const photoAvatarStorageURL = 'http://127.0.0.1:8000/storage/photos_avatars/'
   const anonymousAvatarStorageURL = 'http://127.0.0.1:8000/storage/photos_avatars/anonymous.png'
 

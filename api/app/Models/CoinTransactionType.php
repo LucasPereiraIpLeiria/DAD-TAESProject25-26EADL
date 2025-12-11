@@ -12,7 +12,7 @@ class CoinTransactionType extends Model
 
     protected $fillable = [
         'name',
-        'type',       // 'C' ou 'D'
+        'type',       
         'deleted_at',
         'custom',
     ];

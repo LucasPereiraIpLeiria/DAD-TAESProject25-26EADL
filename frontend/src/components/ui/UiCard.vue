@@ -1,4 +1,4 @@
-<!-- src/components/ui/UiCard.vue -->
+
 <script setup>
 const props = defineProps({
   padding: {

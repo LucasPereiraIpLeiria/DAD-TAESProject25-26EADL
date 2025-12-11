@@ -218,7 +218,7 @@ const confirmDelete = async () => {
     toast.success('Account deleted successfully')
 
     // Clear user data using authStore's methods
-    authStore.logout() // This will clear both authStore and localStorage
+    authStore.logout() 
 
     // Redirect to home
     router.push('/')
@@ -264,7 +264,7 @@ watch(() => authStore.isLoggedIn, (newValue) => {
   }
 })
 
-// You might want to add an immediate watcher for initial load
+
 watch(() => authStore.currentUser, (newUser) => {
   
 }, { immediate: true })

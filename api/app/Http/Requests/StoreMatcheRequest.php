@@ -6,17 +6,13 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreMatcheRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+    
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
+    
     public function rules(): array
     {
         return [
@@ -30,7 +26,6 @@ class StoreMatcheRequest extends FormRequest
 
             'stake'   => 'nullable|numeric',
             'began_at'=> 'required|date',
-            // na criação ainda não sabemos o fim
             'ended_at'=> 'nullable|date|after_or_equal:began_at',
 
             'player1_points' => 'nullable|numeric',
@@ -40,7 +35,7 @@ class StoreMatcheRequest extends FormRequest
 
             'total_time' => 'nullable|integer',
 
-            // sem match_id nem is_draw aqui: isso é conceito de GAME, não de MATCH
+            
         ];
     }
 }

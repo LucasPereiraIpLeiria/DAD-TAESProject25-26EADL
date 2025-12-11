@@ -42,8 +42,8 @@ function formatDuration(seconds) {
 }
 
 function biscaVariantLabel(type) {
-  if (type === 3 || type === '3') return 'Bisca de 3'
-  if (type === 9 || type === '9') return 'Bisca de 9'
+  if (type === 3 || type === '3') return 'Bisca of 3'
+  if (type === 9 || type === '9') return 'Bisca of 9'
   return `Type ${type}`
 }
 
@@ -212,21 +212,6 @@ const hasAnyHistory = computed(() => {
             <h2 class="text-lg font-semibold">
               History
             </h2>
-
-            <!-- Toggle Variant aqui -->
-            <div class="flex items-center gap-2 text-xs">
-              <span class="font-medium text-gray-700">Variant:</span>
-              <button type="button" class="px-2 py-1 rounded border text-xs" :class="filters.type === '9'
-                ? 'bg-indigo-600 text-white border-indigo-600'
-                : 'bg-white text-gray-700 border-gray-300'" @click="filters.type = '9'">
-                Bisca of 9
-              </button>
-              <button type="button" class="px-2 py-1 rounded border text-xs" :class="filters.type === '3'
-                ? 'bg-indigo-600 text-white border-indigo-600'
-                : 'bg-white text-gray-700 border-gray-300'" @click="filters.type = '3'">
-                Bisca of 3
-              </button>
-            </div>
           </div>
 
           <p v-if="isLoading" class="text-sm text-gray-500">
@@ -240,66 +225,100 @@ const hasAnyHistory = computed(() => {
           <div v-else>
             <!-- Only Matches -->
             <Card>
-              <CardHeader>
-                <CardTitle class="text-base">Matches</CardTitle>
+              <CardHeader class="space-y-2">
+
+                <!-- Linha do título + toggle alinhado à direita -->
+                <div class="flex items-center justify-between">
+                  <CardTitle class="text-base">Matches</CardTitle>
+
+                  <!-- Toggle à direita -->
+                  <div class="flex items-center gap-3 text-sm">
+                    <span class="font-medium text-gray-800 text-sm">Variant:</span>
+
+                    <button type="button" class="px-3 py-1.5 rounded border text-sm font-medium cursor-pointer transition-colors
+         hover:bg-indigo-100 hover:border-indigo-300" :class="filters.type === '9'
+          ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
+          : 'bg-white text-gray-700 border-gray-300'" @click="filters.type = '9'">
+                      Bisca of 9
+                    </button>
+
+                    <button type="button" class="px-3 py-1.5 rounded border text-sm font-medium cursor-pointer transition-colors
+         hover:bg-indigo-100 hover:border-indigo-300" :class="filters.type === '3'
+          ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
+          : 'bg-white text-gray-700 border-gray-300'" @click="filters.type = '3'">
+                      Bisca of 3
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Descrição fica por baixo -->
                 <CardDescription>
-                  All your matches, ordered by date ({{ filters.order === 'desc' ? 'newest first' : 'oldest first' }}).
+                  All your {{ biscaVariantLabel(filters.type) }} matches,
+                  ordered by date ({{ filters.order === 'desc' ? 'newest first' : 'oldest first' }}).
                 </CardDescription>
+
               </CardHeader>
               <CardContent>
-                <div class="space-y-2">
+                <div class="space-y-3">
                   <div v-for="match in matches" :key="match.id"
-                    class="border rounded-md p-2 text-xs space-y-1 bg-white">
-                    <div class="flex justify-between items-center">
-                      <div class="font-medium">
-                        {{ biscaVariantLabel(match.type) }}
-                      </div>
-                      <span class="px-2 py-0.5 rounded-full text-[11px]" :class="resultPillClass(match.result)">
+                    class="border border-gray-300 rounded-md px-3 py-2 bg-gray-100 text-xs sm:text-sm">
+                    <!-- Linha horizontal com info principal do match -->
+                    <div class="flex flex-wrap items-center gap-2 justify-between">
+                      <!-- Resultado -->
+                      <span class="px-2 py-0.5 rounded-full text-[11px] sm:text-xs"
+                        :class="resultPillClass(match.result)">
                         {{ resultLabel(match.result) }}
                       </span>
-                    </div>
 
-                    <div class="flex justify-between text-[11px] text-gray-600">
-                      <span>Started: {{ formatDateTime(match.began_at) }}</span>
-                      <span>Ended: {{ formatDateTime(match.ended_at) }}</span>
-                    </div>
+                      <!-- Datas -->
+                      <span class="text-[11px] sm:text-xs text-gray-700">
+                        {{ formatDateTime(match.began_at) }} → {{ formatDateTime(match.ended_at) }}
+                      </span>
 
-                    <div class="text-[11px] text-gray-600">
-                      Duration: {{ formatDuration(match.duration) }}
-                    </div>
+                      <!-- Duração -->
+                      <span class="text-[11px] sm:text-xs text-gray-700">
+                        Duration:
+                        <strong>{{ formatDuration(match.duration) }}</strong>
+                      </span>
 
-                    <div class="flex justify-between text-[11px] mt-1">
-                      <span>
+                      <!-- Coins -->
+                      <span class="text-[11px] sm:text-xs">
                         Coins earned:
                         <strong class="text-yellow-700">{{ match.coins_earned }}</strong>
                       </span>
-                      <span class="flex gap-1">
+
+                      <!-- Achievements: espaço fixo -->
+                      <div class="flex justify-end gap-1 w-32">
                         <span v-if="match.achievements?.bandeira"
-                          class="px-1.5 py-0.5 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700">
+                          class="px-1.5 py-0.5 rounded-full border border-indigo-200 font-bold bg-indigo-50 text-indigo-700 text-[11px] sm:text-xs whitespace-nowrap">
                           Bandeira
                         </span>
                         <span v-if="match.achievements?.capote"
-                          class="px-1.5 py-0.5 rounded-full border border-purple-200 bg-purple-50 text-purple-700">
+                          class="px-1.5 py-0.5 rounded-full border border-purple-200 font-bold bg-purple-50 text-purple-700 text-[11px] sm:text-xs whitespace-nowrap">
                           Capote
                         </span>
-                      </span>
-
+                      </div>
                     </div>
 
+                    <!-- Games (mantém mini-cards com bg mais claro) -->
                     <details class="mt-1">
                       <summary class="cursor-pointer text-[11px] text-gray-700">
                         Games ({{ match.games?.length ?? 0 }})
                       </summary>
                       <div class="mt-1 space-y-1">
                         <div v-for="g in match.games" :key="g.id"
-                          class="flex justify-between text-[11px] border rounded px-1 py-0.5 bg-gray-50">
+                          class="flex justify-between text-[11px] border rounded px-1 py-0.5 bg-white">
                           <div class="flex flex-col gap-0.5">
                             <div>
-                              Game #{{ g.game_number }} —
-                              {{ g.user_points }} x {{ g.opponent_points }}
-                              <span class="ml-1 px-1 py-0.5 rounded" :class="resultPillClass(g.result)">
-                                {{ resultLabel(g.result) }}
-                              </span>
+                              <div class="flex items-center gap-4">
+                                <span>Game #{{ g.game_number }}</span>
+
+                                <span>{{ g.user_points }} x {{ g.opponent_points }}</span>
+
+                                <span class="px-1.5 py-0.5 rounded ml-auto" :class="resultPillClass(g.result)">
+                                  {{ resultLabel(g.result) }}
+                                </span>
+                              </div>
                             </div>
                             <div class="text-[10px] text-gray-500">
                               Duration: {{ formatDuration(g.duration) }}
@@ -307,11 +326,11 @@ const hasAnyHistory = computed(() => {
                           </div>
                           <div class="flex gap-1 items-center">
                             <span v-if="g.achievements?.bandeira"
-                              class="px-1 rounded border border-indigo-200 bg-indigo-50 text-indigo-700">
+                              class="px-1 rounded border border-indigo-200 bg-indigo-50 font-bold text-indigo-700">
                               Bandeira
                             </span>
                             <span v-else-if="g.achievements?.capote"
-                              class="px-1 rounded border border-purple-200 bg-purple-50 text-purple-700">
+                              class="px-1 rounded border border-purple-200 bg-purple-50 font-bold text-purple-700">
                               Capote
                             </span>
                           </div>

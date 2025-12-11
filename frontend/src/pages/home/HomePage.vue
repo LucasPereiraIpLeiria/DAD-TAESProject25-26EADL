@@ -232,66 +232,79 @@ onMounted(() => {
           </div>
 
           <!-- Variant Toggle -->
-          <div class="flex items-center gap-2 text-xs">
-            <span class="font-medium text-gray-700">Variant:</span>
-            <button type="button" class="px-2 py-1 rounded border text-xs" :class="variant === '9'
-              ? 'bg-indigo-600 text-white border-indigo-600'
-              : 'bg-white text-gray-700 border-gray-300'" @click="setVariant('9')">
+          <div class="flex items-center gap-3 text-sm">
+            <span class="font-medium text-gray-800 text-sm">Variant:</span>
+
+            <button type="button" class="px-3 py-1.5 rounded border text-sm font-medium cursor-pointer transition-colors
+           hover:bg-indigo-100 hover:border-indigo-300" :class="variant === '9'
+            ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
+            : 'bg-white text-gray-700 border-gray-300'" @click="setVariant('9')">
               Bisca of 9
             </button>
-            <button type="button" class="px-2 py-1 rounded border text-xs" :class="variant === '3'
-              ? 'bg-indigo-600 text-white border-indigo-600'
-              : 'bg-white text-gray-700 border-gray-300'" @click="setVariant('3')">
+
+            <button type="button" class="px-3 py-1.5 rounded border text-sm font-medium cursor-pointer transition-colors
+           hover:bg-indigo-100 hover:border-indigo-300" :class="variant === '3'
+            ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
+            : 'bg-white text-gray-700 border-gray-300'" @click="setVariant('3')">
               Bisca of 3
             </button>
           </div>
         </CardHeader>
         <CardContent>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
             <!-- Personal bests -->
             <div class="border rounded-lg p-4 bg-white">
               <h2 class="text-lg font-semibold mb-2">Personal Bests</h2>
+
               <p class="text-xs text-gray-500 mb-3">
                 Your overall performance in matches ({{ variant === '9' ? 'Bisca of 9' : 'Bisca of 3' }}).
               </p>
 
-              <div v-if="personalStats" class="grid grid-cols-2 gap-3 text-sm">
-                <div class="flex flex-col">
-                  <span class="text-xs text-gray-500">Matches</span>
-                  <span class="font-semibold">{{ personalStats.total_matches }}</span>
+              <div v-if="personalStats" class="grid grid-cols-2 gap-3 text-base">
+
+                <div class="flex flex-col bg-gray-100 p-2 rounded-lg items-center text-center leading-tight">
+                  <span class="text-sm text-gray-600">Matches</span>
+                  <span class="font-bold text-lg">{{ personalStats.total_matches }}</span>
                 </div>
-                <div class="flex flex-col">
-                  <span class="text-xs text-gray-500">Wins</span>
-                  <span class="font-semibold text-green-700">{{ personalStats.wins }}</span>
+
+                <div class="flex flex-col bg-gray-100 p-2 rounded-lg items-center text-center leading-tight">
+                  <span class="text-sm text-gray-600">Draws</span>
+                  <span class="font-bold text-gray-700 text-lg">{{ personalStats.draws }}</span>
                 </div>
-                <div class="flex flex-col">
-                  <span class="text-xs text-gray-500">Losses</span>
-                  <span class="font-semibold text-red-700">{{ personalStats.losses }}</span>
+
+                <div class="flex flex-col bg-gray-100 p-2 rounded-lg items-center text-center leading-tight">
+                  <span class="text-sm text-gray-600">Wins</span>
+                  <span class="font-bold text-green-700 text-lg">{{ personalStats.wins }}</span>
                 </div>
-                <div class="flex flex-col">
-                  <span class="text-xs text-gray-500">Draws</span>
-                  <span class="font-semibold text-gray-700">{{ personalStats.draws }}</span>
+
+                <div class="flex flex-col bg-gray-100 p-2 rounded-lg items-center text-center leading-tight">
+                  <span class="text-sm text-gray-600">Losses</span>
+                  <span class="font-bold text-red-700 text-lg">{{ personalStats.losses }}</span>
                 </div>
-                <div class="flex flex-col">
-                  <span class="text-xs text-gray-500">Win rate</span>
-                  <span class="font-semibold">
-                    {{ personalStats.win_rate }}%
-                  </span>
+
+                <div class="flex flex-col bg-gray-100 p-2 rounded-lg items-center text-center leading-tight">
+                  <span class="text-sm text-gray-600">Win rate</span>
+                  <span class="font-bold text-lg">{{ personalStats.win_rate }}%</span>
                 </div>
-                <div class="flex flex-col">
-                  <span class="text-xs text-gray-500">Capotes</span>
-                  <span class="font-semibold">{{ personalStats.total_capotes }}</span>
+
+                <div class="flex flex-col bg-gray-100 p-2 rounded-lg items-center text-center leading-tight">
+                  <span class="text-sm text-gray-600">Capotes</span>
+                  <span class="font-bold text-lg">{{ personalStats.total_capotes }}</span>
                 </div>
-                <div class="flex flex-col">
-                  <span class="text-xs text-gray-500">Bandeiras</span>
-                  <span class="font-semibold">{{ personalStats.total_bandeiras }}</span>
+
+                <div class="flex flex-col bg-gray-100 p-2 rounded-lg items-center text-center leading-tight">
+                  <span class="text-sm text-gray-600">Bandeiras</span>
+                  <span class="font-bold text-lg">{{ personalStats.total_bandeiras }}</span>
                 </div>
-                <div class="flex flex-col">
-                  <span class="text-xs text-gray-500">Coins earned</span>
-                  <span class="font-semibold text-yellow-700">
+
+                <div class="flex flex-col bg-gray-100 p-2 rounded-lg items-center text-center leading-tight">
+                  <span class="text-sm text-gray-600">Coins earned</span>
+                  <span class="font-bold text-lg text-yellow-700">
                     {{ personalStats.coins_earned }}
                   </span>
                 </div>
+
               </div>
 
               <p v-else class="text-xs text-gray-500">
@@ -306,9 +319,10 @@ onMounted(() => {
                 Rankings across all registered players ({{ variant === '9' ? 'Bisca of 9' : 'Bisca of 3' }}).
               </p>
 
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <!-- AQUI: grid com separadores verticais -->
+              <div class="grid grid-cols-1 md:grid-cols-3 text-xs md:divide-x md:divide-gray-200">
                 <!-- Most matches won -->
-                <div>
+                <div class="md:pr-4 mb-3 md:mb-0">
                   <h3 class="font-semibold mb-1">Most matches won</h3>
                   <ul class="space-y-1">
                     <li v-for="(p, idx) in globalScoreboards.top_matches" :key="'tm-' + p.user_id"
@@ -321,7 +335,7 @@ onMounted(() => {
                         </AvatarFallback>
                       </Avatar>
                       <span class="truncate">{{ p.username }}</span>
-                      <span class="ml-auto font-semibold">{{ p.total_wins }}</span>
+                      <span class="ml-auto font-semibold pr-1">{{ p.total_wins }}</span>
                     </li>
                     <li v-if="!globalScoreboards.top_matches?.length" class="text-gray-400">
                       No data.
@@ -330,7 +344,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Most achievements -->
-                <div>
+                <div class="md:px-4 mb-3 md:mb-0">
                   <h3 class="font-semibold mb-1">Most achievements</h3>
                   <ul class="space-y-1">
                     <li v-for="(p, idx) in globalScoreboards.top_achievements" :key="'ta-' + p.user_id"
@@ -343,7 +357,7 @@ onMounted(() => {
                         </AvatarFallback>
                       </Avatar>
                       <span class="truncate">{{ p.username }}</span>
-                      <span class="ml-auto font-semibold">
+                      <span class="ml-auto font-semibold pr-1">
                         {{ p.total_achievements ?? (p.total_capotes + p.total_bandeiras) }}
                       </span>
                     </li>
@@ -354,7 +368,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Most coins -->
-                <div>
+                <div class="md:pl-4">
                   <h3 class="font-semibold mb-1">Most coins</h3>
                   <ul class="space-y-1">
                     <li v-for="(p, idx) in globalScoreboards.top_coins" :key="'tc-' + p.user_id"
@@ -367,7 +381,7 @@ onMounted(() => {
                         </AvatarFallback>
                       </Avatar>
                       <span class="truncate">{{ p.username }}</span>
-                      <span class="ml-auto font-semibold text-yellow-700">
+                      <span class="ml-auto font-semibold text-yellow-700 pr-1">
                         {{ p.total_coins }}
                       </span>
                     </li>
@@ -378,6 +392,7 @@ onMounted(() => {
                 </div>
               </div>
             </div>
+
           </div>
         </CardContent>
       </Card>

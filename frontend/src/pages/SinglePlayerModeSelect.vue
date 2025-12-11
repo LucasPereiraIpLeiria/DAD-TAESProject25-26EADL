@@ -15,7 +15,7 @@ const gameTypes = computed(() => {
     {
       value: 'practice',
       label: 'Practice',
-      description: 'Um único game de prática contra o bot, sem coins.',
+      description: 'A single practice game against the bot, no coins involved.',
     },
   ]
 
@@ -23,7 +23,7 @@ const gameTypes = computed(() => {
     base.push({
       value: 'match',
       label: 'Match',
-      description: 'Match até 4 marks contra o bot, com coins e registo.',
+      description: 'A match up to 4 marks against the bot, with coins and tracking.',
     })
   }
 
@@ -33,20 +33,20 @@ const gameTypes = computed(() => {
 const variants = [
   {
     value: '3',
-    label: 'Bisca de 3',
-    description: 'Mão inicial de 3 cartas',
+    label: 'Bisca of 3',
+    description: 'Starting hand of 3 cards.',
   },
   {
     value: '9',
-    label: 'Bisca de 9',
-    description: 'Mão inicial de 9 cartas',
+    label: 'Bisca of 9',
+    description: 'Starting hand of 9 cards.',
   },
 ]
 
 const selectedGameType = ref('practice')
 const selectedVariant = ref('9')
 
-// se o user perder login, garantir que não fica "match" selecionado
+// Ensure "match" can't remain selected if the user logs out
 watch(
   () => auth.isLoggedIn,
   (loggedIn) => {
@@ -83,10 +83,10 @@ async function startGame() {
     <UiCard padding="md">
       <header class="sp-header">
         <h1>Single Player</h1>
-        <p>Escolhe o tipo de jogo e a variante de Bisca.</p>
+        <p>Select the type of game and the Bisca variant.</p>
       </header>
 
-      <!-- TIPO DE JOGO -->
+      <!-- GAME TYPE -->
       <section class="sp-section">
         <h2>Game Type</h2>
         <div class="sp-options-row">
@@ -102,7 +102,7 @@ async function startGame() {
         </div>
       </section>
 
-      <!-- VARIANTE -->
+      <!-- VARIANT -->
       <section class="sp-section">
         <h2>Variant</h2>
         <div class="sp-options-row">

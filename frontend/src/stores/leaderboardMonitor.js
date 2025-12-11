@@ -1,124 +1,128 @@
+// src/stores/leaderboardMonitor.js
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
 
 export const useLeaderboardMonitor = defineStore('leaderboardMonitor', () => {
-  const leaderboardCache = ref({})
+  // Guardamos apenas o líder atual de cada scoreboard global
+  const cachedLeaders = ref({
+    top_matches: null,      // { username, user_id? }
+    top_achievements: null, // idem
+    top_coins: null,        // idem
+  })
+
   let router = null
 
-  // Set router from outside (called from App.vue)
   const setRouter = (routerInstance) => {
     router = routerInstance
   }
 
-  // Generate a unique key for each leaderboard configuration
-  const getCacheKey = (config) => {
-    return `${config.type}_${config.mode}_${config.is_match}`
+  /**
+   * Recebe o payload completo de /scoreboards/global:
+   * {
+   *   top_matches: [...],
+   *   top_achievements: [...],
+   *   top_coins: [...]
+   * }
+   */
+  const checkForChanges = (scoreboards) => {
+    if (!scoreboards) return
+
+    checkSingleScoreboard(
+      'top_matches',
+      'Most matches won',
+      'Bisca – Global scoreboards',
+      scoreboards.top_matches,
+    )
+
+    checkSingleScoreboard(
+      'top_achievements',
+      'Most achievements',
+      'Bisca – Global scoreboards',
+      scoreboards.top_achievements,
+    )
+
+    checkSingleScoreboard(
+      'top_coins',
+      'Most coins (theoretical)',
+      'Bisca – Global scoreboards',
+      scoreboards.top_coins,
+    )
   }
 
-  // Check if leaderboard data has changed
-  const checkForChanges = (config, newData) => {
-    const cacheKey = getCacheKey(config)
-    const oldData = leaderboardCache.value[cacheKey]
-
-    // For standalone games, check if top player has a match version
-    if (!config.is_match) {
-      // Get the corresponding match leaderboard cache key
-      const matchCacheKey = `${config.type}_${config.mode}_true`
-      const matchData = leaderboardCache.value[matchCacheKey]
-
-      // If match data exists and top player is in match leaderboard, skip notification
-      if (matchData) {
-        const matchDataParsed = JSON.parse(matchData)
-        const topPlayerInMatch = matchDataParsed.some(p => p.username === newData[0].username)
-
-        if (topPlayerInMatch) {
-          leaderboardCache.value[cacheKey] = JSON.stringify(newData)
-          return
-        }
-      }
-    }
-
-    // Store new data
-    leaderboardCache.value[cacheKey] = JSON.stringify(newData)
-
-    // If no previous data, just cache it and skip notification (first load)
-    if (!oldData) {
+  /**
+   * Compara o líder atual com o líder anterior para um tipo de scoreboard.
+   * Se o username do #1 mudar, dispara notificação.
+   */
+  const checkSingleScoreboard = (key, title, description, list) => {
+    if (!Array.isArray(list) || list.length === 0) {
+      // Sem dados → só limpamos cache e não notificamos
+      cachedLeaders.value[key] = null
       return
     }
 
-    // Parse old data and compare
-    const oldDataParsed = JSON.parse(oldData)
+    const newLeader = list[0]
+    if (!newLeader) return
 
-    // Check if top 3 positions changed
-    const hasChanges = hasLeaderboardChanged(oldDataParsed, newData)
+    const oldLeader = cachedLeaders.value[key]
 
-    if (hasChanges) {
-      notifyLeaderboardChange(config, newData, oldDataParsed)
+    // Primeiro load: só cache, sem notificação
+    if (!oldLeader) {
+      cachedLeaders.value[key] = {
+        username: newLeader.username,
+        user_id: newLeader.user_id ?? newLeader.id ?? null,
+      }
+      return
+    }
+
+    // Se o username do líder mudou, notificamos
+    if (oldLeader.username !== newLeader.username) {
+      cachedLeaders.value[key] = {
+        username: newLeader.username,
+        user_id: newLeader.user_id ?? newLeader.id ?? null,
+      }
+
+      notifyNewLeader(key, newLeader, title, description)
     }
   }
 
-  // Helper function to detect meaningful changes in top 3
-  const hasLeaderboardChanged = (oldData, newData) => {
-    // Only check top 3 usernames for changes
-    const checkLimit = 3
-
-    for (let i = 0; i < checkLimit; i++) {
-      // If we don't have enough data, skip
-      if (i >= oldData.length || i >= newData.length) {
-        return false
+  const notifyNewLeader = (key, leader, title, description) => {
+    const scoreboardLabel = (() => {
+      switch (key) {
+        case 'top_matches':
+          return 'Most matches won'
+        case 'top_achievements':
+          return 'Most achievements'
+        case 'top_coins':
+          return 'Most coins'
+        default:
+          return 'Global scoreboards'
       }
+    })()
 
-      const oldPlayer = oldData[i]
-      const newPlayer = newData[i]
+    const message = `${leader.username} is now #1 in "${scoreboardLabel}"!`
 
-      // Only check if username changed (position changed), ignore stat changes
-      if (oldPlayer.username !== newPlayer.username) {
-        return true
-      }
-    }
-
-    return false
-  }
-
-  // Notify about leaderboard changes using vue-sonner
-  const notifyLeaderboardChange = (config, newData, oldData) => {
-    const modeLabel = `${config.type === 3 ? 'Bisca 3' : 'Bisca 9'} - ${config.mode === 'S' ? 'Singleplayer' : 'Multiplayer'}`
-
-
-    // Find which position changed
-    let changedMessage = ''
-    for (let i = 0; i < 3; i++) {
-      if (i >= oldData.length || i >= newData.length) break
-
-      const oldPlayer = oldData[i]
-      const newPlayer = newData[i]
-
-      if (oldPlayer.username !== newPlayer.username) {
-        const position = i + 1
-        const positionLabel = position === 1 ? '🥇 1st' : position === 2 ? '🥈 2nd' : '🥉 3rd'
-        changedMessage = `${newPlayer.username} reached ${positionLabel} place!`
-        break
-      }
-    }
-
-    toast.success(changedMessage, {
-      description: modeLabel,
+    toast.success(message, {
+      description,
       action: {
         label: 'View',
         onClick: () => {
+          if (!router) return
+          // Abre o ecrã relevante: a Home com os scoreboards
           router.push({
             name: 'home',
             query: {
-              selectedType: config.type,
-              selectedMode: config.mode,
-              selectedIsMatch: config.is_match
-            }
+              highlightScoreboard: key, // se quiseres usar isto para dar scroll ou highlight
+            },
           })
-        }
-      }
+        },
+      },
     })
   }
 
-  return { checkForChanges, notifyLeaderboardChange, leaderboardCache, setRouter }
+  return {
+    cachedLeaders,
+    setRouter,
+    checkForChanges,
+  }
 })

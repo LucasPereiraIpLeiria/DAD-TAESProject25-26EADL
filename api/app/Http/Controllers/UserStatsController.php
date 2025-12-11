@@ -19,8 +19,9 @@ class UserStatsController extends Controller
      * Ambos:
      *  - filtráveis por:
      *      - from / to (datas, usando ended_at)
-     *      - result: win | loss | draw
+     *      - result: win | loss | draw | interrupted
      *      - achievement: capote | bandeira
+     *      - type: 3 | 9 (Bisca de 3 / Bisca de 9)
      *  - ordenados por ended_at (asc/desc, default desc)
      */
     public function history(Request $request)
@@ -31,12 +32,14 @@ class UserStatsController extends Controller
         $filters = $request->validate([
             'from'        => 'nullable|date',
             'to'          => 'nullable|date',
-            'result'      => 'nullable|string|in:win,loss,draw',
+            'result'      => 'nullable|string|in:win,loss,draw,interrupted',
             'achievement' => 'nullable|string|in:capote,bandeira',
             'order'       => 'nullable|string|in:asc,desc',
+            'type'        => 'nullable|in:3,9',
         ]);
 
         $orderDirection = $filters['order'] ?? 'desc';
+        $typeFilter     = $filters['type'] ?? null;
 
         // ─────────────────────────────────────
         // MATCHES
@@ -46,7 +49,7 @@ class UserStatsController extends Controller
                 $q->where('player1_user_id', $userId)
                   ->orWhere('player2_user_id', $userId);
             })
-            ->whereNotNull('ended_at');
+            ->whereNotNull('ended_at'); // já exclui matches ainda em progresso
 
         if (!empty($filters['from'])) {
             $matchesQuery->where('ended_at', '>=', $filters['from']);
@@ -56,7 +59,10 @@ class UserStatsController extends Controller
             $matchesQuery->where('ended_at', '<=', $filters['to']);
         }
 
-        // traz também os games deste match
+        if (!empty($typeFilter)) {
+            $matchesQuery->where('type', $typeFilter);
+        }
+
         $matches = $matchesQuery
             ->with(['games' => function ($q) {
                 $q->orderBy('began_at', 'asc');
@@ -70,11 +76,10 @@ class UserStatsController extends Controller
             $isUserPlayer1 = ($match->player1_user_id === $userId);
 
             // Resultado global do match para ESTE user
-            $result = 'draw';
-            if ($match->winner_user_id === $userId) {
-                $result = 'win';
-            } elseif (!is_null($match->winner_user_id)) {
-                $result = 'loss';
+            if (!is_null($match->winner_user_id)) {
+                $result = $match->winner_user_id === $userId ? 'win' : 'loss';
+            } else {
+                $result = 'interrupted';
             }
 
             // Duração (segundos)
@@ -91,13 +96,13 @@ class UserStatsController extends Controller
                 $userPoints     = $isUserPlayer1 ? $game->player1_points : $game->player2_points;
                 $opponentPoints = $isUserPlayer1 ? $game->player2_points : $game->player1_points;
 
-                $gameResult = 'draw';
-                if ($game->winner_user_id === $userId) {
-                    $gameResult = 'win';
-                } elseif (!is_null($game->winner_user_id)) {
-                    $gameResult = 'loss';
+                // Games podem ser draw (is_draw = true) ou interrompidos
+                if (!is_null($game->winner_user_id)) {
+                    $gameResult = $game->winner_user_id === $userId ? 'win' : 'loss';
                 } elseif ($game->is_draw) {
                     $gameResult = 'draw';
+                } else {
+                    $gameResult = 'interrupted';
                 }
 
                 $bandeira = $game->winner_user_id === $userId && $userPoints === 120;
@@ -106,6 +111,12 @@ class UserStatsController extends Controller
                 if ($bandeira) $hasBandeira = true;
                 if ($capote)   $hasCapote   = true;
 
+                // Duração do game individual
+                $gameDuration = $game->total_time;
+                if (is_null($gameDuration) && $game->began_at && $game->ended_at) {
+                    $gameDuration = strtotime($game->ended_at) - strtotime($game->began_at);
+                }
+
                 $gamesData[] = [
                     'id'              => $game->id,
                     'match_id'        => $match->id,
@@ -113,14 +124,14 @@ class UserStatsController extends Controller
                     'type'            => $game->type, // 3 ou 9
                     'began_at'        => $game->began_at,
                     'ended_at'        => $game->ended_at,
+                    'duration'        => $gameDuration,
                     'user_points'     => $userPoints,
                     'opponent_points' => $opponentPoints,
-                    'result'          => $gameResult,   // win | loss | draw
+                    'result'          => $gameResult,   // win | loss | draw | interrupted
                     'achievements'    => [
                         'capote'   => $capote,
                         'bandeira' => $bandeira,
                     ],
-                    // Não tens breakdown na BD, fica array vazio
                     'tricks'          => [],
                 ];
             }
@@ -159,7 +170,7 @@ class UserStatsController extends Controller
                 'began_at'     => $match->began_at,
                 'ended_at'     => $match->ended_at,
                 'duration'     => $duration,
-                'result'       => $result,
+                'result'       => $result,      // win | loss | interrupted
                 'coins_earned' => $coinsEarned,
                 'achievements' => [
                     'capote'   => $hasCapote,
@@ -170,7 +181,7 @@ class UserStatsController extends Controller
         }
 
         // ─────────────────────────────────────
-        // GAMES (lista plana)
+        // GAMES (lista plana – ainda devolvido, mas já não vais usar na vista)
         // ─────────────────────────────────────
         $gamesQuery = Game::query()
             ->where(function ($q) use ($userId) {
@@ -187,6 +198,10 @@ class UserStatsController extends Controller
             $gamesQuery->where('ended_at', '<=', $filters['to']);
         }
 
+        if (!empty($typeFilter)) {
+            $gamesQuery->where('type', $typeFilter);
+        }
+
         $games = $gamesQuery
             ->orderBy('ended_at', $orderDirection)
             ->get();
@@ -199,20 +214,19 @@ class UserStatsController extends Controller
             $userPoints     = $isUserPlayer1 ? $game->player1_points : $game->player2_points;
             $opponentPoints = $isUserPlayer1 ? $game->player2_points : $game->player1_points;
 
-            $result = 'draw';
-            if ($game->winner_user_id === $userId) {
-                $result = 'win';
-            } elseif (!is_null($game->winner_user_id)) {
-                $result = 'loss';
+            // Games: win / loss / draw (is_draw) / interrupted (sem winner e sem is_draw)
+            if (!is_null($game->winner_user_id)) {
+                $result = $game->winner_user_id === $userId ? 'win' : 'loss';
             } elseif ($game->is_draw) {
                 $result = 'draw';
+            } else {
+                $result = 'interrupted';
             }
 
             $bandeira = $game->winner_user_id === $userId && $userPoints === 120;
             $capote   = $game->winner_user_id === $userId && $userPoints >= 91 && $userPoints < 120;
 
-            // coins_earned por game: no modelo atual as coins são só ao nível de match
-            $coinsEarned = 0;
+            $coinsEarned = 0; // coins só a nível de match
 
             // filtros de resultado / achievements AO NÍVEL DO GAME
             if (!empty($filters['result']) && $filters['result'] !== $result) {
@@ -242,7 +256,7 @@ class UserStatsController extends Controller
                 'duration'        => $duration,
                 'user_points'     => $userPoints,
                 'opponent_points' => $opponentPoints,
-                'result'          => $result,
+                'result'          => $result, // win | loss | draw | interrupted
                 'coins_earned'    => $coinsEarned,
                 'achievements'    => [
                     'capote'   => $capote,
@@ -264,12 +278,21 @@ class UserStatsController extends Controller
      * - total_matches, wins, losses, draws, win_rate
      * - total_capotes, total_bandeiras
      * - coins_earned (10 + bonus por cada match ganho)
+     *
+     * Aceita opcionalmente:
+     *  - type: 3 | 9 (filtra por tipo de bisca)
      */
     public function personalStats(Request $request)
     {
         $user   = $request->user();
         $userId = $user->id;
 
+        $filters = $request->validate([
+            'type' => 'nullable|in:3,9',
+        ]);
+        $typeFilter = $filters['type'] ?? null;
+
+        // Matches do user que já terminaram (mas podem ter sido interrompidos)
         $baseMatches = Matche::query()
             ->where(function ($q) use ($userId) {
                 $q->where('player1_user_id', $userId)
@@ -277,16 +300,31 @@ class UserStatsController extends Controller
             })
             ->whereNotNull('ended_at');
 
-        $totalMatches = (clone $baseMatches)->count();
-        $wins         = (clone $baseMatches)->where('winner_user_id', $userId)->count();
-        $draws        = (clone $baseMatches)->whereNull('winner_user_id')->count();
-        $losses       = $totalMatches - $wins - $draws;
-        $winRate      = $totalMatches > 0 ? round($wins / $totalMatches * 100, 1) : 0.0;
+        if (!empty($typeFilter)) {
+            $baseMatches->where('type', $typeFilter);
+        }
+
+        // Matches com winner (concluídos "normalmente")
+        $completedMatches = (clone $baseMatches)->whereNotNull('winner_user_id');
+
+        $totalMatches = $completedMatches->count(); // só os concluídos contam aqui
+
+        $wins   = (clone $completedMatches)->where('winner_user_id', $userId)->count();
+        $losses = $totalMatches - $wins;
+        $draws  = 0; // matches, por regra, não têm draw
+
+        $winRate = $totalMatches > 0 ? round($wins / $totalMatches * 100, 1) : 0.0;
 
         // capotes / bandeiras do user (contando games dos matches ganhos)
-        $achievements = DB::table('matches')
+        $achievementsQuery = DB::table('matches')
             ->join('games as g', 'g.match_id', '=', 'matches.id')
-            ->where('matches.winner_user_id', $userId)
+            ->where('matches.winner_user_id', $userId);
+
+        if (!empty($typeFilter)) {
+            $achievementsQuery->where('matches.type', $typeFilter);
+        }
+
+        $achievements = $achievementsQuery
             ->selectRaw("
                 SUM(
                     CASE
@@ -313,7 +351,7 @@ class UserStatsController extends Controller
         // coins_earned: mesma regra do store, somando por cada match ganho
         $coinsEarned = 0;
 
-        $matches = $baseMatches->with('games')->get();
+        $matches = $completedMatches->with('games')->get();
 
         foreach ($matches as $match) {
             if ($match->winner_user_id !== $userId) {
@@ -364,12 +402,18 @@ class UserStatsController extends Controller
      * - top_achievements: mais capotes+bandeiras
      * - top_coins: mais coins teóricas (10 + bonus por match ganho)
      *
-     * Sem mexer em CoinTransaction por agora.
+     * Aceita opcionalmente:
+     *  - type: 3 | 9
      */
-    public function globalScoreboards()
+    public function globalScoreboards(Request $request)
     {
+        $filters = $request->validate([
+            'type' => 'nullable|in:3,9',
+        ]);
+        $typeFilter = $filters['type'] ?? null;
+
         // TOP: most matches won
-        $topMatches = Matche::query()
+        $topMatchesQuery = Matche::query()
             ->from('matches')
             ->select(
                 'winner_user_id as user_id',
@@ -379,17 +423,29 @@ class UserStatsController extends Controller
                 'users.custom'
             )
             ->whereNotNull('winner_user_id')
-            ->join('users', 'users.id', '=', 'matches.winner_user_id')
+            ->join('users', 'users.id', '=', 'matches.winner_user_id');
+
+        if (!empty($typeFilter)) {
+            $topMatchesQuery->where('matches.type', $typeFilter);
+        }
+
+        $topMatches = $topMatchesQuery
             ->groupBy('winner_user_id', 'users.nickname', 'users.name', 'users.photo_avatar_filename', 'users.custom')
             ->orderByDesc('total_wins')
             ->limit(10)
             ->get();
 
         // TOP: most achievements (capote + bandeira)
-        $topAchievements = DB::table('matches')
+        $topAchievementsQuery = DB::table('matches')
             ->join('games as g', 'g.match_id', '=', 'matches.id')
             ->join('users', 'users.id', '=', 'matches.winner_user_id')
-            ->whereNotNull('matches.winner_user_id')
+            ->whereNotNull('matches.winner_user_id');
+
+        if (!empty($typeFilter)) {
+            $topAchievementsQuery->where('matches.type', $typeFilter);
+        }
+
+        $topAchievements = $topAchievementsQuery
             ->groupBy('matches.winner_user_id', 'users.nickname', 'users.name', 'users.photo_avatar_filename', 'users.custom')
             ->selectRaw("
                 matches.winner_user_id AS user_id,
@@ -430,10 +486,15 @@ class UserStatsController extends Controller
             ->get();
 
         // TOP: most coins earned (teóricas, mesma regra do store, calculadas em PHP)
-        $matches = Matche::query()
+        $matchesCoinsQuery = Matche::query()
             ->with('games')
-            ->whereNotNull('winner_user_id')
-            ->get();
+            ->whereNotNull('winner_user_id');
+
+        if (!empty($typeFilter)) {
+            $matchesCoinsQuery->where('type', $typeFilter);
+        }
+
+        $matches = $matchesCoinsQuery->get();
 
         $coinsPerUser = [];
 
@@ -486,11 +547,11 @@ class UserStatsController extends Controller
                 $user = $users[$userId] ?? null;
 
                 return [
-                    'user_id'        => (int) $userId,
-                    'username'       => $user->username ?? 'Unknown',
-                    'avatar_filename'=> $user->avatar_filename ?? null,
-                    'custom'         => $user->custom ?? null,
-                    'total_coins'    => $coins,
+                    'user_id'         => (int) $userId,
+                    'username'        => $user->username ?? 'Unknown',
+                    'avatar_filename' => $user->avatar_filename ?? null,
+                    'custom'          => $user->custom ?? null,
+                    'total_coins'     => $coins,
                 ];
             })
             ->sortByDesc('total_coins')

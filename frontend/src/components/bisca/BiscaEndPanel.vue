@@ -24,48 +24,55 @@ function handleExit() {
 </script>
 
 <template>
-  <!-- Fim de game (mas match ainda não acabou) -->
+  <!-- End of a game (match not finished yet) -->
   <section
     v-if="bisca.status === 'between_games'"
     class="end-panel"
   >
-    <h2>Game terminado</h2>
-    <p>Pontos deste game: {{ bisca.playerPoints }} - {{ bisca.botPoints }}</p>
+    <h2>Game Finished</h2>
+
+    <p>Points this game: {{ bisca.playerPoints }} - {{ bisca.botPoints }}</p>
     <p>Marks: {{ bisca.playerMarks }} - {{ bisca.botMarks }}</p>
 
     <PrimaryButton type="button" @click="handleNextGame">
-      Começar próximo game
+      Start Next Game
     </PrimaryButton>
   </section>
 
-  <!-- Fim de match ou prática -->
+  <!-- End of a match or practice game -->
   <section
     v-else-if="bisca.status === 'match_finished' && bisca.summary"
     class="end-panel"
   >
-    <h2>{{ gametype === 'match' ? 'Match terminado' : 'Game terminado' }}</h2>
+    <h2>{{ gametype === 'match' ? 'Match Finished' : 'Game Finished' }}</h2>
 
     <p class="end-result">
-      <strong>Resultado:</strong>
-      {{ bisca.summary.result === 'win' ? 'Vitória' : bisca.summary.result === 'loss' ? 'Derrota' : 'Empate' }}
+      <strong>Result:</strong>
+      {{
+        bisca.summary.result === 'win'
+          ? 'Victory'
+          : bisca.summary.result === 'loss'
+            ? 'Defeat'
+            : 'Draw'
+      }}
     </p>
 
-    <!-- MATCH: mostra marks e pontos totais -->
+    <!-- MATCH: marks + total points -->
     <template v-if="gametype === 'match'">
       <p>
         <strong>Marks:</strong>
         {{ bisca.summary.playerMarks }} - {{ bisca.summary.botMarks }}
       </p>
       <p>
-        <strong>Pontos totais do match:</strong>
+        <strong>Total match points:</strong>
         {{ bisca.matchPlayer1Points }} - {{ bisca.matchPlayer2Points }}
       </p>
     </template>
 
-    <!-- PRACTICE: só pontos do game -->
+    <!-- PRACTICE: only game points -->
     <template v-else>
       <p>
-        <strong>Pontos:</strong>
+        <strong>Points:</strong>
         {{ bisca.summary.playerPoints }} - {{ bisca.summary.botPoints }}
       </p>
     </template>
@@ -74,15 +81,15 @@ function handleExit() {
       v-if="bisca.summary.result === 'win' && bisca.summary.coinsAwarded != null"
       class="coins-awarded"
     >
-      <strong>Coins ganhos:</strong> +{{ bisca.summary.coinsAwarded }} !!!
+      <strong>Coins earned:</strong> +{{ bisca.summary.coinsAwarded }} !!
     </p>
 
-    <!-- Lista de games do match -->
+    <!-- Match games breakdown -->
     <div
       v-if="gametype === 'match' && bisca.matchGames && bisca.matchGames.length"
       class="games-list"
     >
-      <h3>Resultados por game</h3>
+      <h3>Game Results</h3>
       <ul>
         <li
           v-for="g in bisca.matchGames"
@@ -96,12 +103,13 @@ function handleExit() {
             ·
             {{
               g.winner === 'player'
-                ? 'Vitória'
+                ? 'Victory'
                 : g.winner === 'bot'
-                  ? 'Derrota'
-                  : 'Empate'
+                  ? 'Defeat'
+                  : 'Draw'
             }}
           </span>
+
           <span
             v-if="g.achievements?.bandeira"
             class="badge"
@@ -119,7 +127,7 @@ function handleExit() {
     </div>
 
     <PrimaryButton type="button" @click="handleExit">
-      Voltar à Dashboard
+      Back to Dashboard
     </PrimaryButton>
   </section>
 </template>

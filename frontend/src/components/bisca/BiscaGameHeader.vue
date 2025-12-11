@@ -20,8 +20,8 @@ const props = defineProps({
       <p>
         {{
           gametype === 'match'
-            ? 'Match contra o bot, com coins e registo.'
-            : 'Jogo de prática casual contra o bot.'
+            ? 'Match against the bot, with coins and history tracking.'
+            : 'Casual practice game against the bot.'
         }}
       </p>
     </div>
@@ -31,7 +31,7 @@ const props = defineProps({
         {{ gametype === 'match' ? 'Match' : 'Practice' }}
       </UiPill>
       <UiPill>
-        {{ variant === '3' ? 'Bisca de 3' : 'Bisca de 9' }}
+        {{ variant === '3' ? 'Bisca of 3' : 'Bisca of 9' }}
       </UiPill>
     </div>
   </header>

@@ -10,7 +10,7 @@ const props = defineProps({
 </script>
 
 <template>
-  <main class="page-container">
+  <main class="page-container bg-gray-200">
     <div
       class="page-inner"
       :class="[
@@ -31,8 +31,7 @@ const props = defineProps({
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
-  background: #f5f5f5; /* cinzento fora do card */
+  padding: 1.5rem; /* cinzento fora do card */
 }
 
 .page-inner {

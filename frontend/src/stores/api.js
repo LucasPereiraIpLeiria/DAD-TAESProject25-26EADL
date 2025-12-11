@@ -55,7 +55,7 @@ export const useAPIStore = defineStore('api', () => {
         clearToken()
       }
       return Promise.reject(error)
-    }
+    },
   )
 
   // Auth
@@ -84,10 +84,6 @@ export const useAPIStore = defineStore('api', () => {
   const getAuthUser = async () => {
     if (!token.value) throw new Error('No authentication token available')
     return axios.get(`${API_BASE_URL}/users/me`)
-  }
-
-  const getLeaderboard = async (payload) => {
-    return axios.post(`${API_BASE_URL}/leaderboard`, payload)
   }
 
   // Economy
@@ -149,18 +145,17 @@ export const useAPIStore = defineStore('api', () => {
   }
 
   const getUserHistory = async (params = {}) => {
-  if (!token.value) throw new Error('No authentication token available')
-  return axios.get(`${API_BASE_URL}/users/history`, { params })
-}
+    if (!token.value) throw new Error('No authentication token available')
+    return axios.get(`${API_BASE_URL}/users/history`, { params })
+  }
 
-const getUserStats = async () => {
-  if (!token.value) throw new Error('No authentication token available')
-  return axios.get(`${API_BASE_URL}/users/stats`)
-}
+  async function getUserStats(params = {}) {
+    return axios.get(`${API_BASE_URL}/users/stats`, { params })
+  }
 
-const getGlobalScoreboards = async () => {
-  return axios.get(`${API_BASE_URL}/scoreboards/global`)
-}
+  async function getGlobalScoreboards(params = {}) {
+    return axios.get(`${API_BASE_URL}/users/stats/global`, { params })
+  }
 
   // Profile
   const updateProfile = async (data) => {
@@ -199,10 +194,8 @@ const getGlobalScoreboards = async () => {
     })
   }
 
-  const photoAvatarStorageURL =
-    'http://127.0.0.1:8000/storage/photos_avatars/'
-  const anonymousAvatarStorageURL =
-    'http://127.0.0.1:8000/storage/photos_avatars/anonymous.png'
+  const photoAvatarStorageURL = 'http://127.0.0.1:8000/storage/photos_avatars/'
+  const anonymousAvatarStorageURL = 'http://127.0.0.1:8000/storage/photos_avatars/anonymous.png'
 
   return {
     token,
@@ -215,7 +208,6 @@ const getGlobalScoreboards = async () => {
     postRegister,
     postLogout,
     getAuthUser,
-    getLeaderboard,
     postDeductEntryFee,
     postAwardMatchReward,
     postCoinPurchase,

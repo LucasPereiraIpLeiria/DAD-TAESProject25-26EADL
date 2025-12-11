@@ -21,7 +21,7 @@ function onPlay(card) {
   emit('play-card', card)
 }
 
-// Imagens
+// Card images
 const cardImages = import.meta.glob('/src/assets/images/cards/*.png', {
   eager: true,
   import: 'default',
@@ -61,19 +61,19 @@ function getCardImageUrl(card) {
         v-if="!isPlayerTurn"
         class="hand-hint"
       >
-        A aguardar
+        Waiting for the opponent...
       </span>
       <span
         v-else-if="mustFollowSuit"
         class="hand-hint hand-hint--warning"
       >
-        Obrigado a assistir — escolhe uma carta do mesmo naipe.
+        You must follow suit — pick a card of the same suit.
       </span>
       <span
         v-else
         class="hand-hint hand-hint--active"
       >
-        A tua vez — escolhe uma carta.
+        Your turn — choose a card.
       </span>
     </div>
 
@@ -94,7 +94,7 @@ function getCardImageUrl(card) {
       >
         <img
           :src="getCardImageUrl(card)"
-          :alt="`Carta ${card.suit} ${bisca.displayRank(card.rank)}`"
+          :alt="`Card ${card.suit} ${bisca.displayRank(card.rank)}`"
           class="hand-card-image hand-card-image-bold"
         >
       </button>
@@ -103,7 +103,7 @@ function getCardImageUrl(card) {
         v-if="bisca.playerHand.length === 0"
         class="hand-empty"
       >
-        Sem cartas na mão.
+        No cards in hand.
       </p>
     </div>
   </section>

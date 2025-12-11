@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAPIStore } from '@/stores/api.js'
@@ -22,7 +22,10 @@ const globalScoreboards = ref({
   top_coins: [],
 })
 
-// avatar helper (igual ao do History antigo, mas aqui só para global scoreboards)
+// Variant toggle (3 / 9), default 9
+const variant = ref('9')
+
+// avatar helper (igual ao do History)
 function getEffectiveAvatar(player) {
   try {
     const custom = typeof player.custom === 'string'
@@ -61,7 +64,7 @@ async function loadPersonalStats() {
   }
 
   try {
-    const response = await apiStore.getUserStats()
+    const response = await apiStore.getUserStats({ type: variant.value })
     personalStats.value = response.data
   } catch (err) {
     console.error('Failed to load personal stats', err)
@@ -70,8 +73,17 @@ async function loadPersonalStats() {
 }
 
 async function loadGlobalScoreboards() {
+  if (!auth.isLoggedIn) {
+    globalScoreboards.value = {
+      top_matches: [],
+      top_achievements: [],
+      top_coins: [],
+    }
+    return
+  }
+
   try {
-    const response = await apiStore.getGlobalScoreboards()
+    const response = await apiStore.getGlobalScoreboards({ type: variant.value })
     globalScoreboards.value = response.data
   } catch (err) {
     console.error('Failed to load global scoreboards', err)
@@ -83,14 +95,46 @@ async function loadGlobalScoreboards() {
   }
 }
 
-onMounted(() => {
+function setVariant(v) {
+  if (variant.value === v) return
+  variant.value = v
+}
+
+// Quando muda a variante, recarregar stats e scoreboards (se estiver logado)
+watch(variant, () => {
+  if (!auth.isLoggedIn) return
   loadGlobalScoreboards()
   loadPersonalStats()
+})
+
+// Se o estado de login mudar (ex: login/logout sem recarregar a página)
+watch(
+  () => auth.isLoggedIn,
+  (loggedIn) => {
+    if (loggedIn) {
+      loadGlobalScoreboards()
+      loadPersonalStats()
+    } else {
+      personalStats.value = null
+      globalScoreboards.value = {
+        top_matches: [],
+        top_achievements: [],
+        top_coins: [],
+      }
+    }
+  }
+)
+
+onMounted(() => {
+  if (auth.isLoggedIn) {
+    loadGlobalScoreboards()
+    loadPersonalStats()
+  }
 })
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 p-6">
+  <div class="min-h-screen bg-gray-200 p-6">
     <div class="max-w-7xl mx-auto space-y-6">
 
       <!-- Top Block - Full Width -->
@@ -108,7 +152,7 @@ onMounted(() => {
       <!-- Second Div Card side by side -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-        <!-- Left Card -->
+        <!-- Left Card - Singleplayer -->
         <Card>
           <CardHeader>
             <CardTitle class="text-2xl">Singleplayer</CardTitle>
@@ -125,31 +169,67 @@ onMounted(() => {
           </CardContent>
         </Card>
 
-        <!-- Right Card -->
-        <Card>
+        <!-- Right Card - Multiplayer (visível mas desativado se não logado) -->
+        <Card
+          :class="!auth.isLoggedIn ? 'opacity-60' : ''"
+        >
           <CardHeader>
             <CardTitle class="text-2xl">Multiplayer</CardTitle>
             <CardDescription>
-              Join multiplayer matches, compete with other players, and climb the leaderboards. Multiplayer mode is coming soon!
+              Join multiplayer matches, compete with other players, and climb the leaderboards.
+              Multiplayer mode is coming soon!
             </CardDescription>
           </CardHeader>
           <CardContent class="space-y-3">
-            <RouterLink :to="{ name: 'singleplayer.mode.select' }">
-              <Button class="w-full" variant="default">
-                Multiplayer Mode Selection
-              </Button>
-            </RouterLink>
+            <Button
+              class="w-full"
+              variant="default"
+              :disabled="!auth.isLoggedIn"
+              :class="!auth.isLoggedIn ? 'cursor-not-allowed' : ''"
+            >
+              Multiplayer: Coming Soon
+              <span v-if="!auth.isLoggedIn" class="ml-2 text-xs">
+                (login required)
+              </span>
+            </Button>
           </CardContent>
         </Card>
       </div>
 
-      <!-- Scoreboards (full width, dividido em 2 colunas) -->
-      <Card>
-        <CardHeader>
-          <CardTitle class="text-2xl">Scoreboards</CardTitle>
-          <CardDescription>
-            Check your personal performance and see how you compare globally.
-          </CardDescription>
+      <!-- Scoreboards (apenas se estiver autenticado) -->
+      <Card v-if="auth.isLoggedIn">
+        <CardHeader class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle class="text-2xl">Scoreboards</CardTitle>
+            <CardDescription>
+              Check your personal performance and see how you compare globally.
+            </CardDescription>
+          </div>
+
+          <!-- Variant Toggle -->
+          <div class="flex items-center gap-2 text-xs">
+            <span class="font-medium text-gray-700">Variant:</span>
+            <button
+              type="button"
+              class="px-2 py-1 rounded border text-xs"
+              :class="variant === '9'
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white text-gray-700 border-gray-300'"
+              @click="setVariant('9')"
+            >
+              Bisca of 9
+            </button>
+            <button
+              type="button"
+              class="px-2 py-1 rounded border text-xs"
+              :class="variant === '3'
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white text-gray-700 border-gray-300'"
+              @click="setVariant('3')"
+            >
+              Bisca of 3
+            </button>
+          </div>
         </CardHeader>
         <CardContent>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -157,7 +237,7 @@ onMounted(() => {
             <div class="border rounded-lg p-4 bg-white">
               <h2 class="text-lg font-semibold mb-2">Personal Bests</h2>
               <p class="text-xs text-gray-500 mb-3">
-                Your overall performance in matches.
+                Your overall performance in matches ({{ variant === '9' ? 'Bisca of 9' : 'Bisca of 3' }}).
               </p>
 
               <div v-if="personalStats" class="grid grid-cols-2 gap-3 text-sm">
@@ -192,18 +272,15 @@ onMounted(() => {
                   <span class="font-semibold">{{ personalStats.total_bandeiras }}</span>
                 </div>
                 <div class="flex flex-col">
-                  <span class="text-xs text-gray-500">Coins earned (theoretical)</span>
+                  <span class="text-xs text-gray-500">Coins earned</span>
                   <span class="font-semibold text-yellow-700">
                     {{ personalStats.coins_earned }}
                   </span>
                 </div>
               </div>
 
-              <p
-                v-else
-                class="text-xs text-gray-500"
-              >
-                {{ auth.isLoggedIn ? 'No match data yet.' : 'Log in to see your personal stats.' }}
+              <p v-else class="text-xs text-gray-500">
+                No match data yet.
               </p>
             </div>
 
@@ -211,7 +288,7 @@ onMounted(() => {
             <div class="border rounded-lg p-4 bg-white">
               <h2 class="text-lg font-semibold mb-2">Global Rankings</h2>
               <p class="text-xs text-gray-500 mb-3">
-                Rankings across all registered players.
+                Rankings across all registered players ({{ variant === '9' ? 'Bisca of 9' : 'Bisca of 3' }}).
               </p>
 
               <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
@@ -221,18 +298,14 @@ onMounted(() => {
                   <ul class="space-y-1">
                     <li
                       v-for="(p, idx) in globalScoreboards.top_matches"
-                      :key="'tm-'+p.user_id"
+                      :key="'tm-' + p.user_id"
                       class="flex items-center gap-2"
                     >
                       <span class="w-4 text-right mr-1">{{ idx + 1 }}.</span>
                       <Avatar class="h-6 w-6">
                         <AvatarImage :src="getEffectiveAvatar(p)" />
                         <AvatarFallback>
-                          <img
-                            :src="defaultPlaceholder"
-                            alt=""
-                            class="h-6 w-6 rounded-full"
-                          >
+                          <img :src="defaultPlaceholder" alt="" class="h-6 w-6 rounded-full">
                         </AvatarFallback>
                       </Avatar>
                       <span class="truncate">{{ p.username }}</span>
@@ -250,18 +323,14 @@ onMounted(() => {
                   <ul class="space-y-1">
                     <li
                       v-for="(p, idx) in globalScoreboards.top_achievements"
-                      :key="'ta-'+p.user_id"
+                      :key="'ta-' + p.user_id"
                       class="flex items-center gap-2"
                     >
                       <span class="w-4 text-right mr-1">{{ idx + 1 }}.</span>
                       <Avatar class="h-6 w-6">
                         <AvatarImage :src="getEffectiveAvatar(p)" />
                         <AvatarFallback>
-                          <img
-                            :src="defaultPlaceholder"
-                            alt=""
-                            class="h-6 w-6 rounded-full"
-                          >
+                          <img :src="defaultPlaceholder" alt="" class="h-6 w-6 rounded-full">
                         </AvatarFallback>
                       </Avatar>
                       <span class="truncate">{{ p.username }}</span>
@@ -277,22 +346,18 @@ onMounted(() => {
 
                 <!-- Most coins -->
                 <div>
-                  <h3 class="font-semibold mb-1">Most coins (theoretical)</h3>
+                  <h3 class="font-semibold mb-1">Most coins</h3>
                   <ul class="space-y-1">
                     <li
                       v-for="(p, idx) in globalScoreboards.top_coins"
-                      :key="'tc-'+p.user_id"
+                      :key="'tc-' + p.user_id"
                       class="flex items-center gap-2"
                     >
                       <span class="w-4 text-right mr-1">{{ idx + 1 }}.</span>
                       <Avatar class="h-6 w-6">
                         <AvatarImage :src="getEffectiveAvatar(p)" />
                         <AvatarFallback>
-                          <img
-                            :src="defaultPlaceholder"
-                            alt=""
-                            class="h-6 w-6 rounded-full"
-                          >
+                          <img :src="defaultPlaceholder" alt="" class="h-6 w-6 rounded-full">
                         </AvatarFallback>
                       </Avatar>
                       <span class="truncate">{{ p.username }}</span>
@@ -309,6 +374,16 @@ onMounted(() => {
             </div>
           </div>
         </CardContent>
+      </Card>
+
+      <!-- Opcional: mensagem para guests -->
+      <Card v-else>
+        <CardHeader>
+          <CardTitle class="text-xl">Scoreboards</CardTitle>
+          <CardDescription>
+            Log in to see your personal stats and global rankings.
+          </CardDescription>
+        </CardHeader>
       </Card>
     </div>
   </div>

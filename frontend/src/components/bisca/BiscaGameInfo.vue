@@ -20,15 +20,17 @@ const suitColor = {
 }
 
 const suitName = {
-  '♥': 'Copas',
-  '♦': 'Ouros',
-  '♠': 'Espadas',
-  '♣': 'Paus',
+  '♥': 'Hearts',
+  '♦': 'Diamonds',
+  '♠': 'Spades',
+  '♣': 'Clubs',
 }
 </script>
 
 <template>
   <section class="info-grid">
+
+    <!-- Match only -->
     <InfoBlock
       v-if="gametype === 'match'"
       label="Game"
@@ -43,15 +45,18 @@ const suitName = {
       {{ bisca.playerMarks }} — {{ bisca.botMarks }}
     </InfoBlock>
 
-    <InfoBlock label="Pontos (game)">
-      Tu {{ bisca.playerPoints }} — {{ bisca.botPoints }} Bot
+    <!-- Points -->
+    <InfoBlock label="Points (game)">
+      You {{ bisca.playerPoints }} — {{ bisca.botPoints }} Bot
     </InfoBlock>
 
-    <InfoBlock label="Baralho">
-      {{ bisca.stock.length }} cartas
+    <!-- Deck size -->
+    <InfoBlock label="Deck">
+      {{ bisca.stock.length }} cards
     </InfoBlock>
 
-    <InfoBlock label="Trunfo">
+    <!-- Trump -->
+    <InfoBlock label="Trump">
       <span
         v-if="bisca.trumpCard"
         :style="{ color: suitColor[bisca.trumpCard.suit] }"
@@ -61,9 +66,15 @@ const suitName = {
       <span v-else>—</span>
     </InfoBlock>
 
-    <InfoBlock label="Fase">
-      {{ bisca.phase === 'draw_phase' ? 'Biscar' : 'Assistir' }}
+    <!-- Phase -->
+    <InfoBlock label="Phase">
+      {{
+        bisca.phase === 'draw_phase'
+          ? 'Draw phase'
+          : 'Final phase (follow suit)'
+      }}
     </InfoBlock>
+
   </section>
 </template>
 

@@ -7,7 +7,6 @@ export const useAPIStore = defineStore('api', () => {
   const token = ref(null)
   const isValidating = ref(false)
 
-  // Initialize token from localStorage
   const initializeToken = () => {
     const stored = localStorage.getItem('auth_token')
     if (stored) {
@@ -18,7 +17,6 @@ export const useAPIStore = defineStore('api', () => {
 
   initializeToken()
 
-  // Validate token using backend
   const validateToken = async () => {
     if (!token.value || isValidating.value) return true
 
@@ -36,7 +34,6 @@ export const useAPIStore = defineStore('api', () => {
 
   const setToken = (newToken) => {
     token.value = newToken
-
     if (newToken) {
       localStorage.setItem('auth_token', newToken)
       axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
@@ -51,7 +48,6 @@ export const useAPIStore = defineStore('api', () => {
     delete axios.defaults.headers.common['Authorization']
   }
 
-  // Global axios interceptor for invalid tokens
   axios.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -62,7 +58,7 @@ export const useAPIStore = defineStore('api', () => {
     },
   )
 
-  // Auth: Login / Register / Logout
+  // Auth
   const postLogin = async (credentials) => {
     const response = await axios.post(`${API_BASE_URL}/login`, credentials)
     const responseToken = response.data.token
@@ -90,24 +86,10 @@ export const useAPIStore = defineStore('api', () => {
     return axios.get(`${API_BASE_URL}/users/me`)
   }
 
-  const getLeaderboard = async (payload) => {
-    return axios.post(`${API_BASE_URL}/leaderboard`, payload)
-  }
-
   // Economy
-  const postDeductEntryFee = async (payload) => {
-    if (!token.value) throw new Error('No authentication token available')
-    return axios.post(`${API_BASE_URL}/economy/deduct-entry-fee`, payload)
-  }
-
-  const postAwardMatchReward = async (payload) => {
-    if (!token.value) throw new Error('No authentication token available')
-    return axios.post(`${API_BASE_URL}/economy/award-match-reward`, payload)
-  }
 
   const postCoinPurchase = async (data, coins) => {
     if (!token.value) throw new Error('No authentication token available')
-
     return axios.post(`${API_BASE_URL}/coin-purchases`, {
       euros: data.euros,
       payment_type: data.payment_type,
@@ -117,14 +99,6 @@ export const useAPIStore = defineStore('api', () => {
   }
 
   // Matches / Games
-  const getUserGames = async () => {
-    if (!token.value) throw new Error('No authentication token available')
-    return axios.get(`${API_BASE_URL}/users/matches`)
-  }
-
-  const postStandalone = (game) => {
-    return axios.post(`${API_BASE_URL}/standalone`, game)
-  }
 
   const postMatch = async (match) => {
     if (!token.value) throw new Error('No authentication token available')
@@ -155,6 +129,21 @@ export const useAPIStore = defineStore('api', () => {
   const postDebugResetCustomizations = () => {
     if (!token.value) throw new Error('No authentication token available')
     return axios.post(`${API_BASE_URL}/customizations/debug/reset`)
+  }
+
+  const getUserHistory = async (params = {}) => {
+    if (!token.value) throw new Error('No authentication token available')
+    return axios.get(`${API_BASE_URL}/users/history`, { params })
+  }
+
+  const getUserStats = async (params = {}) => {
+    if (!token.value) throw new Error('No authentication token available')
+    return axios.get(`${API_BASE_URL}/users/stats`, { params })
+  }
+
+  const getGlobalScoreboards = async (params = {}) => {
+    if (!token.value) throw new Error('No authentication token available')
+    return axios.get(`${API_BASE_URL}/users/stats/global`, { params })
   }
 
   // Profile
@@ -189,20 +178,12 @@ export const useAPIStore = defineStore('api', () => {
 
   const deleteUser = async (password) => {
     if (!token.value) throw new Error('No authentication token available')
-
     return axios.delete(`${API_BASE_URL}/users/delete`, {
       data: { password },
     })
   }
 
-  const getUserActivities = async (userId) => {
-    if (!token.value) throw new Error('No authentication token available')
-    return axios.get(`${API_BASE_URL}/users/${userId}/activities`)
-  }
-
-  // Added constants from old store
   const photoAvatarStorageURL = 'http://127.0.0.1:8000/storage/photos_avatars/'
-
   const anonymousAvatarStorageURL = 'http://127.0.0.1:8000/storage/photos_avatars/anonymous.png'
 
   return {
@@ -216,12 +197,7 @@ export const useAPIStore = defineStore('api', () => {
     postRegister,
     postLogout,
     getAuthUser,
-    getLeaderboard,
-    postDeductEntryFee,
-    postAwardMatchReward,
     postCoinPurchase,
-    getUserGames,
-    postStandalone,
     postMatch,
     updateMatch,
     postGame,
@@ -230,8 +206,10 @@ export const useAPIStore = defineStore('api', () => {
     postDebugResetCustomizations,
     updateProfile,
     deleteUser,
+    getUserHistory,
+    getUserStats,
+    getGlobalScoreboards,
     photoAvatarStorageURL,
     anonymousAvatarStorageURL,
-    getUserActivities,
   }
 })

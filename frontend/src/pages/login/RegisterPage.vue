@@ -1,6 +1,6 @@
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-    <div class="w-full max-w-md space-y-8">
+  <div class="flex min-h-screen items-center justify-center bg-gray-200 px-4 py-12 sm:px-6 lg:px-8">
+    <div class="w-full max-w-md space-y-8 bg-white p-6 rounded-lg shadow">
       <div>
         <h2 class="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
           Sign up
@@ -11,75 +11,71 @@
       </div>
 
       <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
-        <div class="space-y-4 rounded-md shadow-sm">
-          <!-- Grid for inputs and file upload -->
-          <div class="grid grid-cols-2 gap-4">
-            <!-- Left side inputs -->
-            <div class="space-y-4">
-              <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-                  Email address
-                </label>
-                <Input id="email" v-model="formData.email" type="email" autocomplete="email" required
-                       placeholder="you@example.com" />
-              </div>
 
-              <div>
-                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
-                  Name
-                </label>
-                <Input id="name" v-model="formData.name" type="text" autocomplete="name" required />
-              </div>
-            </div>
-
-            <!-- Right side: file upload -->
+        <!-- Grid for inputs and file upload -->
+        <div class="grid grid-cols-2 gap-4">
+          <!-- Left side inputs -->
+          <div class="space-y-4">
             <div>
-              <Card class="h-full p-4 flex flex-col items-center justify-center">
-                <div v-bind="dropzoneRootProps"
-                     class="flex flex-col items-center justify-center h-full w-full text-center p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                  <input v-bind="dropzoneInputProps" />
-                  <p v-if="isDragActive" class="text-sm text-gray-500">Drop the file here…</p>
-                  <p v-else class="text-sm text-gray-500">Drag & drop your photo here, or click to select</p>
+              <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+                Email address
+              </label>
+              <Input id="email" v-model="formData.email" type="email" autocomplete="email" required
+                placeholder="you@example.com" />
+            </div>
 
-                  <img
-                    v-if="previewUrl"
-                    :src="previewUrl"
-                    alt="Preview"
-                    class="mt-4 max-h-32 rounded-md object-cover"
-                  />
-
-                  <div v-if="previewUrl" class="mt-2">
-                    <a href="#" @click.prevent="removeFile" class="text-red-600 text-sm hover:underline">
-                      Remove Photo
-                    </a>
-                  </div>
-
-                  <button type="button" @click="openDropzone"
-                          class="mt-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-500">
-                    Select File
-                  </button>
-                </div>
-              </Card>
+            <div>
+              <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+                Name
+              </label>
+              <Input id="name" v-model="formData.name" type="text" autocomplete="name" required />
             </div>
           </div>
 
-          <!-- Password input -->
+          <!-- Right side: file upload -->
           <div>
-            <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <Input id="password" v-model="formData.password" type="password" autocomplete="current-password"
-                   required placeholder="••••••••" />
-          </div>
+            <Card class="h-full p-4 flex flex-col items-center justify-center">
+              <div v-bind="dropzoneRootProps"
+                class="flex flex-col items-center justify-center h-full w-full text-center p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                <input v-bind="dropzoneInputProps" />
+                <p v-if="isDragActive" class="text-sm text-gray-500">Drop the file here…</p>
+                <p v-else class="text-sm text-gray-500">Drag & drop your photo here, or click to select</p>
 
-          <!-- Nickname input -->
-          <div>
-            <label for="nickname" class="block text-sm font-medium text-gray-700 mb-1">
-              Nickname
-            </label>
-            <Input id="nickname" v-model="formData.nickname" type="text" autocomplete="name" required />
+                <img v-if="previewUrl" :src="previewUrl" alt="Preview" class="mt-4 max-h-32 rounded-md object-cover" />
+
+                <div v-if="previewUrl" class="mt-2">
+                  <a href="#" @click.stop.prevent="removeFile" class="text-red-600 text-sm hover:underline">
+                    Remove Photo
+                  </a>
+                </div>
+
+                <button type="button" @click.stop.prevent="openDropzone"
+                  class="mt-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-500">
+                  Select File
+                </button>
+
+              </div>
+            </Card>
           </div>
         </div>
+
+        <!-- Password input -->
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
+            Password
+          </label>
+          <Input id="password" v-model="formData.password" type="password" autocomplete="current-password" required
+            placeholder="••••••••" />
+        </div>
+
+        <!-- Nickname input -->
+        <div>
+          <label for="nickname" class="block text-sm font-medium text-gray-700 mb-1">
+            Nickname
+          </label>
+          <Input id="nickname" v-model="formData.nickname" type="text" autocomplete="name" required />
+        </div>
+
 
         <!-- Submit button -->
         <div>

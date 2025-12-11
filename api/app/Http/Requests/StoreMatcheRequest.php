@@ -31,7 +31,7 @@ class StoreMatcheRequest extends FormRequest
             'stake'   => 'nullable|numeric',
             'began_at'=> 'required|date',
             // na criação ainda não sabemos o fim
-            'ended_at'=> 'nullable|date|after:began_at',
+            'ended_at'=> 'nullable|date|after_or_equal:began_at',
 
             'player1_points' => 'nullable|numeric',
             'player2_points' => 'nullable|numeric',

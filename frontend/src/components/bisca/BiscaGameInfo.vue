@@ -8,7 +8,7 @@ const props = defineProps({
   },
   gametype: {
     type: String,
-    required: true,
+    required: true, // 'practice' | 'match'
   },
 })
 
@@ -20,51 +20,61 @@ const suitColor = {
 }
 
 const suitName = {
-  '♥': 'Copas',
-  '♦': 'Ouros',
-  '♠': 'Espadas',
-  '♣': 'Paus',
+  '♥': 'Hearts',
+  '♦': 'Diamonds',
+  '♠': 'Spades',
+  '♣': 'Clubs',
 }
-
 </script>
 
 <template>
   <section class="info-grid">
-    <InfoBlock v-if="gametype === 'match'" label="Game">
+
+    <!-- Match only -->
+    <InfoBlock
+      v-if="gametype === 'match'"
+      label="Game"
+    >
       {{ bisca.currentGameNumber }}
     </InfoBlock>
 
-    <InfoBlock v-if="gametype === 'match'" label="Marks">
+    <InfoBlock
+      v-if="gametype === 'match'"
+      label="Marks"
+    >
       {{ bisca.playerMarks }} — {{ bisca.botMarks }}
     </InfoBlock>
 
-    <InfoBlock label="Pontos (game)">
-      Tu {{ bisca.playerPoints }} — {{ bisca.botPoints }} Bot
+    <!-- Points -->
+    <InfoBlock label="Points (game)">
+      You {{ bisca.playerPoints }} — {{ bisca.botPoints }} Bot
     </InfoBlock>
 
-    <InfoBlock label="Baralho">
-      {{ bisca.stock.length }} cartas
+    <!-- Deck size -->
+    <InfoBlock label="Deck">
+      {{ bisca.stock.length }} cards
     </InfoBlock>
 
-    <InfoBlock label="Trunfo">
-      <span v-if="bisca.trumpCard" :style="{
-        color: suitColor[bisca.trumpCard.suit],
-      }">
-
+    <!-- Trump -->
+    <InfoBlock label="Trump">
+      <span
+        v-if="bisca.trumpCard"
+        :style="{ color: suitColor[bisca.trumpCard.suit] }"
+      >
         {{ bisca.trumpCard.suit }} {{ suitName[bisca.trumpCard.suit] }}
-
       </span>
-
       <span v-else>—</span>
     </InfoBlock>
 
-    <InfoBlock label="Fase">
+    <!-- Phase -->
+    <InfoBlock label="Phase">
       {{
         bisca.phase === 'draw_phase'
-          ? 'Biscar'
-          : 'Assistir'
+          ? 'Draw phase'
+          : 'Final phase (follow suit)'
       }}
     </InfoBlock>
+
   </section>
 </template>
 

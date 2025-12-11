@@ -9,12 +9,9 @@ use App\Http\Requests\StoreMatcheRequest;
 use App\Models\Matche;
 use App\Models\User;
 
-
 class GameController extends Controller
 {
-    //
     //public function index()
-
 
     public function store(StoreGameRequest $request)
     {
@@ -28,22 +25,24 @@ class GameController extends Controller
                 $data['total_time'] = $end - $start;
             }
         }
+
         $game = Game::create($data);
+
         return response()->json($game, 201);
     }
+
     public function show(Game $game)
     {
         return $game;
     }
+
     public function update(StoreGameRequest $request, Game $game)
     {
         $game->update($request->validated());
+
         return response()->json($game);
     }
 
-    //public function getUserGames(User $user){
-    //  return $user -> games();
-    //}
     public function getUserGames(User $user)
     {
         return response()->json($user->games()->get());

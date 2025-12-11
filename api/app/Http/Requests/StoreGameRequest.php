@@ -28,7 +28,7 @@ class StoreGameRequest extends FormRequest
             'type' => 'required|string|in:3,9',
             'status' => 'required|in:Pending,Playing,Ended,Interrupted',
             'began_at' => 'required|date',
-            'ended_at' => 'required|date|after:began_at',
+            'ended_at' => 'required|date|after_or_equal:began_at',
             'player1_points' => 'nullable|numeric',
             'player2_points' => 'nullable|numeric',
             'total_time' => 'nullable|integer',

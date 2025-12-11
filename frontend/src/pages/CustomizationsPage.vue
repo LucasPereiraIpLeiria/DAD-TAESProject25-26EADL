@@ -41,7 +41,7 @@
         </div>
       </section>
 
-      <div class="flex justify-center">
+      <div class="flex justify-end pr-40">
         <button
           @click="resetCustomDebug"
           class="px-3 py-1 text-sm bg-red-700 hover:bg-red-800 rounded text-white mt-2"

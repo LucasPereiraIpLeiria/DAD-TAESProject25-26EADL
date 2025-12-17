@@ -182,13 +182,13 @@ watch(
 
           <span
             v-if="g.achievements?.bandeira"
-            class="badge"
+            class="px-1.5 py-0.5 rounded-full border border-indigo-200 font-bold bg-indigo-50 text-indigo-700 text-[11px] sm:text-xs whitespace-nowrap"
           >
             Bandeira
           </span>
           <span
             v-else-if="g.achievements?.capote"
-            class="badge"
+            class="px-1.5 py-0.5 rounded-full border border-purple-200 font-bold bg-purple-50 text-purple-700 text-[11px] sm:text-xs whitespace-nowrap"
           >
             Capote
           </span>

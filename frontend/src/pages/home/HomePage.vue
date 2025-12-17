@@ -269,8 +269,8 @@ onMounted(() => {
                 </div>
 
                 <div class="flex flex-col bg-gray-100 p-2 rounded-lg items-center text-center leading-tight">
-                  <span class="text-sm text-gray-600">Draws</span>
-                  <span class="font-bold text-gray-700 text-lg">{{ personalStats.draws }}</span>
+                  <span class="text-sm text-gray-600">Win rate</span>
+                  <span class="font-bold text-lg">{{ personalStats.win_rate }}%</span>
                 </div>
 
                 <div class="flex flex-col bg-gray-100 p-2 rounded-lg items-center text-center leading-tight">
@@ -284,11 +284,6 @@ onMounted(() => {
                 </div>
 
                 <div class="flex flex-col bg-gray-100 p-2 rounded-lg items-center text-center leading-tight">
-                  <span class="text-sm text-gray-600">Win rate</span>
-                  <span class="font-bold text-lg">{{ personalStats.win_rate }}%</span>
-                </div>
-
-                <div class="flex flex-col bg-gray-100 p-2 rounded-lg items-center text-center leading-tight">
                   <span class="text-sm text-gray-600">Capotes</span>
                   <span class="font-bold text-lg">{{ personalStats.total_capotes }}</span>
                 </div>
@@ -296,6 +291,11 @@ onMounted(() => {
                 <div class="flex flex-col bg-gray-100 p-2 rounded-lg items-center text-center leading-tight">
                   <span class="text-sm text-gray-600">Bandeiras</span>
                   <span class="font-bold text-lg">{{ personalStats.total_bandeiras }}</span>
+                </div>
+
+                <div class="flex flex-col bg-gray-100 p-2 rounded-lg items-center text-center leading-tight">
+                  <span class="text-sm text-gray-600">Coins used as entry fee</span>
+                  <span class="font-bold text-lg text-red-700">{{personalStats? personalStats.total_matches * 5: 0}}</span>
                 </div>
 
                 <div class="flex flex-col bg-gray-100 p-2 rounded-lg items-center text-center leading-tight">
@@ -319,7 +319,7 @@ onMounted(() => {
                 Rankings across all registered players ({{ variant === '9' ? 'Bisca of 9' : 'Bisca of 3' }}).
               </p>
 
-              
+
               <div class="grid grid-cols-1 md:grid-cols-3 text-xs md:divide-x md:divide-gray-200">
                 <!-- Most matches won -->
                 <div class="md:pr-4 mb-3 md:mb-0">

@@ -27,7 +27,7 @@ class AuthController extends Controller
         }
 
         $user  = Auth::user();
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $token = $user->createToken('access-token', ['*'], now()->addMinutes(120))->plainTextToken;
 
         return response()->json([
             'token' => $token,

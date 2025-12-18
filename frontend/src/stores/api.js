@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 import { inject, ref } from 'vue'
+import { useAuthStore } from '@/stores/auth.js'
 
 export const useAPIStore = defineStore('api', () => {
   const API_BASE_URL = inject('apiBaseURL')
@@ -48,7 +49,7 @@ export const useAPIStore = defineStore('api', () => {
   // limpar token de memória, localStorage e axios
   const clearToken = () => {
     token.value = null
-    localStorage.removeItem('auth_token')
+    useAuthStore().logout()
     delete axios.defaults.headers.common['Authorization']
   }
 
